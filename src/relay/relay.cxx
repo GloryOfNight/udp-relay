@@ -36,20 +36,19 @@ bool relay::run()
 	while (bRunning)
 	{
 		auto bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), recvAddr.get());
-		if (bytesRead == -1)
+		if (bytesRead > 0)
 		{
-			LOG(Error, "Failed to receive data from socket!");
+			LOG(Display, "Received {0} bytes from {1}", bytesRead, recvAddr->toString());
+			auto bytesSent = m_socket->sendTo(buffer.data(), bytesRead, recvAddr.get());
+			if (bytesSent > 0)
+			{
+				LOG(Display, "Sent {0} bytes to {1}", bytesSent, recvAddr->toString());
+			}
+			else
+			{
+				LOG(Error, "Failed to send data to socket!");
+			}
 		}
-
-		LOG(Display, "Received {0} bytes from {1}", bytesRead, recvAddr->toString());
-
-		auto bytesSent = m_socket->sendTo(buffer.data(), bytesRead, recvAddr.get());
-		if (bytesSent == -1)
-		{
-			LOG(Error, "Failed to send data to socket!");
-		}
-
-		LOG(Display, "Sent {0} bytes to {1}", bytesSent, recvAddr->toString());
 	}
 
 	return true;
