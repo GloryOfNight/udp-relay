@@ -24,5 +24,9 @@ public:
 
 	virtual bool setNonBlocking(bool value) = 0;
 
+	virtual bool setSendBufferSize(int32_t size, int32_t& newSize) = 0;
+
+	virtual bool setRecvBufferSize(int32_t size, int32_t& newSize) = 0;
+
 	virtual bool isValid() = 0;
 };

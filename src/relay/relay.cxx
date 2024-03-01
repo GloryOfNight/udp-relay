@@ -19,6 +19,10 @@ bool relay::init()
 	m_socket->bind(mainPort);
 	m_socket->setNonBlocking(true);
 
+	int32_t bufferSize{};
+	m_socket->setSendBufferSize(0x20000, bufferSize);
+	m_socket->setRecvBufferSize(0x20000, bufferSize);
+
 	return true;
 }
 
