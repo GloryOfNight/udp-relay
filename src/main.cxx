@@ -1,8 +1,12 @@
+#include "relay/relay.hxx"
+
 #include "arguments.hxx"
 #include "log.hxx"
 
-#include <csignal>
 #include <algorithm>
+#include <csignal>
+
+static relay g_relay{};
 
 void handleAbort(int sig);				// handle abort signal from terminal or system
 void parseArgs(int argc, char* argv[]); // parse argument list
@@ -17,12 +21,23 @@ int main(int argc, char* argv[], char* envp[])
 	parseArgs(argc, argv);
 	parseEnvp(envp);
 
+	if (!g_relay.init())
+	{
+		LOG(Error, "Failed to initialize relay. Abrorting.");
+		return 1;
+	}
+
+	LOG(Display, "Relay initialized. Starting...");
+
+	g_relay.run();
+
 	return 0;
 }
 
 void handleAbort(int sig)
 {
-	LOG(Error, "\nABORT RECEIVED\n");
+	LOG(Error, "\nCAUGHT SIGNAL - {0}\n", sig);
+	g_relay.stop();
 }
 
 void parseArgs(int argc, char* argv[])
