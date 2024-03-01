@@ -90,7 +90,7 @@ void parseArgs(int argc, char* argv[])
 		}
 		else
 		{
-			if (arg.ends_with("clang-format-all") || arg.ends_with("clang-format-all.exe"))
+			if (arg.ends_with("udp-relay") || arg.ends_with("udp-relay.exe"))
 				continue;
 
 			LOG(Error, "Unknown argument: {0}", arg.data());

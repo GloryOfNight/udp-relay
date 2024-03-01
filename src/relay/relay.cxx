@@ -14,6 +14,8 @@
 
 static int createSocket(int32_t port)
 {
+	LOG(Display, "Creating socket on port {0}", port);
+
 	int new_socket = socket(AF_INET, SOCK_DGRAM, 0);
 	if (new_socket == -1)
 	{

@@ -30,7 +30,7 @@ struct val_ref
 static bool printHelp{};				  // when true - prints help and exits
 static bool logDisable{};				  // when true - disable all logs
 static bool logVerbose{};				  // when true - log verbose messages
-static int32_t mainPort{};				  // main port for the server
+static int32_t mainPort{7777};				  // main port for the server
 static std::vector<int32_t> relayPorts{}; // additional ports for the server
 
 // clang-format off
