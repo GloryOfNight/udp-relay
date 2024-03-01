@@ -16,6 +16,8 @@ bool relay::init()
 		return false;
 	}
 
+	m_socket->bind(mainPort);
+
 	return true;
 }
 
@@ -24,7 +26,7 @@ bool relay::run()
 	if (!init())
 		return false;
 
-	LOG(Display, "Relay initialized and running");
+	LOG(Display, "Relay initialized and running on port {0}", mainPort);
 
 	std::unique_ptr<internetaddr> recvAddr = udpsocketFactory::createInternetAddrUnique();
 
