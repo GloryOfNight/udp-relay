@@ -39,7 +39,6 @@ bool relay::run()
 		if (bytesRead == -1)
 		{
 			LOG(Error, "Failed to receive data from socket!");
-			return false;
 		}
 
 		LOG(Display, "Received {0} bytes from {1}", bytesRead, recvAddr->toString());
@@ -48,7 +47,6 @@ bool relay::run()
 		if (bytesSent == -1)
 		{
 			LOG(Error, "Failed to send data to socket!");
-			return false;
 		}
 
 		LOG(Display, "Sent {0} bytes to {1}", bytesSent, recvAddr->toString());
