@@ -7,5 +7,9 @@
 class udpsocketFactory
 {
 public:
-    static std::unique_ptr<udpsocket> createUdpSocket(const int32_t port);
+	static std::unique_ptr<udpsocket> createUdpSocket();
+
+	static std::unique_ptr<internetaddr> createInternetAddrUnique();
+
+	static std::shared_ptr<internetaddr> createInternetAddr();
 };
