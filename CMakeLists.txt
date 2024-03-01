@@ -10,7 +10,13 @@ include(cmake/ProjectOptions.cmake)
 include(cmake/Sanitizers.cmake)
 include(cmake/PreventInSourceBuilds.cmake)
 
-add_executable(${PROJECT_NAME} "src/main.cxx" "src/relay/relay.cxx")
+add_executable(${PROJECT_NAME} 
+                                "src/main.cxx" 
+                                "src/relay/relay.cxx"
+                                "src/socket/udpsocketFactory.cxx"
+                                "src/socket/unix/internetaddrUnix.cxx"
+                                "src/socket/unix/udpsocketUnix.cxx")
+
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 
 target_include_directories(${PROJECT_NAME} PRIVATE "src")

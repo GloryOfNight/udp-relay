@@ -6,9 +6,9 @@
 #include <array>
 
 // clang-format off sockets
+#include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <sys/socket.h>
 // clang-format on
 
@@ -73,20 +73,20 @@ void relay::run()
 		const ssize_t bytesRead = recvfrom(m_socket, buffer.data(), buffer.size(), 0, (struct sockaddr*)&address, &addressLength);
 		if (bytesRead > 0)
 		{
-            LOG(Display, "Received message from {0}:{1} - {2} bytes", inet_ntoa(address.sin_addr), ntohs(address.sin_port), bytesRead);
-            buffer = {};
+			LOG(Display, "Received message from {0}:{1} - {2} bytes", inet_ntoa(address.sin_addr), ntohs(address.sin_port), bytesRead);
+			buffer = {};
 		}
-        else if (bytesRead == -1)
-        {
-            if (errno == EWOULDBLOCK)
-            {
-                continue;
-            }
-            else 
-            {
-                LOG(Error, "Failed to receive message. {0}", errno);
-            }
-        }
+		else if (bytesRead == -1)
+		{
+			if (errno == EWOULDBLOCK)
+			{
+				continue;
+			}
+			else
+			{
+				LOG(Error, "Failed to receive message. {0}", errno);
+			}
+		}
 	}
 }
 

@@ -30,8 +30,7 @@ struct val_ref
 static bool printHelp{};				  // when true - prints help and exits
 static bool logDisable{};				  // when true - disable all logs
 static bool logVerbose{};				  // when true - log verbose messages
-static int32_t mainPort{7777};				  // main port for the server
-static std::vector<int32_t> relayPorts{}; // additional ports for the server
+static int32_t mainPort{6060};			  // main port for the server
 
 // clang-format off
 static constexpr auto args = std::array
@@ -40,7 +39,6 @@ static constexpr auto args = std::array
 	val_ref{"--no-logs", logDisable,		"--no-logs                      = disable logs (might improve performance slightly)" },
 	val_ref{"--verbose", logVerbose,		"--verbose                      = enable verbose logs" },
 	val_ref{"--port", mainPort,				"--port <value>                 = main port for accepting requests" },
-	val_ref{"--relay-ports", relayPorts,	"--relay-ports <list>           = ports from which relay would start relaying messages" },
 };
 // clang-format on
 
