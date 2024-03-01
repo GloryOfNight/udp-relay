@@ -1,7 +1,9 @@
 #pragma once
-#include <cstdint>
+#include "socket/internetaddr.hxx"
+#include "socket/udpsocket.hxx"
 
-using SOCKET = int32_t;
+#include <cstdint>
+#include <memory>
 
 class relay
 {
@@ -9,14 +11,14 @@ public:
 	relay() = default;
 	~relay() = default;
 
-    bool init();
-
-	void run();
+	bool run();
 
 	void stop();
 
 private:
-    SOCKET m_socket{};
+	bool init();
 
-    bool bRunning{false};
+	bool bRunning{false};
+
+	std::unique_ptr<udpsocket> m_socket;
 };

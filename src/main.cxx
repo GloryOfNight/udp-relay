@@ -21,13 +21,7 @@ int main(int argc, char* argv[], char* envp[])
 	parseArgs(argc, argv);
 	parseEnvp(envp);
 
-	if (!g_relay.init())
-	{
-		LOG(Error, "Failed to initialize relay. Abrorting.");
-		return 1;
-	}
-
-	LOG(Display, "Relay initialized. Starting...");
+	LOG(Display, "Starting UDP relay. . .");
 
 	g_relay.run();
 
@@ -78,15 +72,6 @@ void parseArgs(int argc, char* argv[])
 			{
 				*val = arg;
 				prev_arg = nullptr;
-			}
-			else if (auto val = prev_arg->to<std::filesystem::path>())
-			{
-				*val = arg;
-				prev_arg = nullptr;
-			}
-			else if (auto val = prev_arg->to<std::vector<std::filesystem::path>>())
-			{
-				val->push_back(arg);
 			}
 			else
 			{

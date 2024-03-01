@@ -1,5 +1,8 @@
 #include "internetaddrUnix.hxx"
 
+#include <arpa/inet.h>
+#include <format>
+
 internetaddrUnix::internetaddrUnix()
 {
 	m_addr.sin_family = AF_INET;
@@ -30,4 +33,9 @@ uint16_t internetaddrUnix::getPort() const
 void internetaddrUnix::setPort(const uint16_t port)
 {
 	m_addr.sin_port = port;
+}
+
+std::string internetaddrUnix::toString() const
+{
+	return std::format("{0}:{1}", inet_ntoa(m_addr.sin_addr), ntohs(m_addr.sin_port));
 }
