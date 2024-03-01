@@ -17,6 +17,7 @@ bool relay::init()
 	}
 
 	m_socket->bind(mainPort);
+	m_socket->setNonBlocking(true);
 
 	return true;
 }
