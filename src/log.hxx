@@ -25,7 +25,7 @@ namespace cf
 		{
 			std::cerr << std::vformat(format, std::make_format_args(std::forward<Args>(args)...)) << std::endl;
 		}
-		else [[likely]]
+		else
 		{
 			std::cout << std::vformat(format, std::make_format_args(std::forward<Args>(args)...)) << std::endl;
 		}

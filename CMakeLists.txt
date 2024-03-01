@@ -11,6 +11,7 @@ include(cmake/Sanitizers.cmake)
 include(cmake/PreventInSourceBuilds.cmake)
 
 add_executable(${PROJECT_NAME} "src/main.cxx")
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 
 enable_sanitizers(${PROJECT_NAME} 
                     ${ENABLE_SANITIZER_ADDRESS} 

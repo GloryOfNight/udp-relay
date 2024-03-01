@@ -1,7 +1,8 @@
-#include "log.hxx"
 #include "arguments.hxx"
+#include "log.hxx"
 
 #include <csignal>
+#include <sys/socket.h>
 
 void handleAbort(int sig);				// handle abort signal from terminal or system
 void parseArgs(int argc, char* argv[]); // parse argument list
