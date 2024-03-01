@@ -69,7 +69,12 @@ void parseArgs(int argc, char* argv[])
 		}
 		else if (prev_arg)
 		{
-			if (auto val = prev_arg->to<std::string>())
+			if (auto val = prev_arg->to<int32_t>())
+			{
+				*val = std::stoi(arg.data());
+				prev_arg = nullptr;
+			}
+			else if (auto val = prev_arg->to<std::string>())
 			{
 				*val = arg;
 				prev_arg = nullptr;
