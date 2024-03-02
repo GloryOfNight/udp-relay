@@ -3,19 +3,35 @@
 
 struct guid
 {
-	int32_t a{};
-	int32_t b{};
-	int32_t c{};
-	int32_t d{};
+	guid() = default;
+	guid(int32_t a, int32_t b, int32_t c, int32_t d) 
+		: m_a{a}
+		, m_b{b}
+		, m_c{c}
+		, m_d{d}
+	{
+	}
+
+	int32_t m_a{};
+	int32_t m_b{};
+	int32_t m_c{};
+	int32_t m_d{};
 
 	bool operator<=>(const guid&) const = default;
+
+	std::string toString() const
+	{
+		char buffer[36]{};
+		std::snprintf(buffer, sizeof(buffer), "%08x-%04x-%04x-%04x-%04x%08x", m_a, m_b >> 16, m_b & 0xFFFF, m_c >> 16, m_c & 0xFFFF, m_d);
+		return std::string(buffer);
+	}
 };
 
 struct handshake_header
 {
-	uint16_t type{};
-	uint16_t length{};
-	guid id{};
+	uint16_t m_type{};
+	uint16_t m_length{};
+	guid m_id{};
 };
 
 // custom hash for guid

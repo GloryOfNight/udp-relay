@@ -38,11 +38,13 @@ public:
 private:
 	bool init();
 
+	channel& createChannel(const guid& inGuid);
+
 	std::unique_ptr<udpsocket> m_socket{};
 
 	std::forward_list<channel> m_channels{};
 
-	std::unordered_map<guid, const channel&> m_guidMappedChannels{};
+	std::unordered_map<guid, channel&> m_guidMappedChannels{};
 
 	std::unordered_map<std::shared_ptr<internetaddr>, const channel&> m_addressMappedChannels{};
 
