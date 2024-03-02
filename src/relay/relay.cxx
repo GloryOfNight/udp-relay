@@ -16,9 +16,9 @@ bool relay::init()
 		return false;
 	}
 
-	if (!m_socket->bind(mainPort))
+	if (!m_socket->bind(args::port))
 	{
-		LOG(Error, "Failed bind to {0} port", mainPort);
+		LOG(Error, "Failed bind to {0} port", args::port);
 		return false;
 	}
 
@@ -32,12 +32,12 @@ bool relay::init()
 
 	if (!m_socket->setSendBufferSize(wantedSize, actualSize))
 		LOG(Error, "Error with setting send buffer size");
-	LOG(Display, "Send buffer size, wanted: {0}, actual: {1}", wantedSize, actualSize);
+	LOG(Verbose, "Send buffer size, wanted: {0}, actual: {1}", wantedSize, actualSize);
 
 
 	if (!m_socket->setRecvBufferSize(0x20000, actualSize))
 		LOG(Error, "Error with setting recv buffer size");
-	LOG(Display, "Receive buffer size, wanted: {0}, actual: {1}", wantedSize, actualSize);
+	LOG(Verbose, "Receive buffer size, wanted: {0}, actual: {1}", wantedSize, actualSize);
 
 	return true;
 }
@@ -54,7 +54,7 @@ bool relay::run()
 	if (!init())
 		return false;
 
-	LOG(Display, "Relay initialized and running on port {0}", mainPort);
+	LOG(Display, "Relay initialized and running on port {0}", args::port);
 
 	std::array<uint8_t, 1024> buffer{};
 	m_running = true;

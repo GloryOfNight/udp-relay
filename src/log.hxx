@@ -11,14 +11,14 @@ enum class log_level : uint8_t
 	Error
 };
 
-static log_level gLogLevel = log_level::Verbose;
+extern log_level gLogLevel;
 
 namespace cf
 {
 	template <typename... Args>
 	void log(const log_level level, const std::string_view format, Args... args)
 	{
-		if (level <= log_level::NoLogs || level < gLogLevel)
+		if (gLogLevel <= log_level::NoLogs || level < gLogLevel)
 			return;
 
 		if (level == log_level::Error)

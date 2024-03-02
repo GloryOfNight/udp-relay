@@ -26,18 +26,21 @@ struct val_ref
 	}
 };
 
-static bool printHelp{};				  // when true - prints help and exits
-static bool logDisable{};				  // when true - disable all logs
-static bool logVerbose{};				  // when true - log verbose messages
-static int32_t mainPort{6060};			  // main port for the server
+namespace args
+{
+	extern bool printHelp;	// when true - prints help and exits
+	extern bool logDisable; // when true - disable all logs
+	extern bool logVerbose; // when true - log verbose messages
+	extern int32_t port;	// main port for the server
+} // namespace args
 
 // clang-format off
-static constexpr auto args = std::array
+static constexpr auto argList = std::array
 {
-	val_ref{"--help", printHelp,			"--help                         = print help" },
-	val_ref{"--no-logs", logDisable,		"--no-logs                      = disable logs (might improve performance slightly)" },
-	val_ref{"--verbose", logVerbose,		"--verbose                      = enable verbose logs" },
-	val_ref{"--port", mainPort,				"--port <value>                 = main port for accepting requests" },
+	val_ref{"--help", args::printHelp,			"--help                         = print help" },
+	val_ref{"--no-logs", args::logDisable,		"--no-logs                      = disable logs (might improve performance slightly)" },
+	val_ref{"--verbose", args::logVerbose,		"--verbose                      = enable verbose logs" },
+	val_ref{"--port", args::port,				"--port <value>                 = main port for accepting requests" },
 };
 // clang-format on
 

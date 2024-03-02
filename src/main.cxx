@@ -8,6 +8,16 @@
 
 static relay g_relay{};
 
+namespace args
+{
+	bool printHelp{};
+	bool logDisable{};
+	bool logVerbose{};
+	int32_t port{6060};
+} // namespace args
+
+log_level gLogLevel{log_level::Display};
+
 void handleAbort(int sig);				// handle abort signal from terminal or system
 void parseArgs(int argc, char* argv[]); // parse argument list
 void parseEnvp(char* envp[]);			// look and parse environment variables we could use
@@ -20,6 +30,30 @@ int main(int argc, char* argv[], char* envp[])
 
 	parseArgs(argc, argv);
 	parseEnvp(envp);
+
+	if (args::printHelp)
+	{
+		LOG(Display, "Available arguments list:");
+		for (auto& arg : argList)
+		{
+			if (arg.note_help.size() == 0)
+				continue;
+
+			LOG(Display, arg.note_help);
+		}
+		LOG(Display, " Apache License Version 2.0 - Copyright (c) 2024 Sergey Dikiy");
+		return 0;
+	}
+
+	if (args::logVerbose)
+	{
+		gLogLevel = log_level::Verbose;
+	}
+	else if (args::logDisable)
+	{
+		gLogLevel = log_level::NoLogs;
+	}
+
 
 	LOG(Display, "Starting UDP relay. . .");
 
@@ -42,7 +76,7 @@ void parseArgs(int argc, char* argv[])
 		const std::string_view arg = argv[i];
 
 		// find if argument listed in args
-		const auto found_arg = std::find_if(std::begin(args), std::end(args), [&arg](const val_ref& val)
+		const auto found_arg = std::find_if(std::begin(argList), std::end(argList), [&arg](const val_ref& val)
 			{ return arg == val.name; });
 
 		// some arguments doesn't need options and some does
@@ -52,7 +86,7 @@ void parseArgs(int argc, char* argv[])
 		// option would be parsed into one of the possible types of prev_arg
 		// for options that are array type, parsing will stop when new argument found or end of list
 
-		if (found_arg != std::end(args))
+		if (found_arg != std::end(argList))
 		{
 			prev_arg = &(*found_arg);
 			if (auto val = prev_arg->to<bool>())
