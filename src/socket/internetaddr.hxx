@@ -14,5 +14,8 @@ struct internetaddr
 
 	virtual std::string toString() const = 0;
 
-	virtual bool operator==(const internetaddr&) const = 0;
+	virtual bool operator==(const internetaddr& other) const
+	{
+		return getIp() == other.getIp() && getPort() == other.getPort();
+	}
 };

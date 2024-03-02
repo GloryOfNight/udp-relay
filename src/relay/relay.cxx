@@ -44,15 +44,33 @@ bool relay::run()
 		auto bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), recvAddr.get());
 		if (bytesRead > 0)
 		{
-			LOG(Display, "Received {0} bytes from {1}", bytesRead, recvAddr->toString());
-			auto bytesSent = m_socket->sendTo(buffer.data(), bytesRead, recvAddr.get());
-			if (bytesSent > 0)
+			const auto findRes = m_addressMappedChannels.find(std::shared_ptr<internetaddr>(recvAddr.get()));
+			// if has a channel mapped to the address aswell as two peers, relay
+			if (findRes != m_addressMappedChannels.end() && findRes->second.m_peerA && findRes->second.m_peerB)
 			{
-				LOG(Display, "Sent {0} bytes to {1}", bytesSent, recvAddr->toString());
+				const auto sendAddr = *findRes->second.m_peerA != *recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
+
+				LOG(Verbose, "Relaying packet of {0} bytes from {1} to {2}", bytesRead, sendAddr->toString(), recvAddr->toString());
+				auto bytesSent = m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());
+
+				continue;
 			}
-			else
+
+			if (bytesRead == 1024)
 			{
-				LOG(Error, "Failed to send data to socket!");
+				const handshake_header* header = reinterpret_cast<const handshake_header*>(buffer.data());
+
+				LOG(Verbose, "Received header: type: {0}, length: {1} from {2}", header->type, header->length, recvAddr->toString());
+
+				auto nthType = NETWORK_TO_HOST_16(header->type);
+				auto nthLength = NETWORK_TO_HOST_16(header->type);
+
+				LOG(Verbose, "Swapped header: type: {0}, length: {1} from {2}", nthType, nthLength, recvAddr->toString());
+
+				if (header->type == NETWORK_TO_HOST_16(0x01) && header->length == NETWORK_TO_HOST_16(1024))
+				{
+					LOG(Display, "you win!");
+				}
 			}
 		}
 	}

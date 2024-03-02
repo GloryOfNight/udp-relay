@@ -11,6 +11,13 @@ struct guid
 	bool operator<=>(const guid&) const = default;
 };
 
+struct handshake_header
+{
+	uint16_t type{};
+	uint16_t length{};
+	guid id{};
+};
+
 // custom hash for guid
 namespace std
 {

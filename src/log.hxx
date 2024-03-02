@@ -11,7 +11,7 @@ enum class log_level : uint8_t
 	Error
 };
 
-static log_level gLogLevel = log_level::Display;
+static log_level gLogLevel = log_level::Verbose;
 
 namespace cf
 {

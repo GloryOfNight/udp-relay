@@ -19,6 +19,14 @@ struct channel
 	std::chrono::steady_clock::time_point m_lastUpdated{};
 };
 
+#ifdef _MSC_VER
+#define NETWORK_TO_HOST_16(x) _byteswap_ushort(static_cast<uint16_t>(x))
+#define NETWORK_TO_HOST_32(x) _byteswap_ulong(static_cast<uint32_t>(x))
+#elif defined(__clang__)
+#define NETWORK_TO_HOST_16(x) __builtin_bswap16(static_cast<uint16_t>(x))
+#define NETWORK_TO_HOST_32(x) __builtin_bswap32(static_cast<uint32_t>(x))
+#endif
+
 class relay
 {
 public:
