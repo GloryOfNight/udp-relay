@@ -23,6 +23,10 @@ public:
 
 	virtual bool setRecvBufferSize(int32_t size, int32_t& newSize) override;
 
+	virtual bool waitForRead(int32_t timeoutms) override;
+
+	virtual bool waitForWrite(int32_t timeoutms) override;
+
 	virtual bool isValid() override;
 
 private:

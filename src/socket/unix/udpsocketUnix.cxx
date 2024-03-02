@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <poll.h>
 
 udpsocketUnix::udpsocketUnix()
 {
@@ -83,6 +84,29 @@ bool udpsocketUnix::setRecvBufferSize(int32_t size, int32_t& newSize)
 	bool bOk = setsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (char*)&size, sizeof(int32_t)) == 0;
 	getsockopt(m_socket, SOL_SOCKET, SO_RCVBUF, (char*)&newSize, &sizeSize);
 	return bOk;
+}
+
+bool udpsocketUnix::waitForRead(int32_t timeoutms)
+{
+	// wait for read via ::poll
+	struct pollfd fdset;
+	fdset.fd = m_socket;
+	fdset.events = POLLIN;
+	fdset.revents = 0;
+
+	int res = ::poll(&fdset, 1, (int)timeoutms);
+	return res >= 0 ? fdset.revents & fdset.events : false;
+}
+
+bool udpsocketUnix::waitForWrite(int32_t timeoutms)
+{
+	struct pollfd fdset;
+	fdset.fd = m_socket;
+	fdset.events = POLLIN;
+	fdset.revents = 0;
+
+	int res = ::poll(&fdset, 1, (int)timeoutms);
+	return res >= 0 ? fdset.revents & fdset.events : false;
 }
 
 bool udpsocketUnix::isValid()
