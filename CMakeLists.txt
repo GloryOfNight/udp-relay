@@ -17,8 +17,6 @@ add_executable(${PROJECT_NAME}
                                 "src/socket/unix/internetaddrUnix.cxx"
                                 "src/socket/unix/udpsocketUnix.cxx")
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
-
 target_include_directories(${PROJECT_NAME} PRIVATE "src")
 
 enable_sanitizers(${PROJECT_NAME} 
