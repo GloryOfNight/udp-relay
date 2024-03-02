@@ -22,7 +22,7 @@ jobs:
       run: |
        sudo apt-get update
        sudo apt-get install -y cmake
-       sudo apt-get install -y clang
+       sudo apt-get install -y clang-15
        sudo apt-get install -y ninja-build
 
     - name: Configure and build
