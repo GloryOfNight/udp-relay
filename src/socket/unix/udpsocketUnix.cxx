@@ -8,8 +8,8 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
-#include <sys/socket.h>
 #include <poll.h>
+#include <sys/socket.h>
 
 udpsocketUnix::udpsocketUnix()
 {
@@ -94,8 +94,12 @@ bool udpsocketUnix::waitForRead(int32_t timeoutms)
 	fdset.events = POLLIN;
 	fdset.revents = 0;
 
-	int res = ::poll(&fdset, 1, (int)timeoutms);
-	return res >= 0 ? fdset.revents & fdset.events : false;
+	const int res = ::poll(&fdset, 1, (int)timeoutms);
+
+	if (res < 0) [[unlikely]]
+		return false;
+
+	return fdset.revents & fdset.events;
 }
 
 bool udpsocketUnix::waitForWrite(int32_t timeoutms)
@@ -106,7 +110,11 @@ bool udpsocketUnix::waitForWrite(int32_t timeoutms)
 	fdset.revents = 0;
 
 	int res = ::poll(&fdset, 1, (int)timeoutms);
-	return res >= 0 ? fdset.revents & fdset.events : false;
+
+	if (res < 0) [[unlikely]]
+		return false;
+
+	return fdset.revents & fdset.events;
 }
 
 bool udpsocketUnix::isValid()

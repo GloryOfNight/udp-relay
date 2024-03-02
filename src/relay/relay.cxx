@@ -28,7 +28,7 @@ bool relay::init()
 		return false;
 	}
 
-	const int32_t wantedBufferSize = 0x20000;
+	const int32_t wantedBufferSize = 0x20000; // same value as in unreal server
 	int32_t actualBufferSize{};
 
 	if (!m_socket->setSendBufferSize(wantedBufferSize, actualBufferSize))
@@ -65,15 +65,15 @@ bool relay::run()
 			continue;
 
 		std::shared_ptr<internetaddr> recvAddr = udpsocketFactory::createInternetAddr();
-		auto bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), recvAddr.get());
+		const int32_t bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), recvAddr.get());
 		if (bytesRead > 0)
 		{
 			const auto findRes = m_addressMappedChannels.find(recvAddr);
-			// if has a channel mapped to the address as well as two peers, relay
+			// if recvAddr has a channel mapped to it, as well as two valid peers, relay packet to the other peer
 			if (findRes != m_addressMappedChannels.end() && findRes->second.m_peerA && findRes->second.m_peerB)
 			{
-				const auto sendAddr = *findRes->second.m_peerA != *recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
-				auto bytesSent = m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());
+				const auto& sendAddr = *findRes->second.m_peerA != *recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
+				int32_t bytesSent = m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());
 
 				if (bytesSent == -1)
 				{
