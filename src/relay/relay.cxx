@@ -53,10 +53,7 @@ bool relay::run()
 			if (findRes != m_addressMappedChannels.end() && findRes->second.m_peerA && findRes->second.m_peerB)
 			{
 				const auto sendAddr = *findRes->second.m_peerA != *recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
-
-				LOG(Verbose, "Relaying packet of {0} bytes from {1} to {2}", bytesRead, sendAddr->toString(), recvAddr->toString());
 				auto bytesSent = m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());
-
 				continue;
 			}
 			else if (bytesRead == 1024) // const handshake packet size
