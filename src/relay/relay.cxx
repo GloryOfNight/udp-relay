@@ -61,11 +61,11 @@ bool relay::run()
 				LOG(Verbose, "Received header: type: {0}, length: {1} from {2}", header->type, header->length, recvAddr->toString());
 
 				auto nthType = NETWORK_TO_HOST_16(header->type);
-				auto nthLength = NETWORK_TO_HOST_16(header->type);
+				auto nthLength = NETWORK_TO_HOST_16(header->length);
 
 				LOG(Verbose, "Swapped header: type: {0}, length: {1} from {2}", nthType, nthLength, recvAddr->toString());
 
-				if (header->type == NETWORK_TO_HOST_16(0x01) && header->length == NETWORK_TO_HOST_16(1024))
+				if (nthType == 0x01 && nthLength == 1024)
 				{
 					LOG(Display, "you win!");
 				}
