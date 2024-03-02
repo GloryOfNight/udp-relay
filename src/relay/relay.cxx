@@ -85,6 +85,8 @@ bool relay::run()
 					{
 						channel& newChannel = createChannel(htnGuid);
 						newChannel.m_peerA = recvAddr;
+
+						m_addressMappedChannels.emplace(newChannel.m_guid, newChannel);
 					}
 					else if (*guidChannel->second.m_peerA != *recvAddr && guidChannel->second.m_peerB == nullptr)
 					{
