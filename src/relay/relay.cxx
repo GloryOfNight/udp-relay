@@ -75,8 +75,7 @@ bool relay::run()
 					if (guidChannel == m_guidMappedChannels.end())
 					{
 						channel& newChannel = createChannel(htnGuid);
-						newChannel.m_peerA = udpsocketFactory::createInternetAddr();
-						*newChannel.m_peerA = *recvAddr;
+						newChannel.m_peerA = std::move(recvAddr);
 
 						m_guidMappedChannels.emplace(newChannel.m_guid, newChannel);
 
@@ -84,13 +83,12 @@ bool relay::run()
 					}
 					else if (*guidChannel->second.m_peerA != *recvAddr && guidChannel->second.m_peerB == nullptr)
 					{
-						guidChannel->second.m_peerB = udpsocketFactory::createInternetAddr();
-						*guidChannel->second.m_peerB = *recvAddr;
+						guidChannel->second.m_peerB = std::move(recvAddr);
 
 						m_addressMappedChannels.emplace(guidChannel->second.m_peerA, guidChannel->second);
 						m_addressMappedChannels.emplace(guidChannel->second.m_peerB, guidChannel->second);
 
-						LOG(Display, "Created relay for session: {0} with peers: {1}, {2}.", htnGuid.toString(), guidChannel->second.m_peerA->toString(), recvAddr->toString());
+						LOG(Display, "Created relay for session: {0} with peers: {1}, {2}.", htnGuid.toString(), guidChannel->second.m_peerA->toString(), guidChannel->second.m_peerB->toString());
 					}
 					else
 					{
