@@ -60,6 +60,9 @@ bool relay::run()
 	m_running = true;
 	while (m_running)
 	{
+		if (!m_socket->waitForRead(1000))
+			continue;
+
 		std::shared_ptr<internetaddr> recvAddr = udpsocketFactory::createInternetAddr();
 		auto bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), recvAddr.get());
 		if (bytesRead > 0)
@@ -70,6 +73,27 @@ bool relay::run()
 			{
 				const auto sendAddr = *findRes->second.m_peerA != *recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
 				auto bytesSent = m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());
+
+				if (bytesSent == -1)
+				{
+					if (errno == SE_WOULDBLOCK)
+					{
+						if (m_socket->waitForWrite(5))
+						{
+							m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());
+						}
+						else 
+						{
+							LOG(Error, "Packet dropped, socket not ready for write {0}.", sendAddr->toString());
+						}
+							
+					}
+					else 
+					{
+						LOG(Error, "Failed to send data to {0}. Error code: {1}", sendAddr->toString(), errno);
+					}
+				}
+
 				continue;
 			}
 			else if (bytesRead == 1024) // const handshake packet size

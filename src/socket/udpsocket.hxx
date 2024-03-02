@@ -5,11 +5,9 @@
 #include <cstdint>
 #include <memory>
 
-enum class networkProtocol
-{
-    ipv4,
-    ipv6
-};
+#ifndef SE_WOULDBLOCK
+#define SE_WOULDBLOCK EWOULDBLOCK
+#endif
 
 class udpsocket
 {
@@ -27,6 +25,10 @@ public:
 	virtual bool setSendBufferSize(int32_t size, int32_t& newSize) = 0;
 
 	virtual bool setRecvBufferSize(int32_t size, int32_t& newSize) = 0;
+
+	virtual bool waitForRead(int32_t timeoutms) = 0;
+
+	virtual bool waitForWrite(int32_t timeoutms) = 0;
 
 	virtual bool isValid() = 0;
 };
