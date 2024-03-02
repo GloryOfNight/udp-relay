@@ -40,12 +40,11 @@ bool relay::run()
 
 	LOG(Display, "Relay initialized and running on port {0}", mainPort);
 
-	std::shared_ptr<internetaddr> recvAddr = udpsocketFactory::createInternetAddrUnique();
-
 	std::array<uint8_t, 1024> buffer{};
 	m_running = true;
 	while (m_running)
 	{
+		std::shared_ptr<internetaddr> recvAddr = udpsocketFactory::createInternetAddr();
 		auto bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), recvAddr.get());
 		if (bytesRead > 0)
 		{
@@ -76,8 +75,8 @@ bool relay::run()
 					if (guidChannel == m_guidMappedChannels.end())
 					{
 						channel& newChannel = createChannel(htnGuid);
-						newChannel.m_peerA = recvAddr;
-						newChannel.m_peerB = nullptr;
+						newChannel.m_peerA = udpsocketFactory::createInternetAddr();
+						*newChannel.m_peerA = *recvAddr;
 
 						m_guidMappedChannels.emplace(newChannel.m_guid, newChannel);
 
@@ -85,7 +84,8 @@ bool relay::run()
 					}
 					else if (*guidChannel->second.m_peerA != *recvAddr && guidChannel->second.m_peerB == nullptr)
 					{
-						guidChannel->second.m_peerB = recvAddr;
+						guidChannel->second.m_peerB = udpsocketFactory::createInternetAddr();
+						*guidChannel->second.m_peerB = *recvAddr;
 
 						m_addressMappedChannels.emplace(guidChannel->second.m_peerA, guidChannel->second);
 						m_addressMappedChannels.emplace(guidChannel->second.m_peerB, guidChannel->second);
