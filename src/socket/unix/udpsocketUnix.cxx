@@ -66,25 +66,23 @@ bool udpsocketUnix::setNonBlocking(bool bNonBlocking)
 	if (flags == -1) [[unlikely]]
 		return false;
 	flags = bNonBlocking ? flags | O_NONBLOCK : flags ^ (flags & O_NONBLOCK);
-	return fcntl(m_socket, F_SETFL, ) != -1;
+	return fcntl(m_socket, F_SETFL, flags) != -1;
 }
 
 bool udpsocketUnix::setSendBufferSize(int32_t size, int32_t& newSize)
 {
-	//int32_t sizeSize = sizeof(size);
-	//bool bOk = setsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (char*)&size, sizeof(int32_t)) == 0;
-	//getsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (char*)&newSize, &sizeSize);
-	//return bOk;
-	return false;
+	socklen_t sizeSize = sizeof(size);
+	bool bOk = setsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (char*)&size, sizeof(int32_t)) == 0;
+	getsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (char*)&newSize, &sizeSize);
+	return bOk;
 }
 
 bool udpsocketUnix::setRecvBufferSize(int32_t size, int32_t& newSize)
 {
-	//int32_t sizeSize = sizeof(size);
-	//bool bOk = setsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (char*)&size, sizeof(int32_t)) == 0;
-	//getsockopt(m_socket, SOL_SOCKET, SO_RCVBUF, (char*)&newSize, &sizeSize);
-	//return bOk;
-	return false;
+	socklen_t sizeSize = sizeof(size);
+	bool bOk = setsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (char*)&size, sizeof(int32_t)) == 0;
+	getsockopt(m_socket, SOL_SOCKET, SO_RCVBUF, (char*)&newSize, &sizeSize);
+	return bOk;
 }
 
 bool udpsocketUnix::isValid()
