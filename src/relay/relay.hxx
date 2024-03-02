@@ -6,7 +6,7 @@
 
 #include <chrono>
 #include <cstdint>
-#include <forward_list>
+#include <list>
 #include <map>
 #include <memory>
 #include <unordered_map>
@@ -61,7 +61,7 @@ private:
 
 	std::unordered_map<std::shared_ptr<internetaddr>, channel&> m_addressMappedChannels{};
 
-	std::forward_list<channel> m_channels{};
+	std::list<channel> m_channels{};
 
 	std::unique_ptr<udpsocket> m_socket{};
 

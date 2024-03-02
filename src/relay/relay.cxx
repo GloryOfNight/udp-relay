@@ -46,7 +46,7 @@ channel& relay::createChannel(const guid& inGuid)
 {
 	channel newChannel{};
 	newChannel.m_guid = inGuid;
-	return *m_channels.emplace_after(m_channels.before_begin(), newChannel);
+	return m_channels.emplace_back(newChannel);
 }
 
 bool relay::conditionalCleanup(bool force)
@@ -67,7 +67,7 @@ bool relay::conditionalCleanup(bool force)
 				m_addressMappedChannels.erase(it->m_peerB);
 				m_guidMappedChannels.erase(it->m_guid);
 
-				it = m_channels.erase_after(m_channels.before_begin());
+				it = m_channels.erase(it);
 			}
 			else
 			{
