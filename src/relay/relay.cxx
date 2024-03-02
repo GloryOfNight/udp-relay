@@ -52,11 +52,18 @@ channel& relay::createChannel(const guid& inGuid)
 bool relay::conditionalCleanup(bool force)
 {
 	const auto now = std::chrono::steady_clock::now();
-	if (force || std::chrono::duration_cast<std::chrono::seconds>(now - m_lastCleanupTime).count() > 60)
+	const auto secondsSinceLastCleanup = std::chrono::duration_cast<std::chrono::seconds>(now - m_lastCleanupTime).count();
+
+	LOG(Verbose, "Cleaning up called. Time since last {0} sec", secondsSinceLastCleanup);
+
+	if (force || secondsSinceLastCleanup > 60)
 	{
+		LOG(Verbose, "Cleaning up triggered.")
 		for (auto it = m_channels.begin(); it != m_channels.end();)
 		{
-			if (std::chrono::duration_cast<std::chrono::seconds>(now - it->m_lastUpdated).count() > 30)
+			const auto inactiveSeconds = std::chrono::duration_cast<std::chrono::seconds>(now - it->m_lastUpdated).count();
+			LOG(Verbose, "Channel {0} has been inactive for {1} sec.", it->m_guid.toString(), inactiveSeconds);
+			if (inactiveSeconds > 30)
 			{
 				const auto channelGuidStr = it->m_guid.toString();
 				const auto stats = it->m_stats;
