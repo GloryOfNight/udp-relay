@@ -13,14 +13,11 @@
 
 struct channel_stats
 {
-	uint32_t m_bytesReceived{};
+	uint64_t m_bytesReceived{};
+	uint64_t m_bytesSent{};
+
 	uint32_t m_packetsReceived{};
-
-	uint32_t m_bytesSent{};
 	uint32_t m_packetsSent{};
-
-	uint32_t m_bytesDropped{};
-	uint32_t m_packetsDropped{};
 };
 
 struct channel

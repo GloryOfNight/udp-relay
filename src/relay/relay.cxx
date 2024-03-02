@@ -63,7 +63,7 @@ bool relay::conditionalCleanup(bool force)
 				const auto channelGuidStr = it->m_guid.toString();
 				const auto stats = it->m_stats;
 				LOG(Display, "Channel \"{0}\" has been inactive for {1} seconds, removing.", channelGuidStr, inactiveSeconds);
-				LOG(Display, "Channel \"{0}\" packet amount and total bytes. Recv: {1} ({2}); Sent: {3} ({4}); Dropped: {5} ({6})", channelGuidStr, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsSent, stats.m_bytesReceived, stats.m_packetsDropped, stats.m_bytesDropped);
+				LOG(Display, "Channel \"{0}\" packet amount and total bytes. Relayed: {1} ({2}); Dropped: {3} ({4})", channelGuidStr, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsReceived - stats.m_packetsSent, stats.m_bytesReceived - stats.m_bytesSent);
 
 				m_addressMappedChannels.erase(it->m_peerA);
 				m_addressMappedChannels.erase(it->m_peerB);
@@ -89,7 +89,7 @@ bool relay::run()
 	if (!init())
 		return false;
 
-	LOG(Display, "Relay initialized and running on port {0}", args::port);
+	LOG(Display, "Relay initialized, port {0}", args::port);
 
 	std::array<uint8_t, 1024> buffer{};
 
@@ -131,11 +131,6 @@ bool relay::run()
 					currentChannel.m_stats.m_packetsSent++;
 					currentChannel.m_stats.m_bytesSent += bytesSent;
 				}
-				else
-				{
-					currentChannel.m_stats.m_packetsDropped++;
-					currentChannel.m_stats.m_bytesDropped += bytesRead;
-				}
 			}
 			else if (bytesRead == 1024) // const handshake packet size
 			{
@@ -158,7 +153,7 @@ bool relay::run()
 
 						m_guidMappedChannels.emplace(newChannel.m_guid, newChannel);
 
-						LOG(Display, "Created channel for guid: {0}", newChannel.m_guid.toString());
+						LOG(Display, "Created channel for guid: \"{0}\"", newChannel.m_guid.toString());
 					}
 					else if (*guidChannel->second.m_peerA != *recvAddr && guidChannel->second.m_peerB == nullptr)
 					{
@@ -168,7 +163,7 @@ bool relay::run()
 						m_addressMappedChannels.emplace(guidChannel->second.m_peerA, guidChannel->second);
 						m_addressMappedChannels.emplace(guidChannel->second.m_peerB, guidChannel->second);
 
-						LOG(Display, "Channel relay established for session: {0} with peers: {1}, {2}.", htnGuid.toString(), guidChannel->second.m_peerA->toString(), guidChannel->second.m_peerB->toString());
+						LOG(Display, "Channel relay established for session: \"{0}\" with peers: {1}, {2}.", htnGuid.toString(), guidChannel->second.m_peerA->toString(), guidChannel->second.m_peerB->toString());
 					}
 				}
 			}
