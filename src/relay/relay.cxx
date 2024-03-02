@@ -35,7 +35,6 @@ bool relay::init()
 		LOG(Error, "Error with setting send buffer size");
 	LOG(Verbose, "Send buffer size, wanted: {0}, actual: {1}", wantedBufferSize, actualBufferSize);
 
-
 	if (!m_socket->setRecvBufferSize(wantedBufferSize, actualBufferSize))
 		LOG(Error, "Error with setting recv buffer size");
 	LOG(Verbose, "Receive buffer size, wanted: {0}, actual: {1}", wantedBufferSize, actualBufferSize);
@@ -47,7 +46,42 @@ channel& relay::createChannel(const guid& inGuid)
 {
 	channel newChannel{};
 	newChannel.m_guid = inGuid;
-	return *m_channels.emplace_after(m_channels.before_begin(), newChannel);
+	return m_channels.emplace_back(newChannel);
+}
+
+bool relay::conditionalCleanup(bool force)
+{
+	const auto now = std::chrono::steady_clock::now();
+	const auto secondsSinceLastCleanup = std::chrono::duration_cast<std::chrono::seconds>(now - m_lastCleanupTime).count();
+	if (force || secondsSinceLastCleanup > 60)
+	{
+		for (auto it = m_channels.begin(); it != m_channels.end();)
+		{
+			const auto inactiveSeconds = std::chrono::duration_cast<std::chrono::seconds>(now - it->m_lastUpdated).count();
+			if (inactiveSeconds > 30)
+			{
+				const auto channelGuidStr = it->m_guid.toString();
+				const auto stats = it->m_stats;
+				LOG(Display, "Channel \"{0}\" has been inactive for {1} seconds, removing.", channelGuidStr, inactiveSeconds);
+				LOG(Display, "Channel \"{0}\" packet amount and total bytes. Relayed: {1} ({2}); Dropped: {3} ({4})", channelGuidStr, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsReceived - stats.m_packetsSent, stats.m_bytesReceived - stats.m_bytesSent);
+
+				m_addressMappedChannels.erase(it->m_peerA);
+				m_addressMappedChannels.erase(it->m_peerB);
+				m_guidMappedChannels.erase(it->m_guid);
+
+				it = m_channels.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+
+		m_lastCleanupTime = now;
+		return true;
+	}
+
+	return false;
 }
 
 bool relay::run()
@@ -55,14 +89,19 @@ bool relay::run()
 	if (!init())
 		return false;
 
-	LOG(Display, "Relay initialized and running on port {0}", args::port);
+	LOG(Display, "Relay initialized, port {0}", args::port);
 
 	std::array<uint8_t, 1024> buffer{};
+
+	m_lastCleanupTime = std::chrono::steady_clock::now();
 	m_running = true;
 	while (m_running)
 	{
-		if (!m_socket->waitForRead(1000))
+		conditionalCleanup(false);
+		if (!m_socket->waitForRead(5))
 			continue;
+
+		const auto m_tickStartTime = std::chrono::steady_clock::now();
 
 		std::shared_ptr<internetaddr> recvAddr = udpsocketFactory::createInternetAddr();
 		const int32_t bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), recvAddr.get());
@@ -72,29 +111,26 @@ bool relay::run()
 			// if recvAddr has a channel mapped to it, as well as two valid peers, relay packet to the other peer
 			if (findRes != m_addressMappedChannels.end() && findRes->second.m_peerA && findRes->second.m_peerB)
 			{
+				auto& currentChannel = findRes->second;
+
+				currentChannel.m_lastUpdated = m_tickStartTime;
+
+				currentChannel.m_stats.m_packetsReceived++;
+				currentChannel.m_stats.m_bytesReceived += bytesRead;
+
 				const auto& sendAddr = *findRes->second.m_peerA != *recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
 				int32_t bytesSent = m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());
-
-				if (bytesSent == -1)
+				if (bytesSent == -1 && errno == SE_WOULDBLOCK)
 				{
-					if (errno == SE_WOULDBLOCK)
-					{
-						if (m_socket->waitForWrite(5))
-						{
-							m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());
-						}
-						else 
-						{
-							LOG(Error, "Packet dropped, socket not ready for write {0}.", sendAddr->toString());
-						}
-					}
-					else 
-					{
-						LOG(Error, "Failed to send data to {0}. Error code: {1}", sendAddr->toString(), errno);
-					}
+					if (m_socket->waitForWrite(5))
+						bytesSent = m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());
 				}
 
-				continue;
+				if (bytesSent > 0)
+				{
+					currentChannel.m_stats.m_packetsSent++;
+					currentChannel.m_stats.m_bytesSent += bytesSent;
+				}
 			}
 			else if (bytesRead == 1024) // const handshake packet size
 			{
@@ -113,19 +149,21 @@ bool relay::run()
 					{
 						channel& newChannel = createChannel(htnGuid);
 						newChannel.m_peerA = std::move(recvAddr);
+						newChannel.m_lastUpdated = m_tickStartTime;
 
 						m_guidMappedChannels.emplace(newChannel.m_guid, newChannel);
 
-						LOG(Display, "Created channel for guid: {0}", newChannel.m_guid.toString());
+						LOG(Display, "Created channel for guid: \"{0}\"", newChannel.m_guid.toString());
 					}
 					else if (*guidChannel->second.m_peerA != *recvAddr && guidChannel->second.m_peerB == nullptr)
 					{
 						guidChannel->second.m_peerB = std::move(recvAddr);
+						guidChannel->second.m_lastUpdated = m_tickStartTime;
 
 						m_addressMappedChannels.emplace(guidChannel->second.m_peerA, guidChannel->second);
 						m_addressMappedChannels.emplace(guidChannel->second.m_peerB, guidChannel->second);
 
-						LOG(Display, "Channel relay established for session: {0} with peers: {1}, {2}.", htnGuid.toString(), guidChannel->second.m_peerA->toString(), guidChannel->second.m_peerB->toString());
+						LOG(Display, "Channel relay established for session: \"{0}\" with peers: {1}, {2}.", htnGuid.toString(), guidChannel->second.m_peerA->toString(), guidChannel->second.m_peerB->toString());
 					}
 				}
 			}

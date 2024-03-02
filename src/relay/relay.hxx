@@ -4,17 +4,29 @@
 
 #include "types.hxx"
 
+#include <chrono>
 #include <cstdint>
-#include <forward_list>
+#include <list>
 #include <map>
 #include <memory>
 #include <unordered_map>
 
+struct channel_stats
+{
+	uint64_t m_bytesReceived{};
+	uint64_t m_bytesSent{};
+
+	uint32_t m_packetsReceived{};
+	uint32_t m_packetsSent{};
+};
+
 struct channel
 {
+	channel_stats m_stats{};
 	guid m_guid{};
 	std::shared_ptr<internetaddr> m_peerA{};
 	std::shared_ptr<internetaddr> m_peerB{};
+	std::chrono::time_point<std::chrono::steady_clock> m_lastUpdated{};
 };
 
 #ifdef _MSC_VER
@@ -40,13 +52,17 @@ private:
 
 	channel& createChannel(const guid& inGuid);
 
-	std::unique_ptr<udpsocket> m_socket{};
-
-	std::forward_list<channel> m_channels{};
+	bool conditionalCleanup(bool force);
 
 	std::unordered_map<guid, channel&> m_guidMappedChannels{};
 
-	std::unordered_map<std::shared_ptr<internetaddr>, const channel&> m_addressMappedChannels{};
+	std::unordered_map<std::shared_ptr<internetaddr>, channel&> m_addressMappedChannels{};
+
+	std::list<channel> m_channels{};
+
+	std::unique_ptr<udpsocket> m_socket{};
+
+	std::chrono::time_point<std::chrono::steady_clock> m_lastCleanupTime{};
 
 	bool m_running{false};
 };
