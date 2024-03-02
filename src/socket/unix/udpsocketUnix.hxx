@@ -2,6 +2,8 @@
 
 #include "socket/udpsocket.hxx"
 
+#if __unix
+
 class udpsocketUnix : public udpsocket
 {
 public:
@@ -26,3 +28,5 @@ public:
 private:
 	int32_t m_socket{-1};
 };
+
+#endif

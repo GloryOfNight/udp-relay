@@ -13,4 +13,6 @@ struct internetaddr
 	virtual void setPort(const uint16_t port) = 0;
 
 	virtual std::string toString() const = 0;
+
+	virtual bool operator==(const internetaddr&) const = 0;
 };

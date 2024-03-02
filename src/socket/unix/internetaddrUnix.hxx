@@ -2,6 +2,8 @@
 
 #include "socket/internetaddr.hxx"
 
+#if __unix
+
 #include <netinet/in.h>
 
 struct internetaddrUnix : public internetaddr
@@ -23,3 +25,5 @@ struct internetaddrUnix : public internetaddr
 private:
 	sockaddr_in m_addr{};
 };
+
+#endif

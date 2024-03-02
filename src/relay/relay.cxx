@@ -36,9 +36,11 @@ bool relay::run()
 	std::unique_ptr<internetaddr> recvAddr = udpsocketFactory::createInternetAddrUnique();
 
 	std::array<uint8_t, 1024> buffer{};
-	bRunning = true;
-	while (bRunning)
+	m_running = true;
+	while (m_running)
 	{
+		m_timePoint = std::chrono::steady_clock::now();
+
 		auto bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), recvAddr.get());
 		if (bytesRead > 0)
 		{
@@ -60,5 +62,5 @@ bool relay::run()
 
 void relay::stop()
 {
-	bRunning = false;
+	m_running = false;
 }
