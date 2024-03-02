@@ -39,8 +39,6 @@ bool relay::run()
 	m_running = true;
 	while (m_running)
 	{
-		m_timePoint = std::chrono::steady_clock::now();
-
 		auto bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), recvAddr.get());
 		if (bytesRead > 0)
 		{

@@ -4,7 +4,6 @@
 
 #include "types.hxx"
 
-#include <chrono>
 #include <cstdint>
 #include <forward_list>
 #include <map>
@@ -16,7 +15,6 @@ struct channel
 	guid m_guid{};
 	std::shared_ptr<internetaddr> m_peerA{};
 	std::shared_ptr<internetaddr> m_peerB{};
-	std::chrono::steady_clock::time_point m_lastUpdated{};
 };
 
 #ifdef _MSC_VER
@@ -41,8 +39,6 @@ private:
 	bool init();
 
 	std::unique_ptr<udpsocket> m_socket{};
-
-	std::chrono::steady_clock::time_point m_timePoint{};
 
 	std::forward_list<channel> m_channels{};
 
