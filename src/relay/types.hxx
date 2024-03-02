@@ -4,7 +4,7 @@
 struct guid
 {
 	guid() = default;
-	guid(int32_t a, int32_t b, int32_t c, int32_t d) 
+	guid(uint32_t a, uint32_t b, uint32_t c, uint32_t d) 
 		: m_a{a}
 		, m_b{b}
 		, m_c{c}
@@ -12,10 +12,10 @@ struct guid
 	{
 	}
 
-	int32_t m_a{};
-	int32_t m_b{};
-	int32_t m_c{};
-	int32_t m_d{};
+	uint32_t m_a{};
+	uint32_t m_b{};
+	uint32_t m_c{};
+	uint32_t m_d{};
 
 	bool operator<=>(const guid&) const = default;
 

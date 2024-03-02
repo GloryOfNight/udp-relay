@@ -27,17 +27,18 @@ bool relay::init()
 		LOG(Error, "Failed set socket to non-blocking mode");
 		return false;
 	}
-	const int32_t wantedSize = 0x20000;
-	int32_t actualSize{};
 
-	if (!m_socket->setSendBufferSize(wantedSize, actualSize))
+	const int32_t wantedBufferSize = 0x20000;
+	int32_t actualBufferSize{};
+
+	if (!m_socket->setSendBufferSize(wantedBufferSize, actualBufferSize))
 		LOG(Error, "Error with setting send buffer size");
-	LOG(Verbose, "Send buffer size, wanted: {0}, actual: {1}", wantedSize, actualSize);
+	LOG(Verbose, "Send buffer size, wanted: {0}, actual: {1}", wantedBufferSize, actualBufferSize);
 
 
-	if (!m_socket->setRecvBufferSize(0x20000, actualSize))
+	if (!m_socket->setRecvBufferSize(wantedBufferSize, actualBufferSize))
 		LOG(Error, "Error with setting recv buffer size");
-	LOG(Verbose, "Receive buffer size, wanted: {0}, actual: {1}", wantedSize, actualSize);
+	LOG(Verbose, "Receive buffer size, wanted: {0}, actual: {1}", wantedBufferSize, actualBufferSize);
 
 	return true;
 }
@@ -68,7 +69,7 @@ bool relay::run()
 		if (bytesRead > 0)
 		{
 			const auto findRes = m_addressMappedChannels.find(recvAddr);
-			// if has a channel mapped to the address aswell as two peers, relay
+			// if has a channel mapped to the address as well as two peers, relay
 			if (findRes != m_addressMappedChannels.end() && findRes->second.m_peerA && findRes->second.m_peerB)
 			{
 				const auto sendAddr = *findRes->second.m_peerA != *recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
@@ -86,7 +87,6 @@ bool relay::run()
 						{
 							LOG(Error, "Packet dropped, socket not ready for write {0}.", sendAddr->toString());
 						}
-							
 					}
 					else 
 					{
@@ -116,7 +116,7 @@ bool relay::run()
 
 						m_guidMappedChannels.emplace(newChannel.m_guid, newChannel);
 
-						LOG(Display, "Created channel with guid: {0}", newChannel.m_guid.toString());
+						LOG(Display, "Created channel for guid: {0}", newChannel.m_guid.toString());
 					}
 					else if (*guidChannel->second.m_peerA != *recvAddr && guidChannel->second.m_peerB == nullptr)
 					{
@@ -125,11 +125,7 @@ bool relay::run()
 						m_addressMappedChannels.emplace(guidChannel->second.m_peerA, guidChannel->second);
 						m_addressMappedChannels.emplace(guidChannel->second.m_peerB, guidChannel->second);
 
-						LOG(Display, "Created relay for session: {0} with peers: {1}, {2}.", htnGuid.toString(), guidChannel->second.m_peerA->toString(), guidChannel->second.m_peerB->toString());
-					}
-					else
-					{
-						LOG(Display, "{0} == {1}", guidChannel->second.m_peerA->toString(), recvAddr->toString())
+						LOG(Display, "Channel relay established for session: {0} with peers: {1}, {2}.", htnGuid.toString(), guidChannel->second.m_peerA->toString(), guidChannel->second.m_peerB->toString());
 					}
 				}
 			}
