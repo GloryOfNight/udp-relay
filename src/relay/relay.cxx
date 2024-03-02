@@ -58,10 +58,10 @@ bool relay::conditionalCleanup(bool force)
 		{
 			if (std::chrono::duration_cast<std::chrono::seconds>(now - it->m_lastUpdated).count() > 30)
 			{
-				LOG(Display, "Channel \"{0}\" has been inactive for 30 seconds, removing.", it->m_guid.toString());
-
+				const auto channelGuidStr = it->m_guid.toString();
 				const auto stats = it->m_stats;
-				LOG(Display, "Channel \"{0}\" Stats. Recv: {0} ({1}); Sent: {2} ({3}); Dropped: {4} ({5}) ", stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsSent, stats.m_bytesReceived, stats.m_packetsDropped, stats.m_bytesDropped);
+				LOG(Display, "Channel \"{0}\" has been inactive for 30 seconds, removing.", channelGuidStr);
+				LOG(Display, "Channel \"{0}\" packet amount and total bytes. Recv: {1} ({2}); Sent: {3} ({4}); Dropped: {5} ({6})", channelGuidStr, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsSent, stats.m_bytesReceived, stats.m_packetsDropped, stats.m_bytesDropped);
 
 				m_addressMappedChannels.erase(it->m_peerA);
 				m_addressMappedChannels.erase(it->m_peerB);
@@ -133,8 +133,6 @@ bool relay::run()
 					currentChannel.m_stats.m_packetsDropped++;
 					currentChannel.m_stats.m_bytesDropped += bytesRead;
 				}
-
-				continue;
 			}
 			else if (bytesRead == 1024) // const handshake packet size
 			{
