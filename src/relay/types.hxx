@@ -21,7 +21,7 @@ struct guid
 
 	std::string toString() const
 	{
-		char buffer[36]{};
+		char buffer[38]{};
 		std::snprintf(buffer, sizeof(buffer), "%08x-%04x-%04x-%04x-%04x%08x", m_a, m_b >> 16, m_b & 0xFFFF, m_c >> 16, m_c & 0xFFFF, m_d);
 		return std::string(buffer);
 	}
