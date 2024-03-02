@@ -16,12 +16,28 @@ bool relay::init()
 		return false;
 	}
 
-	m_socket->bind(mainPort);
-	m_socket->setNonBlocking(true);
+	if (!m_socket->bind(mainPort))
+	{
+		LOG(Error, "Failed bind to {0} port", mainPort);
+		return false;
+	}
 
-	int32_t bufferSize{};
-	m_socket->setSendBufferSize(0x20000, bufferSize);
-	m_socket->setRecvBufferSize(0x20000, bufferSize);
+	if (!m_socket->setNonBlocking(true))
+	{
+		LOG(Error, "Failed set socket to non-blocking mode");
+		return false;
+	}
+	const int32_t wantedSize = 0x20000;
+	int32_t actualSize{};
+
+	if (!m_socket->setSendBufferSize(wantedSize, actualSize))
+		LOG(Error, "Error with setting send buffer size");
+	LOG(Display, "Send buffer size, wanted: {0}, actual: {1}", wantedSize, actualSize);
+
+
+	if (!m_socket->setRecvBufferSize(0x20000, actualSize))
+		LOG(Error, "Error with setting recv buffer size");
+	LOG(Display, "Receive buffer size, wanted: {0}, actual: {1}", wantedSize, actualSize);
 
 	return true;
 }
