@@ -90,7 +90,7 @@ bool relay::run()
 					{
 						guidChannel->second.m_peerB = recvAddr;
 
-						LOG(Display, "Creating relay for session: {0} with peers: {1}, {2}.", htnGuid.toString(), guidChannel->second.m_peerA, guidChannel->second.m_peerB);
+						LOG(Display, "Creating relay for session: {0} with peers: {1}, {2}.", htnGuid.toString(), guidChannel->second.m_peerA->toString(), guidChannel->second.m_peerB->toString());
 
 						m_addressMappedChannels.emplace(guidChannel->second.m_peerA, guidChannel->second);
 						m_addressMappedChannels.emplace(guidChannel->second.m_peerB, guidChannel->second);
