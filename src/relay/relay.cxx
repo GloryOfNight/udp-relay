@@ -53,21 +53,16 @@ bool relay::conditionalCleanup(bool force)
 {
 	const auto now = std::chrono::steady_clock::now();
 	const auto secondsSinceLastCleanup = std::chrono::duration_cast<std::chrono::seconds>(now - m_lastCleanupTime).count();
-
-	LOG(Verbose, "Cleaning up called. Time since last {0} sec", secondsSinceLastCleanup);
-
 	if (force || secondsSinceLastCleanup > 60)
 	{
-		LOG(Verbose, "Cleaning up triggered.")
 		for (auto it = m_channels.begin(); it != m_channels.end();)
 		{
 			const auto inactiveSeconds = std::chrono::duration_cast<std::chrono::seconds>(now - it->m_lastUpdated).count();
-			LOG(Verbose, "Channel {0} has been inactive for {1} sec.", it->m_guid.toString(), inactiveSeconds);
 			if (inactiveSeconds > 30)
 			{
 				const auto channelGuidStr = it->m_guid.toString();
 				const auto stats = it->m_stats;
-				LOG(Display, "Channel \"{0}\" has been inactive for 30 seconds, removing.", channelGuidStr);
+				LOG(Display, "Channel \"{0}\" has been inactive for {1} seconds, removing.", channelGuidStr, inactiveSeconds);
 				LOG(Display, "Channel \"{0}\" packet amount and total bytes. Recv: {1} ({2}); Sent: {3} ({4}); Dropped: {5} ({6})", channelGuidStr, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsSent, stats.m_bytesReceived, stats.m_packetsDropped, stats.m_bytesDropped);
 
 				m_addressMappedChannels.erase(it->m_peerA);
@@ -102,6 +97,7 @@ bool relay::run()
 	m_running = true;
 	while (m_running)
 	{
+		conditionalCleanup(false);
 		if (!m_socket->waitForRead(5))
 			continue;
 
@@ -177,8 +173,6 @@ bool relay::run()
 				}
 			}
 		}
-
-		conditionalCleanup(false);
 	}
 
 	return true;
