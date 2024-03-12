@@ -31,7 +31,7 @@ struct handshake_header
 {
 	uint16_t m_type{};
 	uint16_t m_length{};
-	guid m_id{};
+	guid m_guid{};
 };
 
 // custom hash for guid

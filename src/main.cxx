@@ -57,7 +57,7 @@ int main(int argc, char* argv[], char* envp[])
 
 	LOG(Display, "Starting UDP relay. . .");
 
-	g_relay.run();
+	g_relay.run(args::port);
 
 	return 0;
 }
