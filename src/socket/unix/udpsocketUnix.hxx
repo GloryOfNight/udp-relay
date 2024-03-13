@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <stddef.h>
 
 struct internetaddrUnix;
 using internetaddr = internetaddrUnix;
