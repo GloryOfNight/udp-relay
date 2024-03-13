@@ -37,7 +37,9 @@ bool udpsocketUnix::bind(int32_t port)
 udpsocketUnix::~udpsocketUnix()
 {
 	if (m_socket != -1) [[likely]]
+	{
 		::close(m_socket);
+	}
 }
 
 int32_t udpsocketUnix::sendTo(void* buffer, size_t bufferSize, const internetaddr* addr)
