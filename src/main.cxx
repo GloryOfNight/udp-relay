@@ -5,6 +5,8 @@
 
 #include <algorithm>
 #include <csignal>
+#include <stacktrace>
+#include <string_view>
 
 static relay g_relay{};
 
@@ -18,7 +20,8 @@ namespace args
 
 log_level gLogLevel{log_level::Display};
 
-void handleAbort(int sig);				// handle abort signal from terminal or system
+void handleAbort(int sig); // handle abort signal from terminal or system
+void handleCrash(int sig);
 void parseArgs(int argc, char* argv[]); // parse argument list
 void parseEnvp(char* envp[]);			// look and parse environment variables we could use
 
@@ -27,6 +30,10 @@ int main(int argc, char* argv[], char* envp[])
 	std::signal(SIGABRT, handleAbort);
 	std::signal(SIGINT, handleAbort);
 	std::signal(SIGTERM, handleAbort);
+
+	std::signal(SIGSEGV, handleCrash);
+	std::signal(SIGILL, handleCrash);
+	std::signal(SIGFPE, handleCrash);
 
 	parseArgs(argc, argv);
 	parseEnvp(envp);
@@ -54,7 +61,6 @@ int main(int argc, char* argv[], char* envp[])
 		gLogLevel = log_level::NoLogs;
 	}
 
-
 	LOG(Display, "Starting UDP relay. . .");
 
 	g_relay.run(args::port);
@@ -66,6 +72,33 @@ void handleAbort(int sig)
 {
 	LOG(Error, "\nCAUGHT SIGNAL - {0}\n", sig);
 	g_relay.stop();
+}
+
+void handleCrash(int sig)
+{
+	LOG(Error, "\nCAUGHT SIGNAL - {0}\n", sig);
+
+	const auto stacktrace = std::stacktrace::current();
+	const size_t stacksize = stacktrace.size();
+
+	LOG(Error, "Stacktrace:");
+
+	for (size_t i = 0; i < stacksize; ++i)
+	{
+		const auto& frame = stacktrace[i];
+		const auto frame_desc = frame.description();
+		const auto frame_source_file = frame.source_file();
+		const auto frame_source_line = frame.source_line();
+
+		if (frame_source_file.empty() || frame_source_line == 0)
+		{
+			LOG(Error, "#{0}: {1}", i, frame_desc);
+		}
+		else
+		{
+			LOG(Error, "#{0}: {1} ({2}:{3})", i, frame_desc, frame_source_file, frame_source_line);
+		}
+	}
 }
 
 void parseArgs(int argc, char* argv[])
