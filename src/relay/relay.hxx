@@ -61,11 +61,11 @@ private:
 
 	std::unordered_map<guid, channel&> m_guidMappedChannels{};
 
-	std::unordered_map<std::shared_ptr<internetaddr>, channel&> m_addressMappedChannels{};
+	std::unordered_map<sharedInternetaddr, channel&> m_addressMappedChannels{};
 
 	std::list<channel> m_channels{};
 
-	std::unique_ptr<udpsocket> m_socket{};
+	uniqueUdpsocket m_socket{};
 
 	std::chrono::time_point<std::chrono::steady_clock> m_lastCleanupTime{};
 

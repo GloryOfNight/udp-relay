@@ -3,8 +3,6 @@
 #include "internetaddrUnix.hxx"
 #include "log.hxx"
 
-#if __unix
-
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -121,5 +119,3 @@ bool udpsocketUnix::isValid()
 {
 	return m_socket != -1;
 }
-
-#endif

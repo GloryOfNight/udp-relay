@@ -1,36 +1,36 @@
 #pragma once
 
-#include "socket/udpsocket.hxx"
+#include <cstdint>
 
-#if __unix
+struct internetaddrUnix;
+using internetaddr = internetaddrUnix;
 
-class udpsocketUnix : public udpsocket
+class udpsocketUnix
 {
 public:
 	udpsocketUnix();
+	udpsocketUnix(const udpsocketUnix&) = delete;
+	udpsocketUnix(udpsocketUnix&&) = delete;
+	~udpsocketUnix();
 
-	virtual ~udpsocketUnix();
+	bool bind(int32_t port);
 
-	virtual bool bind(int32_t port) override;
+	int32_t sendTo(void* buffer, size_t bufferSize, const internetaddr* addr);
 
-	virtual int32_t sendTo(void* buffer, size_t bufferSize, const internetaddr* addr) override;
+	int32_t recvFrom(void* buffer, size_t bufferSize, internetaddr* addr);
 
-	virtual int32_t recvFrom(void* buffer, size_t bufferSize, internetaddr* addr) override;
+	bool setNonBlocking(bool bNonBlocking);
 
-	virtual bool setNonBlocking(bool bNonBlocking) override;
+	bool setSendBufferSize(int32_t size, int32_t& newSize);
 
-	virtual bool setSendBufferSize(int32_t size, int32_t& newSize) override;
+	bool setRecvBufferSize(int32_t size, int32_t& newSize);
 
-	virtual bool setRecvBufferSize(int32_t size, int32_t& newSize) override;
+	bool waitForRead(int32_t timeoutms);
 
-	virtual bool waitForRead(int32_t timeoutms) override;
+	bool waitForWrite(int32_t timeoutms);
 
-	virtual bool waitForWrite(int32_t timeoutms) override;
-
-	virtual bool isValid() override;
+	bool isValid();
 
 private:
 	int32_t m_socket{-1};
 };
-
-#endif

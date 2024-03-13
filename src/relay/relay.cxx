@@ -25,7 +25,7 @@ bool relay::run(const uint16_t port)
 
 		const auto m_tickStartTime = std::chrono::steady_clock::now();
 
-		std::shared_ptr<internetaddr> recvAddr = udpsocketFactory::createInternetAddr();
+		sharedInternetaddr recvAddr = udpsocketFactory::createInternetAddr();
 		const int32_t bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), recvAddr.get());
 		if (bytesRead > 0)
 		{

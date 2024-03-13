@@ -1,34 +1,17 @@
 #pragma once
 
-#include "internetaddr.hxx"
-
-#include <cstdint>
 #include <memory>
 
 #ifndef SE_WOULDBLOCK
 #define SE_WOULDBLOCK EWOULDBLOCK
 #endif
 
-class udpsocket
-{
-public:
-	virtual ~udpsocket() = default;
+#if __unix
+#include "unix/udpsocketUnix.hxx"
+using udpsocket = udpsocketUnix;
+#elif _WIN32
+#include "win/udpsocketWin.hxx"
+using udpsocket = udpsocketWin;
+#endif
 
-    virtual bool bind(int32_t port) = 0;
-
-	virtual int32_t sendTo(void* buffer, size_t bufferSize, const internetaddr* addr) = 0;
-
-	virtual int32_t recvFrom(void* buffer, size_t bufferSize, internetaddr* addr) = 0;
-
-	virtual bool setNonBlocking(bool value) = 0;
-
-	virtual bool setSendBufferSize(int32_t size, int32_t& newSize) = 0;
-
-	virtual bool setRecvBufferSize(int32_t size, int32_t& newSize) = 0;
-
-	virtual bool waitForRead(int32_t timeoutms) = 0;
-
-	virtual bool waitForWrite(int32_t timeoutms) = 0;
-
-	virtual bool isValid() = 0;
-};
+using uniqueUdpsocket = std::unique_ptr<udpsocket>;
