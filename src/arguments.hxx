@@ -29,8 +29,7 @@ struct val_ref
 namespace args
 {
 	extern bool printHelp;	// when true - prints help and exits
-	extern bool logDisable; // when true - disable all logs
-	extern bool logVerbose; // when true - log verbose messages
+	extern int32_t logLevel;	// 0 - no logs, 1 - errors only, 2 - log (default), 3 - verbose
 	extern int32_t port;	// main port for the server
 } // namespace args
 
@@ -38,8 +37,7 @@ namespace args
 static constexpr auto argList = std::array
 {
 	val_ref{"--help", args::printHelp,			"--help                         = print help" },
-	val_ref{"--no-logs", args::logDisable,		"--no-logs                      = disable logs (might improve performance slightly)" },
-	val_ref{"--verbose", args::logVerbose,		"--verbose                      = enable verbose logs" },
+	val_ref{"--log-level", args::logLevel,		"--log-level <value>            = 0 - no logs, 1 - errors only, 2 - log (default), 3 - verbose" },
 	val_ref{"--port", args::port,				"--port <value>                 = main port for accepting requests" },
 };
 // clang-format on

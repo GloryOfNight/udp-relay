@@ -5,20 +5,20 @@
 
 enum class log_level : uint8_t
 {
-	NoLogs,
-	Verbose,
-	Display,
-	Error
+	NoLogs = 0,
+	Error = 1,
+	Display = 2,
+	Verbose = 3
 };
 
-extern log_level gLogLevel;
+extern log_level g_logLevel;
 
-namespace cf
+namespace relay::core
 {
 	template <typename... Args>
 	void log(const log_level level, const std::string_view format, Args... args)
 	{
-		if (gLogLevel <= log_level::NoLogs || level < gLogLevel)
+		if (level > g_logLevel)
 			return;
 
 		if (level == log_level::Error)

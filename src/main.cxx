@@ -5,18 +5,18 @@
 
 #include <algorithm>
 #include <csignal>
+#include <memory>
 
-static relay g_relay{};
+static std::unique_ptr<relay> g_relay{};
 
 namespace args
 {
 	bool printHelp{};
-	bool logDisable{};
-	bool logVerbose{};
+	int32_t logLevel{static_cast<int32_t>(log_level::Display)};
 	int32_t port{6060};
 } // namespace args
 
-log_level gLogLevel{log_level::Display};
+log_level g_logLevel{log_level::Display};
 
 void handleAbort(int sig);				// handle abort signal from terminal or system
 void handleCrash(int sig);				// handle crash
@@ -34,10 +34,6 @@ int relay_main(int argc, char* argv[], char* envp[])
 	std::signal(SIGILL, handleCrash);
 	std::signal(SIGFPE, handleCrash);
 
-#ifdef SIGBUS
-	std::signal(SIGBUS, handleCrash);
-#endif
-
 	parseArgs(argc, argv);
 	parseEnvp(envp);
 
@@ -47,18 +43,15 @@ int relay_main(int argc, char* argv[], char* envp[])
 		return 0;
 	}
 
-	if (args::logVerbose)
-	{
-		gLogLevel = log_level::Verbose;
-	}
-	else if (args::logDisable)
-	{
-		gLogLevel = log_level::NoLogs;
-	}
+	g_logLevel = static_cast<log_level>(args::logLevel);
 
 	LOG(Display, "Starting UDP relay. . .");
 
-	g_relay.run(args::port);
+	g_relay = std::make_unique<relay>();
+
+	g_relay->run(args::port);
+
+	g_relay.reset();
 
 	return 0;
 }
@@ -66,13 +59,15 @@ int relay_main(int argc, char* argv[], char* envp[])
 void handleAbort(int sig)
 {
 	LOG(Error, "\nCAUGHT SIGNAL - {0}\n", sig);
-	g_relay.stop();
+	if (g_relay)
+		g_relay->stop();
 }
 
 void handleCrash(int sig)
 {
 	LOG(Error, "\nCRASHED - {0}\n", sig);
-	g_relay.stop();
+	if (g_relay)
+		g_relay->stop();
 }
 
 void parseArgs(int argc, char* argv[])
@@ -124,7 +119,7 @@ void parseArgs(int argc, char* argv[])
 			if (arg.ends_with("udp-relay") || arg.ends_with("udp-relay.exe"))
 				continue;
 
-			LOG(Error, "Unknown argument: {0}", arg.data());
+			LOG(Verbose, "Unknown argument: {0}", arg.data());
 		}
 	}
 }
