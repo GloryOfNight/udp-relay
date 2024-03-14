@@ -52,6 +52,19 @@ int32_t udpsocketUnix::recvFrom(void* buffer, size_t bufferSize, internetaddr* a
 	return ::recvfrom(m_socket, buffer, bufferSize, 0, (struct sockaddr*)&addr->getAddr(), &socklen);
 }
 
+uint16_t udpsocketUnix::getPort() const
+{
+	sockaddr_storage addr{};
+	socklen_t socklen = sizeof(sockaddr_storage);
+	const int res = getsockname(m_socket, (sockaddr*)&addr, &socklen) == 0;
+	if (res == 0) [[unlikely]]
+	{
+		LOG(Error, "Failed to get port. Error code: {0}", errno);
+		return 0;
+	}
+	return ntohs(((sockaddr_in&)addr).sin_port);
+}
+
 bool udpsocketUnix::setNonBlocking(bool bNonBlocking)
 {
 	int flags = fcntl(m_socket, F_GETFL, 0);
@@ -99,7 +112,7 @@ bool udpsocketUnix::waitForWrite(int32_t timeoutms)
 	return res >= 0 && (fdset.revents & fdset.events);
 }
 
-bool udpsocketUnix::isValid()
+bool udpsocketUnix::isValid() const
 {
 	return m_socket != -1;
 }

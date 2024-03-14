@@ -11,7 +11,7 @@ bool relay::run(const uint16_t port)
 	if (!init(port))
 		return false;
 
-	LOG(Display, "Relay initialized, port {0}", port);
+	LOG(Display, "Relay initialized on {0} port", m_socket->getPort());
 
 	std::array<uint8_t, 1024> buffer{};
 
@@ -41,7 +41,7 @@ bool relay::run(const uint16_t port)
 				currentChannel.m_stats.m_bytesReceived += bytesRead;
 
 				const auto& sendAddr = *findRes->second.m_peerA != *recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
-				
+
 				if (!m_socket->waitForWrite(1))
 					continue;
 
@@ -93,12 +93,16 @@ void relay::stop()
 
 bool relay::init(const uint16_t port)
 {
+	LOG(Verbose, "Begin initialization");
+
 	m_socket = udpsocketFactory::createUdpSocket();
 	if (m_socket == nullptr || !m_socket->isValid())
 	{
 		LOG(Error, "Failed to create socket!");
 		return false;
 	}
+
+	LOG(Verbose, "Created primary udp socket");
 
 	if (!m_socket->bind(port))
 	{

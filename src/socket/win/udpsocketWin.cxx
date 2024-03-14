@@ -47,6 +47,19 @@ int32_t udpsocketWin::recvFrom(void* buffer, size_t bufferSize, internetaddr* ad
 	return ::recvfrom(m_socket, (char*)buffer, bufferSize, 0, (struct sockaddr*)&addr->getAddr(), &socklen);
 }
 
+uint16_t udpsocketWin::getPort() const
+{
+	sockaddr_storage addr{};
+	int socklen = sizeof(sockaddr_storage);
+	const int res = getsockname(m_socket, (sockaddr*)&addr, &socklen) == 0;
+	if (res == 0) [[unlikely]]
+	{
+		LOG(Error, "Failed to get port. Error code: {0}", WSAGetLastError());
+		return 0;
+	}
+	return ntohs(((sockaddr_in&)addr).sin_port);
+}
+
 bool udpsocketWin::setNonBlocking(bool bNonBlocking)
 {
 	u_long Value = bNonBlocking ? true : false;
@@ -97,7 +110,7 @@ bool udpsocketWin::waitForWrite(int32_t timeoutms)
 	return selectRes > 0;
 }
 
-bool udpsocketWin::isValid()
+bool udpsocketWin::isValid() const
 {
-	return m_socket > 0;
+	return m_socket != INVALID_SOCKET;
 }

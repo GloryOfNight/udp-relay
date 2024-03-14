@@ -20,6 +20,8 @@ public:
 
 	int32_t recvFrom(void* buffer, size_t bufferSize, internetaddr* addr);
 
+	uint16_t getPort() const;
+
 	bool setNonBlocking(bool bNonBlocking);
 
 	bool setSendBufferSize(int32_t size, int32_t& newSize);
@@ -30,7 +32,7 @@ public:
 
 	bool waitForWrite(int32_t timeoutms);
 
-	bool isValid();
+	bool isValid() const;
 
 private:
 	int32_t m_socket{-1};
