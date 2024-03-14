@@ -6,7 +6,7 @@
 
 enum class log_level : uint8_t
 {
-	noLogs = 0,
+	NoLogs = 0,
 	Error = 1,
 	Display = 2,
 	Verbose = 3
@@ -38,7 +38,7 @@ namespace udprelaycore
 			return;
 
 		std::ostream& stream = level == log_level::Error ? std::cerr : std::cout;
-		stream << std::vformat("[{0}] {1}: ", std::make_format_args(std::chrono::utc_clock::now(), log_level_to_string(level))) << std::vformat(format, std::make_format_args(std::forward<Args>(args)...)) << std::endl;
+		stream << std::vformat("[{0:%F}T{0:%T}] {1}: ", std::make_format_args(std::chrono::utc_clock::now(), log_level_to_string(level))) << std::vformat(format, std::make_format_args(std::forward<Args>(args)...)) << std::endl;
 	}
 } // namespace udprelaycore
 
