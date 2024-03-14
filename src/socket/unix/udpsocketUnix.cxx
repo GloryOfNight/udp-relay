@@ -43,13 +43,13 @@ udpsocketUnix::~udpsocketUnix()
 
 int32_t udpsocketUnix::sendTo(void* buffer, size_t bufferSize, const internetaddr* addr)
 {
-	return ::sendto(m_socket, buffer, bufferSize, 0, (struct sockaddr*)&unixAddr->getAddr(), sizeof(sockaddr_in));
+	return ::sendto(m_socket, buffer, bufferSize, 0, (struct sockaddr*)&addr->getAddr(), sizeof(sockaddr_in));
 }
 
 int32_t udpsocketUnix::recvFrom(void* buffer, size_t bufferSize, internetaddr* addr)
 {
 	socklen_t socklen = sizeof(sockaddr_in);
-	return ::recvfrom(m_socket, buffer, bufferSize, 0, (struct sockaddr*)&unixAddr->getAddr(), &socklen);
+	return ::recvfrom(m_socket, buffer, bufferSize, 0, (struct sockaddr*)&addr->getAddr(), &socklen);
 }
 
 bool udpsocketUnix::setNonBlocking(bool bNonBlocking)
