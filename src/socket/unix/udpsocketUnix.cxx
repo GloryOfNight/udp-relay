@@ -43,19 +43,11 @@ udpsocketUnix::~udpsocketUnix()
 
 int32_t udpsocketUnix::sendTo(void* buffer, size_t bufferSize, const internetaddr* addr)
 {
-	const auto unixAddr = dynamic_cast<const internetaddrUnix*>(addr);
-	if (unixAddr == nullptr) [[unlikely]]
-		return -1;
-
 	return ::sendto(m_socket, buffer, bufferSize, 0, (struct sockaddr*)&unixAddr->getAddr(), sizeof(sockaddr_in));
 }
 
 int32_t udpsocketUnix::recvFrom(void* buffer, size_t bufferSize, internetaddr* addr)
 {
-	auto unixAddr = dynamic_cast<internetaddrUnix*>(addr);
-	if (unixAddr == nullptr) [[unlikely]]
-		return -1;
-
 	socklen_t socklen = sizeof(sockaddr_in);
 	return ::recvfrom(m_socket, buffer, bufferSize, 0, (struct sockaddr*)&unixAddr->getAddr(), &socklen);
 }
@@ -87,18 +79,13 @@ bool udpsocketUnix::setRecvBufferSize(int32_t size, int32_t& newSize)
 
 bool udpsocketUnix::waitForRead(int32_t timeoutms)
 {
-	// wait for read via ::poll
 	struct pollfd fdset;
 	fdset.fd = m_socket;
 	fdset.events = POLLIN;
 	fdset.revents = 0;
 
 	const int res = ::poll(&fdset, 1, (int)timeoutms);
-
-	if (res < 0) [[unlikely]]
-		return false;
-
-	return fdset.revents & fdset.events;
+	return res >= 0 && (fdset.revents & fdset.events);
 }
 
 bool udpsocketUnix::waitForWrite(int32_t timeoutms)
@@ -108,12 +95,8 @@ bool udpsocketUnix::waitForWrite(int32_t timeoutms)
 	fdset.events = POLLIN;
 	fdset.revents = 0;
 
-	int res = ::poll(&fdset, 1, (int)timeoutms);
-
-	if (res < 0) [[unlikely]]
-		return false;
-
-	return fdset.revents & fdset.events;
+	const int res = ::poll(&fdset, 1, (int)timeoutms);
+	return res >= 0 && (fdset.revents & fdset.events);
 }
 
 bool udpsocketUnix::isValid()

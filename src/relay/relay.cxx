@@ -20,7 +20,7 @@ bool relay::run(const uint16_t port)
 	while (m_running)
 	{
 		conditionalCleanup(false);
-		if (!m_socket->waitForRead(5))
+		if (!m_socket->waitForRead(0))
 			continue;
 
 		const auto m_tickStartTime = std::chrono::steady_clock::now();
@@ -41,12 +41,11 @@ bool relay::run(const uint16_t port)
 				currentChannel.m_stats.m_bytesReceived += bytesRead;
 
 				const auto& sendAddr = *findRes->second.m_peerA != *recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
-				int32_t bytesSent = m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());
-				if (bytesSent == -1 && errno == SE_WOULDBLOCK)
-				{
-					if (m_socket->waitForWrite(5))
-						bytesSent = m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());
-				}
+				
+				if (!m_socket->waitForWrite(1))
+					continue;
+
+				const int32_t bytesSent = m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());
 
 				if (bytesSent > 0)
 				{

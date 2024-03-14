@@ -9,26 +9,30 @@ using internetaddr = internetaddrWin;
 class udpsocketWin
 {
 public:
-	udpsocketWin() = default;
+	udpsocketWin();
 	udpsocketWin(const udpsocketWin&) = delete;
 	udpsocketWin(udpsocketWin&&) = delete;
-	~udpsocketWin() = default;
+	~udpsocketWin();
 
-	bool bind(int32_t port) { return false; };
+	bool bind(int32_t port);
 
-	int32_t sendTo(void* buffer, size_t bufferSize, const internetaddr* addr) { return -1; };
+	int32_t sendTo(void* buffer, size_t bufferSize, const internetaddr* addr);
 
-	int32_t recvFrom(void* buffer, size_t bufferSize, internetaddr* addr) { return -1; };
+	int32_t recvFrom(void* buffer, size_t bufferSize, internetaddr* addr);
 
-	bool setNonBlocking(bool value) { return false; };
+	bool setNonBlocking(bool bNonBlocking);
 
-	bool setSendBufferSize(int32_t size, int32_t& newSize) { return false; };
+	bool setSendBufferSize(int32_t size, int32_t& newSize);
 
-	bool setRecvBufferSize(int32_t size, int32_t& newSize) { return false; };
+	bool setRecvBufferSize(int32_t size, int32_t& newSize);
 
-	bool waitForRead(int32_t timeoutms) { return false; };
+	bool waitForRead(int32_t timeoutms);
 
-	bool waitForWrite(int32_t timeoutms) { return false; };
+	bool waitForWrite(int32_t timeoutms);
 
-	bool isValid() { return false; };
+	bool isValid();
+
+private:
+	using SOCKET = unsigned int;
+	SOCKET m_socket{static_cast<SOCKET>(-1)};
 };
