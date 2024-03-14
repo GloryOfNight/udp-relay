@@ -1,10 +1,11 @@
 #pragma once
 #include <cstdint>
+#include <memory>
 
 struct guid
 {
 	guid() = default;
-	guid(uint32_t a, uint32_t b, uint32_t c, uint32_t d) 
+	guid(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
 		: m_a{a}
 		, m_b{b}
 		, m_c{c}
@@ -31,7 +32,7 @@ struct handshake_header
 {
 	uint16_t m_type{};
 	uint16_t m_length{};
-	guid m_id{};
+	guid m_guid{};
 };
 
 // custom hash for guid

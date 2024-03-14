@@ -1,0 +1,42 @@
+name: Windows
+
+on:
+  workflow_call:
+    inputs:
+      upload_url:
+        required: false
+        type: string
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install tools
+      run: |
+        choco install cmake
+        choco install ninja
+        choco install llvm
+
+    - name: Configure and build
+      run: |
+        cmake --preset win64-release
+        cmake --build build
+
+    - name: Upload binary to release (optional)
+      if: ${{ inputs.upload_url }}
+      id: upload-release-binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+          upload_url: ${{ inputs.upload_url }}
+          asset_path: build/udp-relay.exe
+          asset_name: udp-relay-win64.exe
+          asset_content_type: application/executable

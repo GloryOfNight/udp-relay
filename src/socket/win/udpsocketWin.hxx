@@ -1,18 +1,18 @@
 #pragma once
 
 #include <cstdint>
-#include <stddef.h>
 
-struct internetaddrUnix;
-using internetaddr = internetaddrUnix;
+struct internetaddrWin;
+using internetaddr = internetaddrWin;
 
-class udpsocketUnix
+// unimplemented
+class udpsocketWin
 {
 public:
-	udpsocketUnix();
-	udpsocketUnix(const udpsocketUnix&) = delete;
-	udpsocketUnix(udpsocketUnix&&) = delete;
-	~udpsocketUnix();
+	udpsocketWin();
+	udpsocketWin(const udpsocketWin&) = delete;
+	udpsocketWin(udpsocketWin&&) = delete;
+	~udpsocketWin();
 
 	bool bind(int32_t port);
 
@@ -33,5 +33,6 @@ public:
 	bool isValid();
 
 private:
-	int32_t m_socket{-1};
+	using SOCKET = unsigned int;
+	SOCKET m_socket{static_cast<SOCKET>(-1)};
 };

@@ -1,29 +1,30 @@
 #pragma once
 
-#include "socket/internetaddr.hxx"
-
-#if __unix
-
+#include <cstdint>
 #include <netinet/in.h>
+#include <string>
 
-struct internetaddrUnix : public internetaddr
+struct internetaddrUnix
 {
 	internetaddrUnix();
+	internetaddrUnix(const internetaddrUnix&) = delete;
+	internetaddrUnix(internetaddrUnix&&) = delete;
+	~internetaddrUnix() = default;
 
 	internetaddrUnix(const sockaddr_in& addr);
 
-	virtual int32_t getIp() const override;
-	virtual void setIp(const int32_t ip) override;
+	int32_t getIp() const;
+	void setIp(const int32_t ip);
 
-	virtual uint16_t getPort() const override;
-	virtual void setPort(const uint16_t port) override;
+	uint16_t getPort() const;
+	void setPort(const uint16_t port);
 
-	virtual std::string toString() const override;
+	std::string toString() const;
 
 	const sockaddr_in& getAddr() const { return m_addr; };
+
+	bool operator==(const internetaddrUnix& other) const { return getIp() == other.getIp() && getPort() == other.getPort(); }
 
 private:
 	sockaddr_in m_addr{};
 };
-
-#endif

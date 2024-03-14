@@ -19,29 +19,31 @@ namespace args
 log_level gLogLevel{log_level::Display};
 
 void handleAbort(int sig);				// handle abort signal from terminal or system
+void handleCrash(int sig);				// handle crash
 void parseArgs(int argc, char* argv[]); // parse argument list
 void parseEnvp(char* envp[]);			// look and parse environment variables we could use
+void printHelp();						// print help message
 
-int main(int argc, char* argv[], char* envp[])
+int relay_main(int argc, char* argv[], char* envp[])
 {
 	std::signal(SIGABRT, handleAbort);
 	std::signal(SIGINT, handleAbort);
 	std::signal(SIGTERM, handleAbort);
+
+	std::signal(SIGSEGV, handleCrash);
+	std::signal(SIGILL, handleCrash);
+	std::signal(SIGFPE, handleCrash);
+
+#ifdef SIGBUS
+	std::signal(SIGBUS, handleCrash);
+#endif
 
 	parseArgs(argc, argv);
 	parseEnvp(envp);
 
 	if (args::printHelp)
 	{
-		LOG(Display, "Available arguments list:");
-		for (auto& arg : argList)
-		{
-			if (arg.note_help.size() == 0)
-				continue;
-
-			LOG(Display, arg.note_help);
-		}
-		LOG(Display, " Apache License Version 2.0 - Copyright (c) 2024 Sergey Dikiy");
+		printHelp();
 		return 0;
 	}
 
@@ -54,10 +56,9 @@ int main(int argc, char* argv[], char* envp[])
 		gLogLevel = log_level::NoLogs;
 	}
 
-
 	LOG(Display, "Starting UDP relay. . .");
 
-	g_relay.run();
+	g_relay.run(args::port);
 
 	return 0;
 }
@@ -65,6 +66,12 @@ int main(int argc, char* argv[], char* envp[])
 void handleAbort(int sig)
 {
 	LOG(Error, "\nCAUGHT SIGNAL - {0}\n", sig);
+	g_relay.stop();
+}
+
+void handleCrash(int sig)
+{
+	LOG(Error, "\nCRASHED - {0}\n", sig);
 	g_relay.stop();
 }
 
@@ -150,4 +157,17 @@ void parseEnvp(char* envp[])
 			}
 		}
 	}
+}
+
+void printHelp()
+{
+	LOG(Display, "Available arguments list:");
+	for (auto& arg : argList)
+	{
+		if (arg.note_help.size() == 0)
+			continue;
+
+		LOG(Display, arg.note_help);
+	}
+	LOG(Display, " Apache License Version 2.0 - Copyright (c) 2024 Sergey Dikiy");
 }

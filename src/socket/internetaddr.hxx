@@ -1,21 +1,14 @@
 #pragma once
 
-#include <cstdint>
-#include <string>
-struct internetaddr
-{
-	virtual ~internetaddr() = default;
+#include <memory>
 
-	virtual int32_t getIp() const = 0;
-	virtual void setIp(const int32_t ip) = 0;
+#if __unix
+#include "unix/internetaddrUnix.hxx"
+using internetaddr = internetaddrUnix;
+#elif _WIN32
+#include "win/internetaddrWin.hxx"
+using internetaddr = internetaddrWin;
+#endif
 
-	virtual uint16_t getPort() const = 0;
-	virtual void setPort(const uint16_t port) = 0;
-
-	virtual std::string toString() const = 0;
-
-	virtual bool operator==(const internetaddr& other) const
-	{
-		return getIp() == other.getIp() && getPort() == other.getPort();
-	}
-};
+using uniqueInternetaddr = std::unique_ptr<internetaddr>;
+using sharedInternetaddr = std::shared_ptr<internetaddr>;

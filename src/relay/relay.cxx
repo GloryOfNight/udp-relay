@@ -2,12 +2,96 @@
 
 #include "socket/udpsocketFactory.hxx"
 
-#include "arguments.hxx"
 #include "log.hxx"
 
 #include <array>
 
-bool relay::init()
+bool relay::run(const uint16_t port)
+{
+	if (!init(port))
+		return false;
+
+	LOG(Display, "Relay initialized, port {0}", port);
+
+	std::array<uint8_t, 1024> buffer{};
+
+	m_lastCleanupTime = std::chrono::steady_clock::now();
+	m_running = true;
+	while (m_running)
+	{
+		conditionalCleanup(false);
+		if (!m_socket->waitForRead(0))
+			continue;
+
+		const auto m_tickStartTime = std::chrono::steady_clock::now();
+
+		sharedInternetaddr recvAddr = udpsocketFactory::createInternetAddr();
+		const int32_t bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), recvAddr.get());
+		if (bytesRead > 0)
+		{
+			const auto findRes = m_addressMappedChannels.find(recvAddr);
+			// if recvAddr has a channel mapped to it, as well as two valid peers, relay packet to the other peer
+			if (findRes != m_addressMappedChannels.end() && findRes->second.m_peerA && findRes->second.m_peerB)
+			{
+				auto& currentChannel = findRes->second;
+
+				currentChannel.m_lastUpdated = m_tickStartTime;
+
+				currentChannel.m_stats.m_packetsReceived++;
+				currentChannel.m_stats.m_bytesReceived += bytesRead;
+
+				const auto& sendAddr = *findRes->second.m_peerA != *recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
+				
+				if (!m_socket->waitForWrite(1))
+					continue;
+
+				const int32_t bytesSent = m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());
+
+				if (bytesSent > 0)
+				{
+					currentChannel.m_stats.m_packetsSent++;
+					currentChannel.m_stats.m_bytesSent += bytesSent;
+				}
+			}
+			else if (checkHandshakePacket(buffer, bytesRead))
+			{
+				const auto& recvGuid = reinterpret_cast<const handshake_header*>(buffer.data())->m_guid;
+				const guid nthGuid = guid(NETWORK_TO_HOST_32(recvGuid.m_a), NETWORK_TO_HOST_32(recvGuid.m_b), NETWORK_TO_HOST_32(recvGuid.m_c), NETWORK_TO_HOST_32(recvGuid.m_d));
+
+				auto guidChannel = m_guidMappedChannels.find(nthGuid);
+				if (guidChannel == m_guidMappedChannels.end())
+				{
+					channel& newChannel = createChannel(nthGuid);
+					newChannel.m_peerA = std::move(recvAddr);
+					newChannel.m_lastUpdated = m_tickStartTime;
+
+					m_guidMappedChannels.emplace(newChannel.m_guid, newChannel);
+
+					LOG(Display, "Created channel for guid: \"{0}\"", newChannel.m_guid.toString());
+				}
+				else if (*guidChannel->second.m_peerA != *recvAddr && guidChannel->second.m_peerB == nullptr)
+				{
+					guidChannel->second.m_peerB = std::move(recvAddr);
+					guidChannel->second.m_lastUpdated = m_tickStartTime;
+
+					m_addressMappedChannels.emplace(guidChannel->second.m_peerA, guidChannel->second);
+					m_addressMappedChannels.emplace(guidChannel->second.m_peerB, guidChannel->second);
+
+					LOG(Display, "Channel relay established for session: \"{0}\" with peers: {1}, {2}.", nthGuid.toString(), guidChannel->second.m_peerA->toString(), guidChannel->second.m_peerB->toString());
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
+void relay::stop()
+{
+	m_running = false;
+}
+
+bool relay::init(const uint16_t port)
 {
 	m_socket = udpsocketFactory::createUdpSocket();
 	if (m_socket == nullptr || !m_socket->isValid())
@@ -16,9 +100,9 @@ bool relay::init()
 		return false;
 	}
 
-	if (!m_socket->bind(args::port))
+	if (!m_socket->bind(port))
 	{
-		LOG(Error, "Failed bind to {0} port", args::port);
+		LOG(Error, "Failed bind to {0} port", port);
 		return false;
 	}
 
@@ -53,7 +137,7 @@ bool relay::conditionalCleanup(bool force)
 {
 	const auto now = std::chrono::steady_clock::now();
 	const auto secondsSinceLastCleanup = std::chrono::duration_cast<std::chrono::seconds>(now - m_lastCleanupTime).count();
-	if (force || secondsSinceLastCleanup > 60)
+	if (secondsSinceLastCleanup > 60 || force)
 	{
 		for (auto it = m_channels.begin(); it != m_channels.end();)
 		{
@@ -82,98 +166,4 @@ bool relay::conditionalCleanup(bool force)
 	}
 
 	return false;
-}
-
-bool relay::run()
-{
-	if (!init())
-		return false;
-
-	LOG(Display, "Relay initialized, port {0}", args::port);
-
-	std::array<uint8_t, 1024> buffer{};
-
-	m_lastCleanupTime = std::chrono::steady_clock::now();
-	m_running = true;
-	while (m_running)
-	{
-		conditionalCleanup(false);
-		if (!m_socket->waitForRead(5))
-			continue;
-
-		const auto m_tickStartTime = std::chrono::steady_clock::now();
-
-		std::shared_ptr<internetaddr> recvAddr = udpsocketFactory::createInternetAddr();
-		const int32_t bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), recvAddr.get());
-		if (bytesRead > 0)
-		{
-			const auto findRes = m_addressMappedChannels.find(recvAddr);
-			// if recvAddr has a channel mapped to it, as well as two valid peers, relay packet to the other peer
-			if (findRes != m_addressMappedChannels.end() && findRes->second.m_peerA && findRes->second.m_peerB)
-			{
-				auto& currentChannel = findRes->second;
-
-				currentChannel.m_lastUpdated = m_tickStartTime;
-
-				currentChannel.m_stats.m_packetsReceived++;
-				currentChannel.m_stats.m_bytesReceived += bytesRead;
-
-				const auto& sendAddr = *findRes->second.m_peerA != *recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
-				int32_t bytesSent = m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());
-				if (bytesSent == -1 && errno == SE_WOULDBLOCK)
-				{
-					if (m_socket->waitForWrite(5))
-						bytesSent = m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());
-				}
-
-				if (bytesSent > 0)
-				{
-					currentChannel.m_stats.m_packetsSent++;
-					currentChannel.m_stats.m_bytesSent += bytesSent;
-				}
-			}
-			else if (bytesRead == 1024) // const handshake packet size
-			{
-				const handshake_header* header = reinterpret_cast<const handshake_header*>(buffer.data());
-
-				auto nthType = NETWORK_TO_HOST_16(header->m_type);
-				auto nthLength = NETWORK_TO_HOST_16(header->m_length);
-
-				if (nthType == 0x01 && nthLength == 992) // const handshake packet values
-				{
-					const auto& recvGuid = header->m_id;
-					const guid htnGuid = guid(NETWORK_TO_HOST_32(recvGuid.m_a), NETWORK_TO_HOST_32(recvGuid.m_b), NETWORK_TO_HOST_32(recvGuid.m_c), NETWORK_TO_HOST_32(recvGuid.m_d));
-
-					auto guidChannel = m_guidMappedChannels.find(htnGuid);
-					if (guidChannel == m_guidMappedChannels.end())
-					{
-						channel& newChannel = createChannel(htnGuid);
-						newChannel.m_peerA = std::move(recvAddr);
-						newChannel.m_lastUpdated = m_tickStartTime;
-
-						m_guidMappedChannels.emplace(newChannel.m_guid, newChannel);
-
-						LOG(Display, "Created channel for guid: \"{0}\"", newChannel.m_guid.toString());
-					}
-					else if (*guidChannel->second.m_peerA != *recvAddr && guidChannel->second.m_peerB == nullptr)
-					{
-						guidChannel->second.m_peerB = std::move(recvAddr);
-						guidChannel->second.m_lastUpdated = m_tickStartTime;
-
-						m_addressMappedChannels.emplace(guidChannel->second.m_peerA, guidChannel->second);
-						m_addressMappedChannels.emplace(guidChannel->second.m_peerB, guidChannel->second);
-
-						LOG(Display, "Channel relay established for session: \"{0}\" with peers: {1}, {2}.", htnGuid.toString(), guidChannel->second.m_peerA->toString(), guidChannel->second.m_peerB->toString());
-					}
-				}
-			}
-		}
-	}
-
-	return true;
-}
-
-void relay::stop()
-{
-	m_running = false;
 }

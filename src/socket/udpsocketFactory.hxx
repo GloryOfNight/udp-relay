@@ -1,5 +1,6 @@
 #pragma once
 
+#include "internetaddr.hxx"
 #include "udpsocket.hxx"
 
 #include <memory>
@@ -7,9 +8,18 @@
 class udpsocketFactory
 {
 public:
-	static std::unique_ptr<udpsocket> createUdpSocket();
+	static uniqueUdpsocket createUdpSocket()
+	{
+		return uniqueUdpsocket(new udpsocket());
+	}
 
-	static std::unique_ptr<internetaddr> createInternetAddrUnique();
+	static uniqueInternetaddr createInternetAddrUnique()
+	{
+		return uniqueInternetaddr(new internetaddr());
+	}
 
-	static std::shared_ptr<internetaddr> createInternetAddr();
+	static sharedInternetaddr createInternetAddr()
+	{
+		return sharedInternetaddr(new internetaddr());
+	}
 };
