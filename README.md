@@ -9,6 +9,9 @@ It's not possible for this relay to have more then 2 peers within one mapping.
 
 You can check commandline arguments with `--help`.
 
+[![Windows](https://github.com/GloryOfNight/udp-relay/actions/workflows/windows.yml/badge.svg)](https://github.com/GloryOfNight/udp-relay/actions/workflows/windows.yml)
+[![Linux](https://github.com/GloryOfNight/udp-relay/actions/workflows/linux.yml/badge.svg)](https://github.com/GloryOfNight/udp-relay/actions/workflows/linux.yml)
+
 # How it works
 
 ```
