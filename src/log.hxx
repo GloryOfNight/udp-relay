@@ -13,7 +13,7 @@ enum class log_level : uint8_t
 
 extern log_level g_logLevel;
 
-namespace relay::core
+namespace udprelaycore
 {
 	template <typename... Args>
 	void log(const log_level level, const std::string_view format, Args... args)
@@ -32,4 +32,4 @@ namespace relay::core
 	}
 } // namespace cf
 
-#define LOG(level, format, ...) cf::log(log_level::level, format, ##__VA_ARGS__);
+#define LOG(level, format, ...) udprelaycore::log(log_level::level, format, ##__VA_ARGS__);
