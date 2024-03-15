@@ -32,9 +32,9 @@ add_executable(${PROJECT_NAME} ${UDP_RELAY_MAIN} ${UDP_RELAY_SOURCES})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${UDP_RELAY_LINK_LIBRARIES})
 target_include_directories(${PROJECT_NAME} PRIVATE "include")
 
-add_library(${PROJECT_NAME}_lib STATIC ${UDP_RELAY_SOURCES})
-target_link_libraries(${PROJECT_NAME}_lib PUBLIC ${UDP_RELAY_LINK_LIBRARIES})
-target_include_directories(${PROJECT_NAME}_lib PUBLIC "include")
+add_library(${PROJECT_NAME}-static STATIC ${UDP_RELAY_SOURCES})
+target_link_libraries(${PROJECT_NAME}-static PUBLIC ${UDP_RELAY_LINK_LIBRARIES})
+target_include_directories(${PROJECT_NAME}-static PUBLIC "include")
 
 
 enable_sanitizers(${PROJECT_NAME} 
