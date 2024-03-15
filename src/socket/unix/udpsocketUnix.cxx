@@ -103,7 +103,7 @@ bool udpsocketUnix::waitForRead(int32_t timeoutUs)
 
 	timeval* timePtr = timeoutUs == 0 ? nullptr : &time;
 
-	const auto selectRes = select(static_cast<int>(m_socket + 1), &socketSet, NULL, NULL, &time);
+	const auto selectRes = ::select(static_cast<int>(m_socket + 1), &socketSet, NULL, NULL, &time);
 	return selectRes > 0;
 }
 
@@ -117,7 +117,7 @@ bool udpsocketUnix::waitForWrite(int32_t timeoutUs)
 	FD_ZERO(&socketSet);
 	FD_SET(m_socket, &socketSet);
 
-	const auto selectRes = select(static_cast<int>(m_socket + 1), NULL, &socketSet, NULL, &time);
+	const auto selectRes = ::select(static_cast<int>(m_socket + 1), NULL, &socketSet, NULL, &time);
 	return selectRes > 0;
 }
 

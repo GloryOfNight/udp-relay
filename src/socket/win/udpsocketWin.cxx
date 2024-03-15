@@ -86,13 +86,13 @@ bool udpsocketWin::waitForRead(int32_t timeoutUs)
 {
 	timeval time;
 	time.tv_sec = 0;
-	time.tv_usec = timeoutUs;
+	time.tv_usec = static_cast<long>(timeoutUs);
 
 	fd_set socketSet;
 	FD_ZERO(&socketSet);
 	FD_SET(m_socket, &socketSet);
 
-	const auto selectRes = select(static_cast<int>(m_socket + 1), &socketSet, NULL, NULL, &time);
+	const auto selectRes = ::select(static_cast<int>(m_socket + 1), &socketSet, NULL, NULL, &time);
 	return selectRes > 0;
 }
 
@@ -100,13 +100,13 @@ bool udpsocketWin::waitForWrite(int32_t timeoutUs)
 {
 	timeval time;
 	time.tv_sec = 0;
-	time.tv_usec = timeoutUs;
+	time.tv_usec = static_cast<long>(timeoutUs);
 
 	fd_set socketSet;
 	FD_ZERO(&socketSet);
 	FD_SET(m_socket, &socketSet);
 
-	const auto selectRes = select(static_cast<int>(m_socket + 1), NULL, &socketSet, NULL, &time);
+	const auto selectRes = ::select(static_cast<int>(m_socket + 1), NULL, &socketSet, NULL, &time);
 	return selectRes > 0;
 }
 
