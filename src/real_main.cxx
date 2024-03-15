@@ -10,9 +10,9 @@
 namespace args
 {
 	bool printHelp{};			   // when true - prints help and exits
-	int32_t logLevel{};			   // 0 - no logs, 1 - errors only, 2 - warnings only, 3 - log (default), 4 - verbose
+	int32_t logLevel{static_cast<int32_t>(log_level::Display)};			   // 0 - no logs, 1 - errors only, 2 - warnings only, 3 - log (default), 4 - verbose
 	int32_t port{6060};			   // main port for the server
-	int32_t warnTickTimeUs{10000}; // log warning when tick exceeded specified time in microseconds
+	int32_t warnTickTimeUs{5000}; // log warning when tick exceeded specified time in microseconds
 } // namespace args
 
 // clang-format off

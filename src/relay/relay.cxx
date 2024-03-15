@@ -32,7 +32,7 @@ bool relay::run(const relay_params& params)
 		}
 		m_lastTickTime = now;
 
-		if (!m_socket->waitForRead(0))
+		if (!m_socket->waitForRead(5))
 			continue;
 
 		sharedInternetaddr recvAddr = udpsocketFactory::createInternetAddr();
@@ -52,7 +52,7 @@ bool relay::run(const relay_params& params)
 
 				const auto& sendAddr = *findRes->second.m_peerA != *recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
 
-				if (!m_socket->waitForWrite(1))
+				if (!m_socket->waitForWrite(5))
 					continue;
 
 				const int32_t bytesSent = m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());

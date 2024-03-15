@@ -82,11 +82,11 @@ bool udpsocketWin::setRecvBufferSize(int32_t size, int32_t& newSize)
 	return bOk;
 }
 
-bool udpsocketWin::waitForRead(int32_t timeoutms)
+bool udpsocketWin::waitForRead(int32_t timeoutUs)
 {
 	timeval time;
 	time.tv_sec = 0;
-	time.tv_usec = timeoutms * 1000;
+	time.tv_usec = timeoutUs;
 
 	fd_set socketSet;
 	FD_ZERO(&socketSet);
@@ -96,11 +96,11 @@ bool udpsocketWin::waitForRead(int32_t timeoutms)
 	return selectRes > 0;
 }
 
-bool udpsocketWin::waitForWrite(int32_t timeoutms)
+bool udpsocketWin::waitForWrite(int32_t timeoutUs)
 {
 	timeval time;
 	time.tv_sec = 0;
-	time.tv_usec = timeoutms * 1000;
+	time.tv_usec = timeoutUs;
 
 	fd_set socketSet;
 	FD_ZERO(&socketSet);

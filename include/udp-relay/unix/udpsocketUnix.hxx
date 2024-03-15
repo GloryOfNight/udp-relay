@@ -28,9 +28,9 @@ public:
 
 	bool setRecvBufferSize(int32_t size, int32_t& newSize);
 
-	bool waitForRead(int32_t timeoutms);
+	bool waitForRead(int32_t timeoutUs);
 
-	bool waitForWrite(int32_t timeoutms);
+	bool waitForWrite(int32_t timeoutUs);
 
 	bool isValid() const;
 
