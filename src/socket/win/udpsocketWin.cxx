@@ -1,8 +1,7 @@
-#include "udpsocketWin.hxx"
+#include "udp-relay/win/udpsocketWin.hxx"
 
-#include "utils/log.hxx"
-
-#include "internetaddrWin.hxx"
+#include "udp-relay/log.hxx"
+#include "udp-relay/win/internetaddrWin.hxx"
 
 #include <WinSock2.h>
 

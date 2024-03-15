@@ -1,7 +1,7 @@
-#include "relay.hxx"
+#include "udp-relay/relay.hxx"
 
-#include "socket/udpsocketFactory.hxx"
-#include "utils/log.hxx"
+#include "udp-relay/log.hxx"
+#include "udp-relay/udpsocketFactory.hxx"
 
 #include <array>
 

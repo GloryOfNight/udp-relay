@@ -1,6 +1,6 @@
 #pragma once
-#include "socket/internetaddr.hxx"
-#include "socket/udpsocket.hxx"
+#include "udp-relay/internetaddr.hxx"
+#include "udp-relay/udpsocket.hxx"
 
 #include "types.hxx"
 

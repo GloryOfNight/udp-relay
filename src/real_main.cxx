@@ -1,7 +1,6 @@
-#include "relay/relay.hxx"
-
-#include "utils/val_ref.hxx"
-#include "utils/log.hxx"
+#include "udp-relay/log.hxx"
+#include "udp-relay/relay.hxx"
+#include "udp-relay/val_ref.hxx"
 
 #include <algorithm>
 #include <array>
