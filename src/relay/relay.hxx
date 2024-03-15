@@ -38,6 +38,12 @@ struct channel
 #define NETWORK_TO_HOST_32(x) __builtin_bswap32(static_cast<uint32_t>(x))
 #endif
 
+struct relay_params
+{
+	uint16_t m_primaryPort{};
+	int32_t m_warnTickExceedTimeUs{};
+};
+
 class relay
 {
 public:
@@ -46,18 +52,20 @@ public:
 	relay(relay&&) = delete;
 	~relay() = default;
 
-	bool run(const uint16_t port);
+	bool run(const relay_params& params);
 
 	void stop();
 
 private:
-	bool init(const uint16_t port);
+	bool init();
 
 	channel& createChannel(const guid& inGuid);
 
 	bool conditionalCleanup(bool force);
 
 	inline bool checkHandshakePacket(const std::array<uint8_t, 1024>& buffer, size_t bytesRead) const noexcept;
+
+	relay_params m_params;
 
 	std::unordered_map<guid, channel&> m_guidMappedChannels{};
 
@@ -66,6 +74,8 @@ private:
 	std::list<channel> m_channels{};
 
 	uniqueUdpsocket m_socket{};
+
+	std::chrono::time_point<std::chrono::steady_clock> m_lastTickTime{};
 
 	std::chrono::time_point<std::chrono::steady_clock> m_lastCleanupTime{};
 

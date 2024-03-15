@@ -1,29 +1,39 @@
 #include "relay.hxx"
 
 #include "socket/udpsocketFactory.hxx"
-
-#include "log.hxx"
+#include "utils/log.hxx"
 
 #include <array>
 
-bool relay::run(const uint16_t port)
+bool relay::run(const relay_params& params)
 {
-	if (!init(port))
+	m_params = params;
+
+	if (!init())
 		return false;
 
 	LOG(Display, "Relay initialized on {0} port", m_socket->getPort());
 
 	std::array<uint8_t, 1024> buffer{};
 
-	m_lastCleanupTime = std::chrono::steady_clock::now();
+	m_lastTickTime = std::chrono::steady_clock::now();
+	m_lastCleanupTime = m_lastTickTime;
 	m_running = true;
+
 	while (m_running)
 	{
 		conditionalCleanup(false);
+
+		const auto now = std::chrono::steady_clock::now();
+		const int64_t timeSinceLastTick = std::chrono::duration_cast<std::chrono::microseconds>(now - m_lastTickTime).count();
+		if (timeSinceLastTick > m_params.m_warnTickExceedTimeUs)
+		{
+			LOG(Warning, "Tick {0}us time exceeded limit {1}us", timeSinceLastTick, m_params.m_warnTickExceedTimeUs);
+		}
+		m_lastTickTime = now;
+
 		if (!m_socket->waitForRead(0))
 			continue;
-
-		const auto m_tickStartTime = std::chrono::steady_clock::now();
 
 		sharedInternetaddr recvAddr = udpsocketFactory::createInternetAddr();
 		const int32_t bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), recvAddr.get());
@@ -35,7 +45,7 @@ bool relay::run(const uint16_t port)
 			{
 				auto& currentChannel = findRes->second;
 
-				currentChannel.m_lastUpdated = m_tickStartTime;
+				currentChannel.m_lastUpdated = m_lastTickTime;
 
 				currentChannel.m_stats.m_packetsReceived++;
 				currentChannel.m_stats.m_bytesReceived += bytesRead;
@@ -63,7 +73,7 @@ bool relay::run(const uint16_t port)
 				{
 					channel& newChannel = createChannel(nthGuid);
 					newChannel.m_peerA = std::move(recvAddr);
-					newChannel.m_lastUpdated = m_tickStartTime;
+					newChannel.m_lastUpdated = m_lastTickTime;
 
 					m_guidMappedChannels.emplace(newChannel.m_guid, newChannel);
 
@@ -72,7 +82,7 @@ bool relay::run(const uint16_t port)
 				else if (*guidChannel->second.m_peerA != *recvAddr && guidChannel->second.m_peerB == nullptr)
 				{
 					guidChannel->second.m_peerB = std::move(recvAddr);
-					guidChannel->second.m_lastUpdated = m_tickStartTime;
+					guidChannel->second.m_lastUpdated = m_lastTickTime;
 
 					m_addressMappedChannels.emplace(guidChannel->second.m_peerA, guidChannel->second);
 					m_addressMappedChannels.emplace(guidChannel->second.m_peerB, guidChannel->second);
@@ -91,7 +101,7 @@ void relay::stop()
 	m_running = false;
 }
 
-bool relay::init(const uint16_t port)
+bool relay::init()
 {
 	LOG(Verbose, "Begin initialization");
 
@@ -104,9 +114,9 @@ bool relay::init(const uint16_t port)
 
 	LOG(Verbose, "Created primary udp socket");
 
-	if (!m_socket->bind(port))
+	if (!m_socket->bind(m_params.m_primaryPort))
 	{
-		LOG(Error, "Failed bind to {0} port", port);
+		LOG(Error, "Failed bind to {0} port", m_params.m_primaryPort);
 		return false;
 	}
 
@@ -139,13 +149,12 @@ channel& relay::createChannel(const guid& inGuid)
 
 bool relay::conditionalCleanup(bool force)
 {
-	const auto now = std::chrono::steady_clock::now();
-	const auto secondsSinceLastCleanup = std::chrono::duration_cast<std::chrono::seconds>(now - m_lastCleanupTime).count();
-	if (secondsSinceLastCleanup > 60 || force)
+	const auto secondsSinceLastCleanup = std::chrono::duration_cast<std::chrono::seconds>(m_lastTickTime - m_lastCleanupTime).count();
+	if (secondsSinceLastCleanup > 5 || force)
 	{
 		for (auto it = m_channels.begin(); it != m_channels.end();)
 		{
-			const auto inactiveSeconds = std::chrono::duration_cast<std::chrono::seconds>(now - it->m_lastUpdated).count();
+			const auto inactiveSeconds = std::chrono::duration_cast<std::chrono::seconds>(m_lastTickTime - it->m_lastUpdated).count();
 			if (inactiveSeconds > 30)
 			{
 				const auto channelGuidStr = it->m_guid.toString();
@@ -165,7 +174,7 @@ bool relay::conditionalCleanup(bool force)
 			}
 		}
 
-		m_lastCleanupTime = now;
+		m_lastCleanupTime = m_lastTickTime;
 		return true;
 	}
 

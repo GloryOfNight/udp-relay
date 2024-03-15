@@ -1,7 +1,8 @@
 #include "udpsocketWin.hxx"
 
+#include "utils/log.hxx"
+
 #include "internetaddrWin.hxx"
-#include "log.hxx"
 
 #include <WinSock2.h>
 
@@ -62,8 +63,8 @@ uint16_t udpsocketWin::getPort() const
 
 bool udpsocketWin::setNonBlocking(bool bNonBlocking)
 {
-	u_long Value = bNonBlocking ? true : false;
-	return ioctlsocket(m_socket, FIONBIO, &Value) == 0;
+	u_long value = bNonBlocking;
+	return ioctlsocket(m_socket, FIONBIO, &value) == 0;
 }
 
 bool udpsocketWin::setSendBufferSize(int32_t size, int32_t& newSize)

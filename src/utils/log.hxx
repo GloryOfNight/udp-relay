@@ -8,8 +8,9 @@ enum class log_level : uint8_t
 {
 	NoLogs = 0,
 	Error = 1,
-	Display = 2,
-	Verbose = 3
+	Warning = 2,
+	Display = 3,
+	Verbose = 4
 };
 
 extern log_level g_logLevel;
@@ -22,6 +23,8 @@ namespace udprelaycore
 		{
 		case log_level::Error:
 			return "Error";
+		case log_level::Warning:
+			return "Warning";
 		case log_level::Display:
 			return "Display";
 		case log_level::Verbose:

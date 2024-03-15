@@ -1,20 +1,40 @@
 #include "relay/relay.hxx"
 
-#include "arguments.hxx"
-#include "log.hxx"
+#include "utils/val_ref.hxx"
+#include "utils/log.hxx"
 
 #include <algorithm>
+#include <array>
 #include <csignal>
 #include <memory>
 
-static std::unique_ptr<relay> g_relay{};
-
 namespace args
 {
-	bool printHelp{};
-	int32_t logLevel{static_cast<int32_t>(log_level::Display)};
-	int32_t port{6060};
+	bool printHelp{};			   // when true - prints help and exits
+	int32_t logLevel{};			   // 0 - no logs, 1 - errors only, 2 - warnings only, 3 - log (default), 4 - verbose
+	int32_t port{6060};			   // main port for the server
+	int32_t warnTickTimeUs{10000}; // log warning when tick exceeded specified time in microseconds
 } // namespace args
+
+// clang-format off
+static constexpr auto argList = std::array
+{
+	val_ref{"--help", args::printHelp,							"--help                         = print help" },
+	val_ref{"--log-level", args::logLevel,						"--log-level <value>            = 0 - no logs, 1 - errors only, 2 - warnings only, 3 - log (default), 4 - verbose" },
+	val_ref{"--port", args::port,								"--port <value>                 = main port for accepting requests" },
+	val_ref{"--warn-tick-time", args::warnTickTimeUs,			"--warn-tick-time <value>       = log warning when tick exceeded specified time in microseconds" },
+};
+// clang-format on
+
+static std::string envTest{};
+// clang-format off
+static constexpr auto env_vars = std::array
+{
+	val_ref{"test", envTest, ""},
+};
+// clang-format on
+
+static std::unique_ptr<relay> g_relay{};
 
 log_level g_logLevel{log_level::Display};
 
@@ -43,13 +63,23 @@ int relay_main(int argc, char* argv[], char* envp[])
 		return 0;
 	}
 
+	if (args::port < 0 || args::port > UINT16_MAX)
+	{
+		LOG(Error, "Invalid primary port number: {0}", args::port);
+		return 1;
+	}
+
 	g_logLevel = static_cast<log_level>(args::logLevel);
 
 	LOG(Display, "Starting UDP relay. . .");
 
 	g_relay = std::make_unique<relay>();
 
-	g_relay->run(args::port);
+	relay_params params{};
+	params.m_primaryPort = args::port;
+	params.m_warnTickExceedTimeUs = args::warnTickTimeUs;
+
+	g_relay->run(params);
 
 	g_relay.reset();
 
@@ -58,14 +88,14 @@ int relay_main(int argc, char* argv[], char* envp[])
 
 void handleAbort(int sig)
 {
-	LOG(Error, "\nCAUGHT SIGNAL - {0}\n", sig);
+	LOG(Error, "CAUGHT SIGNAL - {0}", sig);
 	if (g_relay)
 		g_relay->stop();
 }
 
 void handleCrash(int sig)
 {
-	LOG(Error, "\nCRASHED - {0}\n", sig);
+	LOG(Error, "CRASHED - {0}", sig);
 	if (g_relay)
 		g_relay->stop();
 }
@@ -79,7 +109,7 @@ void parseArgs(int argc, char* argv[])
 
 		// find if argument listed in args
 		const auto found_arg = std::find_if(std::begin(argList), std::end(argList), [&arg](const val_ref& val)
-			{ return arg == val.name; });
+			{ return arg == val.m_name; });
 
 		// some arguments doesn't need options and some does
 		// we sort it out by separation bool and non-bool arguments
@@ -111,7 +141,7 @@ void parseArgs(int argc, char* argv[])
 			}
 			else
 			{
-				LOG(Error, "Failed parse argument: {0}. Type not supported: {1}", prev_arg->name, prev_arg->type.name());
+				LOG(Error, "Failed parse argument: {0}. Type not supported: {1}", prev_arg->m_name, prev_arg->m_type.name());
 			}
 		}
 		else
@@ -133,7 +163,7 @@ void parseEnvp(char* envp[])
 
 		// find environment variables that we might need
 		const auto found_env = std::find_if(std::begin(env_vars), std::end(env_vars), [&env_name](const val_ref& val)
-			{ return val.name == env_name; });
+			{ return val.m_name == env_name; });
 
 		// if found_env variable found
 		// separate env variable from it's contents
@@ -148,7 +178,7 @@ void parseEnvp(char* envp[])
 			}
 			else
 			{
-				LOG(Error, "Failed parse environment variable: {0}. Type not supported: {1}", found_env->name, found_env->type.name());
+				LOG(Error, "Failed parse environment variable: {0}. Type not supported: {1}", found_env->m_name, found_env->m_type.name());
 			}
 		}
 	}
@@ -159,10 +189,10 @@ void printHelp()
 	LOG(Display, "Available arguments list:");
 	for (auto& arg : argList)
 	{
-		if (arg.note_help.size() == 0)
+		if (arg.m_noteHelp.size() == 0)
 			continue;
 
-		LOG(Display, arg.note_help);
+		LOG(Display, arg.m_noteHelp);
 	}
 	LOG(Display, " Apache License Version 2.0 - Copyright (c) 2024 Sergey Dikiy");
 }

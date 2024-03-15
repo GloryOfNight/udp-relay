@@ -1,7 +1,8 @@
 #include "udpsocketUnix.hxx"
 
+#include "utils/log.hxx"
+
 #include "internetaddrUnix.hxx"
-#include "log.hxx"
 
 #include <arpa/inet.h>
 #include <fcntl.h>
