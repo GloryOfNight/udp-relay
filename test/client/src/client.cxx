@@ -47,7 +47,6 @@ void relay_client::run(const relay_client_params& params)
 	}
 
 	LOG(Display, "Client initialized on {0} port", m_socket->getPort());
-
 	std::array<uint8_t, 1024> buffer;
 
 	sharedInternetaddr recvAddr = udpsocketFactory::createInternetAddr();
@@ -57,6 +56,8 @@ void relay_client::run(const relay_client_params& params)
 	relay_addr->setPort(htons(m_params.m_server_port));
 
 	auto lastSendTime = std::chrono::steady_clock::now();
+
+	LOG(Display, "Client attempt send packets to {0}", relay_addr->toString());
 
 	m_running = true;
 	while (m_running)
@@ -78,9 +79,7 @@ void relay_client::run(const relay_client_params& params)
 			handshake_packet packet = handshake_packet::newPacket(m_params.m_guid);
 			packet.generateRandomPayload();
 
-			const auto bytesSent = m_socket->sendTo(&packet, sizeof(packet) - 200, relay_addr.get());
-
-			LOG(Display, "Send packet {0} bytes to {1}", bytesSent, relay_addr->toString());
+			const auto bytesSent = m_socket->sendTo(&packet, sizeof(packet), relay_addr.get());
 		};
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(m_params.m_sleepMs));

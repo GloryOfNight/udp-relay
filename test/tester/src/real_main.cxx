@@ -14,6 +14,7 @@ namespace args
 	static int32_t maxClients{2};
 	static std::vector<int32_t> relayAddr{};
 	static int32_t relayPort{6060};
+	static int32_t shutdownAfter{120};
 } // namespace args
 
 // clang-format off
@@ -23,7 +24,7 @@ static constexpr auto argList = std::array
 	val_ref{"--max-clients", args::maxClients,								"" },
 	val_ref{"--relay-addr", args::relayAddr,								"" },
 	val_ref{"--relay-port", args::relayPort,								"" },
-
+	val_ref{"--shutdown-after", args::shutdownAfter,						"" },
 };
 // clang-format on
 
@@ -46,7 +47,11 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 		return 0;
 	}
 
-	if (args::relayAddr.size() != 4)
+	if (args::relayAddr.empty())
+	{
+		args::relayAddr = {127, 0, 0, 1};
+	}
+	else if (args::relayAddr.size() != 4)
 	{
 		LOG(Error, "Invalid relay addr size {0}", args::relayAddr.size())
 		return 1;
@@ -66,23 +71,39 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 		relay_client_params param;
 		param.m_guid = guid::newGuid();
 		param.m_sendIntervalMs = 500;
-		
-		reinterpret_cast<uint8_t*>(&param.m_server_ip)[0] = 172;
-		reinterpret_cast<uint8_t*>(&param.m_server_ip)[1] = 0;
-		reinterpret_cast<uint8_t*>(&param.m_server_ip)[2] = 0;
-		reinterpret_cast<uint8_t*>(&param.m_server_ip)[3] = 1;
+
+		reinterpret_cast<uint8_t*>(&param.m_server_ip)[0] = args::relayAddr[0];
+		reinterpret_cast<uint8_t*>(&param.m_server_ip)[1] = args::relayAddr[1];
+		reinterpret_cast<uint8_t*>(&param.m_server_ip)[2] = args::relayAddr[2];
+		reinterpret_cast<uint8_t*>(&param.m_server_ip)[3] = args::relayAddr[3];
 
 		param.m_server_port = args::relayPort;
 		param.m_sleepMs = 100;
 
 		std::thread(std::bind(&relay_client::run, &g_clients[i], param)).detach();
 		std::thread(std::bind(&relay_client::run, &g_clients[i + 1], param)).detach();
+
+		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
+
+	const auto start = std::chrono::steady_clock::now();
 
 	g_running = true;
 	while (g_running)
 	{
 		std::this_thread::sleep_for(std::chrono::seconds(1));
+
+		const auto now = std::chrono::steady_clock::now();
+
+		if (args::shutdownAfter > 0 && std::chrono::duration_cast<std::chrono::seconds>(now - start).count() > args::shutdownAfter)
+		{
+			for (auto& client : g_clients)
+				client.stop();
+
+			g_running = false;
+
+			LOG(Display, "Shutting down");
+		}
 	}
 
 	return 0;
