@@ -30,14 +30,6 @@ struct channel
 	std::chrono::time_point<std::chrono::steady_clock> m_lastUpdated{};
 };
 
-#ifdef _MSC_VER
-#define NETWORK_TO_HOST_16(x) _byteswap_ushort(static_cast<uint16_t>(x))
-#define NETWORK_TO_HOST_32(x) _byteswap_ulong(static_cast<uint32_t>(x))
-#elif defined(__clang__)
-#define NETWORK_TO_HOST_16(x) __builtin_bswap16(static_cast<uint16_t>(x))
-#define NETWORK_TO_HOST_32(x) __builtin_bswap32(static_cast<uint32_t>(x))
-#endif
-
 struct relay_params
 {
 	uint16_t m_primaryPort{};
@@ -85,5 +77,5 @@ private:
 inline bool relay::checkHandshakePacket(const std::array<uint8_t, 1024>& buffer, const size_t bytesRead) const noexcept
 {
 	const handshake_header* header = reinterpret_cast<const handshake_header*>(buffer.data());
-	return bytesRead == 1024 && NETWORK_TO_HOST_16(header->m_type) == 1 && NETWORK_TO_HOST_16(header->m_length) == 992;
+	return bytesRead == 1024 && BYTESWAP16(header->m_type) == 1 && BYTESWAP16(header->m_length) == 992;
 }

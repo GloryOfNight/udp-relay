@@ -18,14 +18,14 @@ struct handshake_packet
 	{
 		handshake_packet packet{};
 
-		packet.m_header.m_type = htons(1);
-		packet.m_header.m_length = htons(992);
-		packet.m_header.m_guid.m_a = htonl(guid.m_a);
-		packet.m_header.m_guid.m_b = htonl(guid.m_b);
-		packet.m_header.m_guid.m_c = htonl(guid.m_c);
-		packet.m_header.m_guid.m_d = htonl(guid.m_d);
+		packet.m_header.m_type = BYTESWAP16(1);
+		packet.m_header.m_length = BYTESWAP16(992);
+		packet.m_header.m_guid.m_a = BYTESWAP32(guid.m_a);
+		packet.m_header.m_guid.m_b = BYTESWAP32(guid.m_b);
+		packet.m_header.m_guid.m_c = BYTESWAP32(guid.m_c);
+		packet.m_header.m_guid.m_d = BYTESWAP32(guid.m_d);
 
-		packet.m_header.m_time = htonll(std::chrono::steady_clock::now().time_since_epoch().count());
+		packet.m_header.m_time = BYTESWAP64(std::chrono::steady_clock::now().time_since_epoch().count());
 
 		return packet;
 	}
@@ -77,18 +77,18 @@ void relay_client::run(const relay_client_params& params)
 
 				const auto header = reinterpret_cast<handshake_header*>(buffer.data());
 
-				if (header->m_type == htons(1))
+				if (header->m_type == BYTESWAP16(1))
 				{
 					handshake_packet recvPacket = reinterpret_cast<handshake_packet&>(*buffer.data());
-					recvPacket.m_header.m_type = htons(2);
+					recvPacket.m_header.m_type = BYTESWAP16(2);
 
 					const auto bytesSent = m_socket->sendTo(&recvPacket, bytesRead, relay_addr.get());
 					if (bytesSent > 0)
 						++m_packetsSent;
 				}
-				else if (header->m_type == htons(2))
+				else if (header->m_type == BYTESWAP16(2))
 				{
-					const auto packetTimeNs = std::chrono::steady_clock::now().time_since_epoch() - std::chrono::steady_clock::duration(ntohll(header->m_time));
+					const auto packetTimeNs = std::chrono::steady_clock::now().time_since_epoch() - std::chrono::steady_clock::duration(BYTESWAP64(header->m_time));
 					const auto packetTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(packetTimeNs);
 					m_latencies.push_back(packetTimeMs.count());
 				}

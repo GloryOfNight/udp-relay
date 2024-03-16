@@ -6,6 +6,16 @@
 #include <random>
 #include <stdint.h>
 
+#ifdef _MSC_VER
+#define BYTESWAP16(x) _byteswap_ushort(static_cast<uint16_t>(x))
+#define BYTESWAP32(x) _byteswap_ulong(static_cast<uint32_t>(x))
+#define BYTESWAP64(x) _byteswap_uint64(static_cast<uint64_t>(x))
+#elif defined(__clang__)
+#define BYTESWAP16(x) _bswap16(static_cast<uint16_t>(x))
+#define BYTESWAP32(x) _bswap32(static_cast<uint32_t>(x))
+#define BYTESWAP64(x) _bswap64(static_cast<uint32_t>(x))
+#endif
+
 namespace udprelay::utils
 {
 	template <typename T>
