@@ -45,6 +45,7 @@ struct handshake_header
 	uint16_t m_type{};
 	uint16_t m_length{};
 	guid m_guid{};
+	int64_t m_time{};
 };
 
 // custom hash for guid

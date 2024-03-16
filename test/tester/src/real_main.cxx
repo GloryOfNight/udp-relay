@@ -14,7 +14,7 @@ namespace args
 	static int32_t maxClients{2};
 	static std::vector<int32_t> relayAddr{};
 	static int32_t relayPort{6060};
-	static int32_t shutdownAfter{120};
+	static int32_t shutdownAfter{60};
 } // namespace args
 
 // clang-format off
@@ -66,11 +66,14 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 		args::maxClients = 1024;
 	}
 
+	LOG(Display, "Using relay address: {0}.{1}.{2}.{3}:{4}", args::relayAddr[0], args::relayAddr[1], args::relayAddr[2], args::relayAddr[3], args::relayPort);
+	LOG(Display, "Starting {0} clients", args::maxClients);
+
 	for (int32_t i = 0; i < args::maxClients; i += 2)
 	{
 		relay_client_params param;
 		param.m_guid = guid::newGuid();
-		param.m_sendIntervalMs = 500;
+		param.m_sendIntervalMs = 300;
 
 		reinterpret_cast<uint8_t*>(&param.m_server_ip)[0] = args::relayAddr[0];
 		reinterpret_cast<uint8_t*>(&param.m_server_ip)[1] = args::relayAddr[1];
@@ -78,15 +81,17 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 		reinterpret_cast<uint8_t*>(&param.m_server_ip)[3] = args::relayAddr[3];
 
 		param.m_server_port = args::relayPort;
-		param.m_sleepMs = 100;
+		param.m_sleepMs = 1;
 
 		std::thread(std::bind(&relay_client::run, &g_clients[i], param)).detach();
 		std::thread(std::bind(&relay_client::run, &g_clients[i + 1], param)).detach();
 
-		std::this_thread::sleep_for(std::chrono::seconds(1));
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 
 	const auto start = std::chrono::steady_clock::now();
+
+	LOG(Display, "Clients started. Probing relay for {0} seconds", args::shutdownAfter);
 
 	g_running = true;
 	while (g_running)
@@ -97,12 +102,21 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 
 		if (args::shutdownAfter > 0 && std::chrono::duration_cast<std::chrono::seconds>(now - start).count() > args::shutdownAfter)
 		{
-			for (auto& client : g_clients)
-				client.stop();
+			LOG(Display, "Timesup. Stopping clients.");
+
+			for (size_t i = 0; i < args::maxClients; ++i)
+				g_clients[i].stop();
 
 			g_running = false;
 
-			LOG(Display, "Shutting down");
+			std::this_thread::sleep_for(std::chrono::seconds(2));
+
+			for (size_t i = 0; i < args::maxClients; ++i)
+			{
+				const auto& client = g_clients[i];
+				LOG(Display, "\"{4}\". Median/Average latency: {0} / {1}. Sent/Recv packets: {2} / {3}", client.getMedianLatency(), client.getAverageLatency(), client.getPacketsSent(), client.getPacketsRecv(), client.getGuid().toString());
+			}
+				
 		}
 	}
 
