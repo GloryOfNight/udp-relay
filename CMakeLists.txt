@@ -10,7 +10,7 @@ include(cmake/ProjectOptions.cmake)
 include(cmake/Sanitizers.cmake)
 include(cmake/PreventInSourceBuilds.cmake)
 
-set (UDP_RELAY_SOURCES  "src/real_main.cxx" 
+set (UDP_RELAY_SOURCES  "src/real_main.cxx"
                         "src/relay/relay.cxx")
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -36,6 +36,7 @@ add_library(${PROJECT_NAME}-static STATIC ${UDP_RELAY_SOURCES})
 target_link_libraries(${PROJECT_NAME}-static PUBLIC ${UDP_RELAY_LINK_LIBRARIES})
 target_include_directories(${PROJECT_NAME}-static PUBLIC "include")
 
+add_subdirectory(test)
 
 enable_sanitizers(${PROJECT_NAME} 
                     ${ENABLE_SANITIZER_ADDRESS} 

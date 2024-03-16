@@ -1,4 +1,7 @@
 #pragma once
+#include "internetaddr.hxx"
+#include "utils.hxx"
+
 #include <cstdint>
 #include <memory>
 
@@ -11,6 +14,15 @@ struct guid
 		, m_c{c}
 		, m_d{d}
 	{
+	}
+
+	static guid newGuid()
+	{
+		const uint32_t a = udprelay::utils::randRange<uint32_t>(0, UINT32_MAX);
+		const uint32_t b = udprelay::utils::randRange<uint32_t>(0, UINT32_MAX);
+		const uint32_t c = udprelay::utils::randRange<uint32_t>(0, UINT32_MAX);
+		const uint32_t d = udprelay::utils::randRange<uint32_t>(0, UINT32_MAX);
+		return guid(a, b, c, d);
 	}
 
 	uint32_t m_a{};
