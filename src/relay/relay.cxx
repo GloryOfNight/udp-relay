@@ -32,7 +32,7 @@ bool relay::run(const relay_params& params)
 		}
 		m_lastTickTime = now;
 
-		if (!m_socket->waitForRead(5))
+		if (!m_socket->waitForRead(0))
 			continue;
 
 		sharedInternetaddr recvAddr = udpsocketFactory::createInternetAddr();
@@ -52,7 +52,7 @@ bool relay::run(const relay_params& params)
 
 				const auto& sendAddr = *findRes->second.m_peerA != *recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
 
-				if (!m_socket->waitForWrite(5))
+				if (!m_socket->waitForWrite(15))
 					continue;
 
 				const int32_t bytesSent = m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());
@@ -66,7 +66,7 @@ bool relay::run(const relay_params& params)
 			else if (checkHandshakePacket(buffer, bytesRead))
 			{
 				const auto& recvGuid = reinterpret_cast<const handshake_header*>(buffer.data())->m_guid;
-				const guid nthGuid = guid(NETWORK_TO_HOST_32(recvGuid.m_a), NETWORK_TO_HOST_32(recvGuid.m_b), NETWORK_TO_HOST_32(recvGuid.m_c), NETWORK_TO_HOST_32(recvGuid.m_d));
+				const guid nthGuid = guid(BYTESWAP32(recvGuid.m_a), BYTESWAP32(recvGuid.m_b), BYTESWAP32(recvGuid.m_c), BYTESWAP32(recvGuid.m_d));
 
 				auto guidChannel = m_guidMappedChannels.find(nthGuid);
 				if (guidChannel == m_guidMappedChannels.end())
@@ -77,7 +77,7 @@ bool relay::run(const relay_params& params)
 
 					m_guidMappedChannels.emplace(newChannel.m_guid, newChannel);
 
-					LOG(Display, "Created channel for guid: \"{0}\"", newChannel.m_guid.toString());
+					LOG(Verbose, "Created channel for guid: \"{0}\"", newChannel.m_guid.toString());
 				}
 				else if (*guidChannel->second.m_peerA != *recvAddr && guidChannel->second.m_peerB == nullptr)
 				{
@@ -149,24 +149,30 @@ channel& relay::createChannel(const guid& inGuid)
 
 bool relay::conditionalCleanup(bool force)
 {
+	uint16_t cleanupCount = 0;
+
 	const auto secondsSinceLastCleanup = std::chrono::duration_cast<std::chrono::seconds>(m_lastTickTime - m_lastCleanupTime).count();
-	if (secondsSinceLastCleanup > 5 || force)
+	if (secondsSinceLastCleanup > 1 || force)
 	{
 		for (auto it = m_channels.begin(); it != m_channels.end();)
 		{
+			if (cleanupCount > 99)
+				break;
+
 			const auto inactiveSeconds = std::chrono::duration_cast<std::chrono::seconds>(m_lastTickTime - it->m_lastUpdated).count();
 			if (inactiveSeconds > 30)
 			{
 				const auto channelGuidStr = it->m_guid.toString();
 				const auto stats = it->m_stats;
-				LOG(Display, "Channel \"{0}\" has been inactive for {1} seconds, removing.", channelGuidStr, inactiveSeconds);
-				LOG(Display, "Channel \"{0}\" packet amount and total bytes. Relayed: {1} ({2}); Dropped: {3} ({4})", channelGuidStr, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsReceived - stats.m_packetsSent, stats.m_bytesReceived - stats.m_bytesSent);
+				LOG(Display, "Channel \"{0}\" inactive and removed. Relayed: {1} packets ({2} bytes); Dropped: {3} ({4})", channelGuidStr, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsReceived - stats.m_packetsSent, stats.m_bytesReceived - stats.m_bytesSent);
 
 				m_addressMappedChannels.erase(it->m_peerA);
 				m_addressMappedChannels.erase(it->m_peerB);
 				m_guidMappedChannels.erase(it->m_guid);
 
 				it = m_channels.erase(it);
+
+				++cleanupCount;
 			}
 			else
 			{
