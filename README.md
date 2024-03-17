@@ -32,5 +32,5 @@ Peer B -- handhsake packet with guid (1,2,3,4) --->  Relay *Peer B has mapping f
 
 // now you can start communication freely via relay.
 // it's crutial to use same socket or bind same port values while you want to utilize relay.
-// note that if communication between peers stop for ~30 seconds - relay would clear mapping for addresses and you need establish handshake again.
+// note that if communication between peers stop for ~30 seconds - relay would clear mapping for addresses.
 ```
