@@ -7,6 +7,7 @@
 #include <array>
 #include <csignal>
 #include <memory>
+#include <stacktrace>
 
 namespace args
 {
@@ -99,4 +100,26 @@ void handleCrash(int sig)
 		g_relay->stop();
 
 	g_exitCode = 128 + sig;
+
+	const auto stacktrace = std::stacktrace::current();
+	const size_t stacksize = stacktrace.size();
+
+	LOG(Error, "Stacktrace:");
+
+	for (size_t i = 0; i < stacksize; ++i)
+	{
+		const auto& frame = stacktrace[i];
+		const auto frame_desc = frame.description();
+		const auto frame_source_file = frame.source_file();
+		const auto frame_source_line = frame.source_line();
+
+		if (frame_source_file.empty() || frame_source_line == 0)
+		{
+			LOG(Error, "#{0}: {1}", i, frame_desc);
+		}
+		else
+		{
+			LOG(Error, "#{0}: {1} ({2}:{3})", i, frame_desc, frame_source_file, frame_source_line);
+		}
+	}
 }
