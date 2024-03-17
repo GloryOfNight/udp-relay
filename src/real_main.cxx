@@ -35,8 +35,8 @@ static constexpr auto envList = std::array
 // clang-format on
 
 static std::unique_ptr<relay> g_relay{};
-static log_level g_logLevel{log_level::Display};
 static int g_exitCode{};
+log_level g_logLevel{log_level::Display};
 
 static void handleAbort(int sig); // handle abort signal from terminal or system
 static void handleCrash(int sig); // handle crash
