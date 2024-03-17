@@ -10,14 +10,31 @@ include(cmake/ProjectOptions.cmake)
 include(cmake/Sanitizers.cmake)
 include(cmake/PreventInSourceBuilds.cmake)
 
-add_executable(${PROJECT_NAME} 
-                                "src/main.cxx" 
-                                "src/relay/relay.cxx"
-                                "src/socket/udpsocketFactory.cxx"
-                                "src/socket/unix/internetaddrUnix.cxx"
-                                "src/socket/unix/udpsocketUnix.cxx")
+set (UDP_RELAY_SOURCES  "src/real_main.cxx"
+                        "src/relay/relay.cxx")
 
-target_include_directories(${PROJECT_NAME} PRIVATE "src")
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	set(UDP_RELAY_SOURCES   ${UDP_RELAY_SOURCES}
+                            "src/socket/unix/internetaddrUnix.cxx"
+                            "src/socket/unix/udpsocketUnix.cxx")
+    set(UDP_RELAY_MAIN      "src/unixmain.cxx")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set(UDP_RELAY_SOURCES   ${UDP_RELAY_SOURCES}
+                            "src/socket/win/internetaddrWin.cxx"
+                            "src/socket/win/udpsocketWin.cxx")
+    set(UDP_RELAY_MAIN      "src/winmain.cxx")
+    set(UDP_RELAY_LINK_LIBRARIES ws2_32.dll)
+endif()
+
+add_executable(${PROJECT_NAME} ${UDP_RELAY_MAIN} ${UDP_RELAY_SOURCES})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${UDP_RELAY_LINK_LIBRARIES})
+target_include_directories(${PROJECT_NAME} PRIVATE "include")
+
+add_library(${PROJECT_NAME}-static STATIC ${UDP_RELAY_SOURCES})
+target_link_libraries(${PROJECT_NAME}-static PUBLIC ${UDP_RELAY_LINK_LIBRARIES})
+target_include_directories(${PROJECT_NAME}-static PUBLIC "include")
+
+add_subdirectory(test)
 
 enable_sanitizers(${PROJECT_NAME} 
                     ${ENABLE_SANITIZER_ADDRESS} 

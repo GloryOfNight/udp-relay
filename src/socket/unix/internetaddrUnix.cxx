@@ -1,6 +1,4 @@
-#include "internetaddrUnix.hxx"
-
-#if __unix
+#include "udp-relay/unix/internetaddrUnix.hxx"
 
 #include <arpa/inet.h>
 #include <format>
@@ -41,5 +39,3 @@ std::string internetaddrUnix::toString() const
 {
 	return std::format("{0}:{1}", inet_ntoa(m_addr.sin_addr), ntohs(m_addr.sin_port));
 }
-
-#endif

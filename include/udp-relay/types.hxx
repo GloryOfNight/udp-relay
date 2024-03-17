@@ -1,15 +1,28 @@
 #pragma once
+#include "internetaddr.hxx"
+#include "utils.hxx"
+
 #include <cstdint>
+#include <memory>
 
 struct guid
 {
 	guid() = default;
-	guid(uint32_t a, uint32_t b, uint32_t c, uint32_t d) 
+	guid(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
 		: m_a{a}
 		, m_b{b}
 		, m_c{c}
 		, m_d{d}
 	{
+	}
+
+	static guid newGuid()
+	{
+		const uint32_t a = udprelay::utils::randRange<uint32_t>(0, UINT32_MAX);
+		const uint32_t b = udprelay::utils::randRange<uint32_t>(0, UINT32_MAX);
+		const uint32_t c = udprelay::utils::randRange<uint32_t>(0, UINT32_MAX);
+		const uint32_t d = udprelay::utils::randRange<uint32_t>(0, UINT32_MAX);
+		return guid(a, b, c, d);
 	}
 
 	uint32_t m_a{};
@@ -32,6 +45,7 @@ struct handshake_header
 	uint16_t m_type{};
 	uint16_t m_length{};
 	guid m_guid{};
+	int64_t m_time{};
 };
 
 // custom hash for guid
