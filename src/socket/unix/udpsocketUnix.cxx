@@ -1,12 +1,13 @@
-#include "udpsocketUnix.hxx"
+#include "udp-relay/unix/udpsocketUnix.hxx"
 
-#include "internetaddrUnix.hxx"
-#include "log.hxx"
+#include "udp-relay/log.hxx"
+#include "udp-relay/unix/internetaddrUnix.hxx"
 
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <poll.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -52,6 +53,19 @@ int32_t udpsocketUnix::recvFrom(void* buffer, size_t bufferSize, internetaddr* a
 	return ::recvfrom(m_socket, buffer, bufferSize, 0, (struct sockaddr*)&addr->getAddr(), &socklen);
 }
 
+uint16_t udpsocketUnix::getPort() const
+{
+	sockaddr_storage addr{};
+	socklen_t socklen = sizeof(sockaddr_storage);
+	const int res = getsockname(m_socket, (sockaddr*)&addr, &socklen) == 0;
+	if (res == 0) [[unlikely]]
+	{
+		LOG(Error, "Failed to get port. Error code: {0}", errno);
+		return 0;
+	}
+	return ntohs(((sockaddr_in&)addr).sin_port);
+}
+
 bool udpsocketUnix::setNonBlocking(bool bNonBlocking)
 {
 	int flags = fcntl(m_socket, F_GETFL, 0);
@@ -77,29 +91,37 @@ bool udpsocketUnix::setRecvBufferSize(int32_t size, int32_t& newSize)
 	return bOk;
 }
 
-bool udpsocketUnix::waitForRead(int32_t timeoutms)
+bool udpsocketUnix::waitForRead(int32_t timeoutUs)
 {
-	struct pollfd fdset;
-	fdset.fd = m_socket;
-	fdset.events = POLLIN;
-	fdset.revents = 0;
+	timeval time;
+	time.tv_sec = 0;
+	time.tv_usec = static_cast<suseconds_t>(timeoutUs);
 
-	const int res = ::poll(&fdset, 1, (int)timeoutms);
-	return res >= 0 && (fdset.revents & fdset.events);
+	fd_set socketSet;
+	FD_ZERO(&socketSet);
+	FD_SET(m_socket, &socketSet);
+
+	timeval* timePtr = timeoutUs == 0 ? nullptr : &time;
+
+	const auto selectRes = ::select(static_cast<int>(m_socket + 1), &socketSet, NULL, NULL, &time);
+	return selectRes > 0;
 }
 
-bool udpsocketUnix::waitForWrite(int32_t timeoutms)
+bool udpsocketUnix::waitForWrite(int32_t timeoutUs)
 {
-	struct pollfd fdset;
-	fdset.fd = m_socket;
-	fdset.events = POLLIN;
-	fdset.revents = 0;
+	timeval time;
+	time.tv_sec = 0;
+	time.tv_usec = static_cast<suseconds_t>(timeoutUs);
 
-	const int res = ::poll(&fdset, 1, (int)timeoutms);
-	return res >= 0 && (fdset.revents & fdset.events);
+	fd_set socketSet;
+	FD_ZERO(&socketSet);
+	FD_SET(m_socket, &socketSet);
+
+	const auto selectRes = ::select(static_cast<int>(m_socket + 1), NULL, &socketSet, NULL, &time);
+	return selectRes > 0;
 }
 
-bool udpsocketUnix::isValid()
+bool udpsocketUnix::isValid() const
 {
 	return m_socket != -1;
 }

@@ -1,18 +1,18 @@
 #pragma once
 
 #include <cstdint>
+#include <stddef.h>
 
-struct internetaddrWin;
-using internetaddr = internetaddrWin;
+struct internetaddrUnix;
+using internetaddr = internetaddrUnix;
 
-// unimplemented
-class udpsocketWin
+class udpsocketUnix
 {
 public:
-	udpsocketWin();
-	udpsocketWin(const udpsocketWin&) = delete;
-	udpsocketWin(udpsocketWin&&) = delete;
-	~udpsocketWin();
+	udpsocketUnix();
+	udpsocketUnix(const udpsocketUnix&) = delete;
+	udpsocketUnix(udpsocketUnix&&) = delete;
+	~udpsocketUnix();
 
 	bool bind(int32_t port);
 
@@ -20,19 +20,20 @@ public:
 
 	int32_t recvFrom(void* buffer, size_t bufferSize, internetaddr* addr);
 
+	uint16_t getPort() const;
+
 	bool setNonBlocking(bool bNonBlocking);
 
 	bool setSendBufferSize(int32_t size, int32_t& newSize);
 
 	bool setRecvBufferSize(int32_t size, int32_t& newSize);
 
-	bool waitForRead(int32_t timeoutms);
+	bool waitForRead(int32_t timeoutUs);
 
-	bool waitForWrite(int32_t timeoutms);
+	bool waitForWrite(int32_t timeoutUs);
 
-	bool isValid();
+	bool isValid() const;
 
 private:
-	using SOCKET = unsigned int;
-	SOCKET m_socket{static_cast<SOCKET>(-1)};
+	int32_t m_socket{-1};
 };

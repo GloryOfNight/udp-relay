@@ -1,7 +1,7 @@
-#include "udpsocketWin.hxx"
+#include "udp-relay/win/udpsocketWin.hxx"
 
-#include "internetaddrWin.hxx"
-#include "log.hxx"
+#include "udp-relay/log.hxx"
+#include "udp-relay/win/internetaddrWin.hxx"
 
 #include <WinSock2.h>
 
@@ -47,10 +47,23 @@ int32_t udpsocketWin::recvFrom(void* buffer, size_t bufferSize, internetaddr* ad
 	return ::recvfrom(m_socket, (char*)buffer, bufferSize, 0, (struct sockaddr*)&addr->getAddr(), &socklen);
 }
 
+uint16_t udpsocketWin::getPort() const
+{
+	sockaddr_storage addr{};
+	int socklen = sizeof(sockaddr_storage);
+	const int res = getsockname(m_socket, (sockaddr*)&addr, &socklen) == 0;
+	if (res == 0) [[unlikely]]
+	{
+		LOG(Error, "Failed to get port. Error code: {0}", WSAGetLastError());
+		return 0;
+	}
+	return ntohs(((sockaddr_in&)addr).sin_port);
+}
+
 bool udpsocketWin::setNonBlocking(bool bNonBlocking)
 {
-	u_long Value = bNonBlocking ? true : false;
-	return ioctlsocket(m_socket, FIONBIO, &Value) == 0;
+	u_long value = bNonBlocking;
+	return ioctlsocket(m_socket, FIONBIO, &value) == 0;
 }
 
 bool udpsocketWin::setSendBufferSize(int32_t size, int32_t& newSize)
@@ -69,35 +82,35 @@ bool udpsocketWin::setRecvBufferSize(int32_t size, int32_t& newSize)
 	return bOk;
 }
 
-bool udpsocketWin::waitForRead(int32_t timeoutms)
+bool udpsocketWin::waitForRead(int32_t timeoutUs)
 {
 	timeval time;
 	time.tv_sec = 0;
-	time.tv_usec = timeoutms * 1000;
+	time.tv_usec = static_cast<long>(timeoutUs);
 
 	fd_set socketSet;
 	FD_ZERO(&socketSet);
 	FD_SET(m_socket, &socketSet);
 
-	const auto selectRes = select(static_cast<int>(m_socket + 1), &socketSet, NULL, NULL, &time);
+	const auto selectRes = ::select(static_cast<int>(m_socket + 1), &socketSet, NULL, NULL, &time);
 	return selectRes > 0;
 }
 
-bool udpsocketWin::waitForWrite(int32_t timeoutms)
+bool udpsocketWin::waitForWrite(int32_t timeoutUs)
 {
 	timeval time;
 	time.tv_sec = 0;
-	time.tv_usec = timeoutms * 1000;
+	time.tv_usec = static_cast<long>(timeoutUs);
 
 	fd_set socketSet;
 	FD_ZERO(&socketSet);
 	FD_SET(m_socket, &socketSet);
 
-	const auto selectRes = select(static_cast<int>(m_socket + 1), NULL, &socketSet, NULL, &time);
+	const auto selectRes = ::select(static_cast<int>(m_socket + 1), NULL, &socketSet, NULL, &time);
 	return selectRes > 0;
 }
 
-bool udpsocketWin::isValid()
+bool udpsocketWin::isValid() const
 {
-	return m_socket > 0;
+	return m_socket != INVALID_SOCKET;
 }
