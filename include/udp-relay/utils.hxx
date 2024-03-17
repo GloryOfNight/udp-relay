@@ -13,7 +13,7 @@
 #elif defined(__clang__)
 #define BYTESWAP16(x) __bswap_16(static_cast<uint16_t>(x))
 #define BYTESWAP32(x) __bswap_32(static_cast<uint32_t>(x))
-#define BYTESWAP64(x) __bswap_64(static_cast<uint32_t>(x))
+#define BYTESWAP64(x) __bswap_64(static_cast<uint64_t>(x))
 #endif
 
 namespace udprelay::utils
