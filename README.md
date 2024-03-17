@@ -20,7 +20,7 @@ You can check commandline arguments with `--help`.
 
 `peer A |NAT| <-> relay <-> |NAT| peer B. `
 
-Two peers that behind NAT and unable to communicate directly. To establish connection between them you need to know relay public address and use same guid value. After which you can do as follows:
+Two peers that behind NAT and unable to communicate directly. To establish connection between them you need to know relay public address and use same guid value in handshake process. As follows:
 ```
 // peers start sending handshake values to relay
 Peer A -- handhsake packet with guid (1,2,3,4) --->  Relay *acknowledges handshake packet*
