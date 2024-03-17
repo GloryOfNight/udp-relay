@@ -15,13 +15,11 @@ set (UDP_RELAY_SOURCES  "src/real_main.cxx"
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	set(UDP_RELAY_SOURCES   ${UDP_RELAY_SOURCES}
-                            "src/unixmain.cxx"
                             "src/socket/unix/internetaddrUnix.cxx"
                             "src/socket/unix/udpsocketUnix.cxx")
     set(UDP_RELAY_MAIN      "src/unixmain.cxx")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(UDP_RELAY_SOURCES   ${UDP_RELAY_SOURCES}
-                            "src/winmain.cxx"
                             "src/socket/win/internetaddrWin.cxx"
                             "src/socket/win/udpsocketWin.cxx")
     set(UDP_RELAY_MAIN      "src/winmain.cxx")
