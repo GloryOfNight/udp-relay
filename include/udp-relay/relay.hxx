@@ -25,8 +25,8 @@ struct channel
 {
 	channel_stats m_stats{};
 	guid m_guid{};
-	std::shared_ptr<internetaddr> m_peerA{};
-	std::shared_ptr<internetaddr> m_peerB{};
+	sharedInternetaddr m_peerA{};
+	sharedInternetaddr m_peerB{};
 	std::chrono::time_point<std::chrono::steady_clock> m_lastUpdated{};
 };
 

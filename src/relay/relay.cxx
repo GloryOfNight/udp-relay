@@ -52,7 +52,7 @@ bool relay::run(const relay_params& params)
 
 				const auto& sendAddr = *findRes->second.m_peerA != *recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
 
-				if (!m_socket->waitForWrite(250))
+				if (!m_socket->waitForWrite(500))
 					continue;
 
 				const int32_t bytesSent = m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());
