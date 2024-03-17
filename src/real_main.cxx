@@ -13,7 +13,7 @@ namespace args
 	bool printHelp{};											// when true - prints help and exits
 	int32_t logLevel{static_cast<int32_t>(log_level::Display)}; // 0 - no logs, 1 - errors only, 2 - warnings only, 3 - log (default), 4 - verbose
 	int32_t port{6060};											// main port for the server
-	int32_t warnTickTimeUs{5000};								// log warning when tick exceeded specified time in microseconds
+	int32_t warnTickTimeUs{10000};								// log warning when tick exceeded specified time in microseconds
 } // namespace args
 
 // clang-format off
@@ -35,8 +35,8 @@ static constexpr auto envList = std::array
 // clang-format on
 
 static std::unique_ptr<relay> g_relay{};
-
-log_level g_logLevel{log_level::Display};
+static log_level g_logLevel{log_level::Display};
+static int g_exitCode{};
 
 static void handleAbort(int sig); // handle abort signal from terminal or system
 static void handleCrash(int sig); // handle crash
@@ -80,7 +80,7 @@ int relay_main(int argc, char* argv[], char* envp[])
 
 	g_relay.reset();
 
-	return 0;
+	return g_exitCode;
 }
 
 void handleAbort(int sig)
@@ -88,6 +88,8 @@ void handleAbort(int sig)
 	LOG(Error, "CAUGHT SIGNAL - {0}", sig);
 	if (g_relay)
 		g_relay->stop();
+
+	g_exitCode = 128 + sig;
 }
 
 void handleCrash(int sig)
@@ -95,4 +97,6 @@ void handleCrash(int sig)
 	LOG(Error, "CRASHED - {0}", sig);
 	if (g_relay)
 		g_relay->stop();
+
+	g_exitCode = 128 + sig;
 }

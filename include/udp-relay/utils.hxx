@@ -1,7 +1,7 @@
 #pragma once
 
-#include "udp-relay/val_ref.hxx"
 #include "udp-relay/log.hxx"
+#include "udp-relay/val_ref.hxx"
 
 #include <random>
 #include <stdint.h>
@@ -102,15 +102,15 @@ void udprelay::utils::parseArgs(const T& argList, int argc, char* argv[])
 template <typename T>
 void udprelay::utils::printArgsHelp(const T& argList)
 {
-	LOG(Display, "Available arguments list:");
+	std::cout << "Available arguments list:" << std::endl;
 	for (auto& arg : argList)
 	{
 		if (arg.m_noteHelp.size() == 0)
 			continue;
 
-		LOG(Display, arg.m_noteHelp);
+		std::cout << arg.m_noteHelp << std::endl;
 	}
-	LOG(Display, " Apache License Version 2.0 - Copyright (c) 2024 Sergey Dikiy");
+	std::cout << "Apache License Version 2.0 - Copyright (c) 2024 Sergey Dikiy" << std::endl;
 }
 
 template <typename T>

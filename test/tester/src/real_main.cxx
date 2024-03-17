@@ -20,11 +20,11 @@ namespace args
 // clang-format off
 static constexpr auto argList = std::array
 {
-	val_ref{"--help", args::printHelp,										"--help                         = print help" },
-	val_ref{"--max-clients", args::maxClients,								"" },
-	val_ref{"--relay-addr", args::relayAddr,								"" },
-	val_ref{"--relay-port", args::relayPort,								"" },
-	val_ref{"--shutdown-after", args::shutdownAfter,						"" },
+	val_ref{"--help", args::printHelp,										"--help                                        = print help" },
+	val_ref{"--max-clients", args::maxClients,								"--max-clients                                 = number of clients to create, should be power of 2" },
+	val_ref{"--relay-addr", args::relayAddr,								"--relay-addr <value> <value> <value> <value>  = space separated address of relay server, 127 0 0 1 dy default" },
+	val_ref{"--relay-port", args::relayPort,								"--relay-port <value>                          = relay server port, 6060 by default" },
+	val_ref{"--shutdown-after", args::shutdownAfter,						"--shutdown-after <value>                      = time after which test will end" },
 };
 // clang-format on
 
