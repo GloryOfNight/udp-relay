@@ -55,6 +55,8 @@ private:
 
 	bool conditionalCleanup(bool force);
 
+	void checkWarnLogTickTime();
+
 	inline bool checkHandshakePacket(const std::array<uint8_t, 1024>& buffer, size_t bytesRead) const noexcept;
 
 	relay_params m_params;

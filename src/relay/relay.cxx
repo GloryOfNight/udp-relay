@@ -24,18 +24,9 @@ bool relay::run(const relay_params& params)
 
 	while (m_running)
 	{
-		conditionalCleanup(false);
+		m_socket->waitForRead(5000);
 
-		const auto now = std::chrono::steady_clock::now();
-		const int64_t timeSinceLastTick = std::chrono::duration_cast<std::chrono::microseconds>(now - m_lastTickTime).count();
-		if (timeSinceLastTick > m_params.m_warnTickExceedTimeUs)
-		{
-			LOG(Warning, "Tick {0}us time exceeded limit {1}us", timeSinceLastTick, m_params.m_warnTickExceedTimeUs);
-		}
-		m_lastTickTime = now;
-
-		if (!m_socket->waitForRead(5000))
-			continue;
+		m_lastTickTime = std::chrono::steady_clock::now();
 
 		const int32_t bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), &recvAddr);
 		if (bytesRead > 0)
@@ -92,6 +83,9 @@ bool relay::run(const relay_params& params)
 				}
 			}
 		}
+
+		conditionalCleanup(false);
+		checkWarnLogTickTime();
 	}
 
 	return true;
@@ -150,18 +144,15 @@ channel& relay::createChannel(const guid& inGuid)
 
 bool relay::conditionalCleanup(bool force)
 {
-	uint16_t cleanupCount = 0;
+	uint16_t cleanupItemCount = 0;
 
-	const auto secondsSinceLastCleanup = std::chrono::duration_cast<std::chrono::seconds>(m_lastTickTime - m_lastCleanupTime).count();
-	if (secondsSinceLastCleanup > 1 || force)
+	const auto secondsSinceLastCleanupMs = std::chrono::duration_cast<std::chrono::milliseconds>(m_lastTickTime - m_lastCleanupTime).count();
+	if (secondsSinceLastCleanupMs > 1800 || force)
 	{
 		for (auto it = m_channels.begin(); it != m_channels.end();)
 		{
-			if (cleanupCount > 99)
-				break;
-
-			const auto inactiveSeconds = std::chrono::duration_cast<std::chrono::seconds>(m_lastTickTime - it->m_lastUpdated).count();
-			if (inactiveSeconds > 30)
+			const auto timeSinceInactiveMs = std::chrono::duration_cast<std::chrono::milliseconds>(m_lastTickTime - it->m_lastUpdated).count();
+			if (timeSinceInactiveMs > 30000)
 			{
 				const auto channelGuidStr = it->m_guid.toString();
 				const auto stats = it->m_stats;
@@ -173,7 +164,9 @@ bool relay::conditionalCleanup(bool force)
 
 				it = m_channels.erase(it);
 
-				++cleanupCount;
+				++cleanupItemCount;
+				if (cleanupItemCount > 32)
+					break;
 			}
 			else
 			{
@@ -186,4 +179,17 @@ bool relay::conditionalCleanup(bool force)
 	}
 
 	return false;
+}
+
+void relay::checkWarnLogTickTime()
+{
+	if (log_level::Warning > g_logLevel)
+		return;
+
+	const auto now = std::chrono::steady_clock::now();
+	const int64_t timeSinceLastTick = std::chrono::duration_cast<std::chrono::microseconds>(now - m_lastTickTime).count();
+	if (timeSinceLastTick > m_params.m_warnTickExceedTimeUs)
+	{
+		LOG(Warning, "Tick {0}us time exceeded limit {1}us", timeSinceLastTick, m_params.m_warnTickExceedTimeUs);
+	}
 }
