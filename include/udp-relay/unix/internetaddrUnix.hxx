@@ -7,9 +7,6 @@
 struct internetaddrUnix
 {
 	internetaddrUnix();
-	internetaddrUnix(const internetaddrUnix&) = delete;
-	internetaddrUnix(internetaddrUnix&&) = delete;
-	~internetaddrUnix() = default;
 
 	internetaddrUnix(const sockaddr_in& addr);
 
@@ -24,6 +21,9 @@ struct internetaddrUnix
 	const sockaddr_in& getAddr() const { return m_addr; };
 
 	bool operator==(const internetaddrUnix& other) const { return getIp() == other.getIp() && getPort() == other.getPort(); }
+	bool operator!=(const internetaddrUnix& other) const { return getIp() != other.getIp() || getPort() != other.getPort(); }
+
+	bool isValid() const { return *this != internetaddrUnix(); };
 
 private:
 	sockaddr_in m_addr{};

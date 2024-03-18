@@ -15,3 +15,12 @@ using udpsocket = udpsocketWin;
 #endif
 
 using uniqueUdpsocket = std::unique_ptr<udpsocket>;
+
+class udpsocketFactory
+{
+public:
+	static uniqueUdpsocket createUdpSocket()
+	{
+		return uniqueUdpsocket(new udpsocket());
+	}
+};

@@ -1,7 +1,7 @@
 #include "udp-relay-client/client.hxx"
 
 #include "udp-relay/log.hxx"
-#include "udp-relay/udpsocketFactory.hxx"
+#include "udp-relay/udpsocket.hxx"
 #include "udp-relay/utils.hxx"
 
 #include <algorithm>
@@ -50,11 +50,11 @@ void relay_client::run(const relay_client_params& params)
 
 	std::array<uint8_t, 1024> buffer;
 
-	sharedInternetaddr recvAddr = udpsocketFactory::createInternetAddr();
+	internetaddr recvAddr{};
 
-	const uniqueInternetaddr relay_addr = udpsocketFactory::createInternetAddrUnique();
-	relay_addr->setIp(m_params.m_server_ip);
-	relay_addr->setPort(htons(m_params.m_server_port));
+	internetaddr relayAddr{};
+	relayAddr.setIp(m_params.m_server_ip);
+	relayAddr.setPort(htons(m_params.m_server_port));
 
 	auto lastSendTime = std::chrono::steady_clock::now();
 
@@ -69,7 +69,7 @@ void relay_client::run(const relay_client_params& params)
 			int32_t bytesRead{};
 
 			relayEtablished = true;
-			bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), recvAddr.get());
+			bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), &recvAddr);
 
 			if (bytesRead >= sizeof(handshake_header))
 			{
@@ -82,7 +82,7 @@ void relay_client::run(const relay_client_params& params)
 					handshake_packet recvPacket = reinterpret_cast<handshake_packet&>(*buffer.data());
 					recvPacket.m_header.m_type = BYTESWAP16(2);
 
-					const auto bytesSent = m_socket->sendTo(&recvPacket, bytesRead, relay_addr.get());
+					const auto bytesSent = m_socket->sendTo(&recvPacket, bytesRead, &relayAddr);
 					if (bytesSent > 0)
 						++m_packetsSent;
 				}
@@ -108,7 +108,7 @@ void relay_client::run(const relay_client_params& params)
 			if (m_socket->waitForRead(0))
 				continue;
 
-			const auto bytesSent = m_socket->sendTo(&packet, sizeof(packet) - randomOffset, relay_addr.get());
+			const auto bytesSent = m_socket->sendTo(&packet, sizeof(packet) - randomOffset, &relayAddr);
 			if (bytesSent > 0)
 				++m_packetsSent;
 		};
