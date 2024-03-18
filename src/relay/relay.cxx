@@ -12,9 +12,11 @@ bool relay::run(const relay_params& params)
 	if (!init())
 		return false;
 
-	LOG(Display, "Relay initialized on {0} port", m_socket->getPort());
+	LOG(Display, "Relay initialized. Requested {0} port, actual {1}", m_params.m_primaryPort, m_socket->getPort());
+	LOG(Display, "Relay tick time warning set to {0}us", m_params.m_warnTickExceedTimeUs);
 
 	std::array<uint8_t, 1024> buffer{};
+	internetaddr recvAddr{};
 
 	m_lastTickTime = std::chrono::steady_clock::now();
 	m_lastCleanupTime = m_lastTickTime;
@@ -32,16 +34,15 @@ bool relay::run(const relay_params& params)
 		}
 		m_lastTickTime = now;
 
-		if (!m_socket->waitForRead(1000))
+		if (!m_socket->waitForRead(5000))
 			continue;
 
-		sharedInternetaddr recvAddr = udpsocketFactory::createInternetAddr();
-		const int32_t bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), recvAddr.get());
+		const int32_t bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), &recvAddr);
 		if (bytesRead > 0)
 		{
 			const auto findRes = m_addressMappedChannels.find(recvAddr);
 			// if recvAddr has a channel mapped to it, as well as two valid peers, relay packet to the other peer
-			if (findRes != m_addressMappedChannels.end() && findRes->second.m_peerA && findRes->second.m_peerB)
+			if (findRes != m_addressMappedChannels.end() && findRes->second.m_peerA.isValid() && findRes->second.m_peerB.isValid())
 			{
 				auto& currentChannel = findRes->second;
 
@@ -50,12 +51,12 @@ bool relay::run(const relay_params& params)
 				currentChannel.m_stats.m_packetsReceived++;
 				currentChannel.m_stats.m_bytesReceived += bytesRead;
 
-				const auto& sendAddr = *findRes->second.m_peerA != *recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
+				const auto& sendAddr = findRes->second.m_peerA != recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
 
 				if (!m_socket->waitForWrite(500))
 					continue;
 
-				const int32_t bytesSent = m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());
+				const int32_t bytesSent = m_socket->sendTo(buffer.data(), bytesRead, &sendAddr);
 
 				if (bytesSent > 0)
 				{
@@ -72,22 +73,22 @@ bool relay::run(const relay_params& params)
 				if (guidChannel == m_guidMappedChannels.end())
 				{
 					channel& newChannel = createChannel(nthGuid);
-					newChannel.m_peerA = std::move(recvAddr);
+					newChannel.m_peerA = recvAddr;
 					newChannel.m_lastUpdated = m_lastTickTime;
 
 					m_guidMappedChannels.emplace(newChannel.m_guid, newChannel);
 
 					LOG(Verbose, "Created channel for guid: \"{0}\"", newChannel.m_guid.toString());
 				}
-				else if (*guidChannel->second.m_peerA != *recvAddr && guidChannel->second.m_peerB == nullptr)
+				else if (guidChannel->second.m_peerA != recvAddr && !guidChannel->second.m_peerB.isValid())
 				{
-					guidChannel->second.m_peerB = std::move(recvAddr);
+					guidChannel->second.m_peerB = recvAddr;
 					guidChannel->second.m_lastUpdated = m_lastTickTime;
 
 					m_addressMappedChannels.emplace(guidChannel->second.m_peerA, guidChannel->second);
 					m_addressMappedChannels.emplace(guidChannel->second.m_peerB, guidChannel->second);
 
-					LOG(Display, "Channel relay established for session: \"{0}\" with peers: {1}, {2}.", nthGuid.toString(), guidChannel->second.m_peerA->toString(), guidChannel->second.m_peerB->toString());
+					LOG(Display, "Channel relay established for session: \"{0}\" with peers: {1}, {2}.", nthGuid.toString(), guidChannel->second.m_peerA.toString(), guidChannel->second.m_peerB.toString());
 				}
 			}
 		}

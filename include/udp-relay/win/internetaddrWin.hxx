@@ -7,9 +7,6 @@
 struct internetaddrWin
 {
 	internetaddrWin();
-	internetaddrWin(const internetaddrWin&) = delete;
-	internetaddrWin(internetaddrWin&&) = delete;
-	~internetaddrWin() = default;
 
 	int32_t getIp() const;
 	void setIp(const int32_t ip);
@@ -21,7 +18,10 @@ struct internetaddrWin
 
 	const sockaddr_in& getAddr() const { return m_addr; };
 
-	bool operator==(const internetaddrWin& other) const { return getIp() == other.getIp() && getPort() == other.getPort(); }
+	bool operator==(const internetaddrWin& other) const { return memcmp(&m_addr, &other.m_addr, sizeof(m_addr)) == 0; }
+	bool operator!=(const internetaddrWin& other) const { return memcmp(&m_addr, &other.m_addr, sizeof(m_addr)) != 0; }
+
+	bool isValid() const { return *this != internetaddrWin(); };
 
 private:
 	sockaddr_in m_addr{};
