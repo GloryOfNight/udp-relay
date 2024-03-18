@@ -24,7 +24,10 @@ bool relay::run(const relay_params& params)
 
 	while (m_running)
 	{
-		m_socket->waitForRead(5000);
+		if (m_pendingPackets.size() == 0)
+			m_socket->waitForRead(10000);
+		else
+			m_socket->waitForWrite(100);
 
 		m_lastTickTime = std::chrono::steady_clock::now();
 
@@ -44,15 +47,15 @@ bool relay::run(const relay_params& params)
 
 				const auto& sendAddr = findRes->second.m_peerA != recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
 
-				if (!m_socket->waitForWrite(500))
-					continue;
-
-				const int32_t bytesSent = m_socket->sendTo(buffer.data(), bytesRead, &sendAddr);
-
-				if (bytesSent > 0)
+				const auto bytesSend = m_socket->sendTo(buffer.data(), bytesRead, &sendAddr);
+				if (bytesSend) // if send fails, reattempt re-send on future ticks
 				{
 					currentChannel.m_stats.m_packetsSent++;
-					currentChannel.m_stats.m_bytesSent += bytesSent;
+					currentChannel.m_stats.m_bytesSent += bytesSend;
+				}
+				else
+				{
+					m_pendingPackets.push(pending_packet{currentChannel.m_guid, sendAddr, buffer, bytesRead});
 				}
 			}
 			else if (checkHandshakePacket(buffer, bytesRead))
@@ -83,6 +86,9 @@ bool relay::run(const relay_params& params)
 				}
 			}
 		}
+
+		if (m_pendingPackets.size())
+			sendPendingPackets();
 
 		conditionalCleanup(false);
 		checkWarnLogTickTime();
@@ -142,7 +148,30 @@ channel& relay::createChannel(const guid& inGuid)
 	return m_channels.emplace_back(newChannel);
 }
 
-bool relay::conditionalCleanup(bool force)
+void relay::sendPendingPackets()
+{
+	while (m_pendingPackets.size())
+	{
+		auto& pendingPacket = m_pendingPackets.front();
+		auto findRes = m_guidMappedChannels.find(pendingPacket.m_guid);
+		if (findRes != m_guidMappedChannels.end())
+		{
+			auto& currentChannel = findRes->second;
+
+			currentChannel.m_lastUpdated = m_lastTickTime;
+
+			const auto bytesSend = m_socket->sendTo(pendingPacket.m_buffer.data(), pendingPacket.m_bytesRead, &pendingPacket.m_target);
+			if (bytesSend < 0)
+				return;
+
+			currentChannel.m_stats.m_packetsSent++;
+			currentChannel.m_stats.m_bytesSent += bytesSend;
+		}
+		m_pendingPackets.pop();
+	}
+}
+
+void relay::conditionalCleanup(bool force)
 {
 	uint16_t cleanupItemCount = 0;
 
@@ -175,10 +204,7 @@ bool relay::conditionalCleanup(bool force)
 		}
 
 		m_lastCleanupTime = m_lastTickTime;
-		return true;
 	}
-
-	return false;
 }
 
 void relay::checkWarnLogTickTime()
