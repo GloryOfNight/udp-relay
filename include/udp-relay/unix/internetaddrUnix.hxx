@@ -20,8 +20,8 @@ struct internetaddrUnix
 
 	const sockaddr_in& getAddr() const { return m_addr; };
 
-	bool operator==(const internetaddrUnix& other) const { return memcmp(&m_addr, &other.m_addr, sizeof(m_addr)) == 0; }
-	bool operator!=(const internetaddrUnix& other) const { return memcmp(&m_addr, &other.m_addr, sizeof(m_addr)) != 0; }
+	bool operator==(const internetaddrUnix& other) const { return getIp() == other.getIp() && getPort() == other.getPort(); }
+	bool operator!=(const internetaddrUnix& other) const { return getIp() != other.getIp() || getPort() != other.getPort(); }
 
 	bool isValid() const { return *this != internetaddrUnix(); };
 
