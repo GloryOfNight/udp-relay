@@ -69,6 +69,7 @@ int relay_main(int argc, char* argv[], char* envp[])
 	g_logLevel = static_cast<log_level>(args::logLevel);
 
 	LOG(Display, "Starting UDP relay. . .");
+	LOG(Display, "Buffered send version");
 
 	g_relay = std::make_unique<relay>();
 
