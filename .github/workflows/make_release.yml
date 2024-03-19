@@ -54,3 +54,8 @@ jobs:
     uses: ./.github/workflows/windows.yml
     with:
         upload_url: ${{ needs.create_release.outputs.upload_url }}
+
+  publish_rlease:
+    name: Publish package
+    needs: [create_release, release_linux_artifact]
+    uses: ./.github/workflows/publish_docker_image.yml
