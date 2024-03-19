@@ -48,7 +48,7 @@ bool relay::run(const relay_params& params)
 				const auto& sendAddr = findRes->second.m_peerA != recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
 
 				const auto bytesSend = m_socket->sendTo(buffer.data(), bytesRead, &sendAddr);
-				if (bytesSend) // if send fails, reattempt re-send on future ticks
+				if (bytesSend > 0) // if send fails, reattempt re-send on future ticks
 				{
 					currentChannel.m_stats.m_packetsSent++;
 					currentChannel.m_stats.m_bytesSent += bytesSend;
@@ -157,11 +157,8 @@ void relay::sendPendingPackets()
 		if (findRes != m_guidMappedChannels.end())
 		{
 			auto& currentChannel = findRes->second;
-
-			currentChannel.m_lastUpdated = m_lastTickTime;
-
 			const auto bytesSend = m_socket->sendTo(pendingPacket.m_buffer.data(), pendingPacket.m_bytesRead, &pendingPacket.m_target);
-			if (bytesSend < 0)
+			if (bytesSend <= 0)
 				return;
 
 			currentChannel.m_stats.m_packetsSent++;
