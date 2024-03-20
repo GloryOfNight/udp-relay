@@ -10,7 +10,7 @@ RUN set -ex && \
     apt-get install -y cmake && \
     apt-get install -y git
 
-RUN cd /opt && git clone $GIT_REPOSITORY -b ${GIT_BRANCH} --depth 0 && cd udp-relay && cmake --preset linux64-release && cmake --build build
+RUN cd /opt && git clone $GIT_REPOSITORY -b ${GIT_BRANCH} --depth 1 && cd udp-relay && cmake --preset linux64-release && cmake --build build
 
 FROM ubuntu:24.04
 
