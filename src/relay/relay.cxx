@@ -1,7 +1,7 @@
 #include "udp-relay/relay.hxx"
 
 #include "udp-relay/log.hxx"
-#include "udp-relay/udpsocketFactory.hxx"
+#include "udp-relay/udpsocket.hxx"
 
 #include <array>
 
@@ -12,9 +12,11 @@ bool relay::run(const relay_params& params)
 	if (!init())
 		return false;
 
-	LOG(Display, "Relay initialized on {0} port", m_socket->getPort());
+	LOG(Display, "Relay initialized. Requested {0} port, actual {1}", m_params.m_primaryPort, m_socket->getPort());
+	LOG(Display, "Relay tick time warning set to {0}us", m_params.m_warnTickExceedTimeUs);
 
 	std::array<uint8_t, 1024> buffer{};
+	internetaddr recvAddr{};
 
 	m_lastTickTime = std::chrono::steady_clock::now();
 	m_lastCleanupTime = m_lastTickTime;
@@ -22,26 +24,19 @@ bool relay::run(const relay_params& params)
 
 	while (m_running)
 	{
-		conditionalCleanup(false);
+		if (m_pendingPackets.size() == 0)
+			m_socket->waitForRead(10000);
+		else
+			m_socket->waitForWrite(100);
 
-		const auto now = std::chrono::steady_clock::now();
-		const int64_t timeSinceLastTick = std::chrono::duration_cast<std::chrono::microseconds>(now - m_lastTickTime).count();
-		if (timeSinceLastTick > m_params.m_warnTickExceedTimeUs)
-		{
-			LOG(Warning, "Tick {0}us time exceeded limit {1}us", timeSinceLastTick, m_params.m_warnTickExceedTimeUs);
-		}
-		m_lastTickTime = now;
+		m_lastTickTime = std::chrono::steady_clock::now();
 
-		if (!m_socket->waitForRead(1000))
-			continue;
-
-		sharedInternetaddr recvAddr = udpsocketFactory::createInternetAddr();
-		const int32_t bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), recvAddr.get());
+		const int32_t bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), &recvAddr);
 		if (bytesRead > 0)
 		{
 			const auto findRes = m_addressMappedChannels.find(recvAddr);
 			// if recvAddr has a channel mapped to it, as well as two valid peers, relay packet to the other peer
-			if (findRes != m_addressMappedChannels.end() && findRes->second.m_peerA && findRes->second.m_peerB)
+			if (findRes != m_addressMappedChannels.end() && findRes->second.m_peerA.isValid() && findRes->second.m_peerB.isValid())
 			{
 				auto& currentChannel = findRes->second;
 
@@ -50,17 +45,17 @@ bool relay::run(const relay_params& params)
 				currentChannel.m_stats.m_packetsReceived++;
 				currentChannel.m_stats.m_bytesReceived += bytesRead;
 
-				const auto& sendAddr = *findRes->second.m_peerA != *recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
+				const auto& sendAddr = findRes->second.m_peerA != recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
 
-				if (!m_socket->waitForWrite(500))
-					continue;
-
-				const int32_t bytesSent = m_socket->sendTo(buffer.data(), bytesRead, sendAddr.get());
-
-				if (bytesSent > 0)
+				const auto bytesSend = m_socket->sendTo(buffer.data(), bytesRead, &sendAddr);
+				if (bytesSend > 0) // if send fails, reattempt re-send on future ticks
 				{
 					currentChannel.m_stats.m_packetsSent++;
-					currentChannel.m_stats.m_bytesSent += bytesSent;
+					currentChannel.m_stats.m_bytesSent += bytesSend;
+				}
+				else
+				{
+					m_pendingPackets.push(pending_packet{currentChannel.m_guid, sendAddr, buffer, bytesRead});
 				}
 			}
 			else if (checkHandshakePacket(buffer, bytesRead))
@@ -72,25 +67,31 @@ bool relay::run(const relay_params& params)
 				if (guidChannel == m_guidMappedChannels.end())
 				{
 					channel& newChannel = createChannel(nthGuid);
-					newChannel.m_peerA = std::move(recvAddr);
+					newChannel.m_peerA = recvAddr;
 					newChannel.m_lastUpdated = m_lastTickTime;
 
 					m_guidMappedChannels.emplace(newChannel.m_guid, newChannel);
 
 					LOG(Verbose, "Created channel for guid: \"{0}\"", newChannel.m_guid.toString());
 				}
-				else if (*guidChannel->second.m_peerA != *recvAddr && guidChannel->second.m_peerB == nullptr)
+				else if (guidChannel->second.m_peerA != recvAddr && !guidChannel->second.m_peerB.isValid())
 				{
-					guidChannel->second.m_peerB = std::move(recvAddr);
+					guidChannel->second.m_peerB = recvAddr;
 					guidChannel->second.m_lastUpdated = m_lastTickTime;
 
 					m_addressMappedChannels.emplace(guidChannel->second.m_peerA, guidChannel->second);
 					m_addressMappedChannels.emplace(guidChannel->second.m_peerB, guidChannel->second);
 
-					LOG(Display, "Channel relay established for session: \"{0}\" with peers: {1}, {2}.", nthGuid.toString(), guidChannel->second.m_peerA->toString(), guidChannel->second.m_peerB->toString());
+					LOG(Display, "Channel relay established for session: \"{0}\" with peers: {1}, {2}.", nthGuid.toString(), guidChannel->second.m_peerA.toString(), guidChannel->second.m_peerB.toString());
 				}
 			}
 		}
+
+		if (m_pendingPackets.size())
+			sendPendingPackets();
+
+		conditionalCleanup(false);
+		checkWarnLogTickTime();
 	}
 
 	return true;
@@ -137,6 +138,9 @@ bool relay::init()
 		LOG(Error, "Error with setting recv buffer size");
 	LOG(Verbose, "Receive buffer size, wanted: {0}, actual: {1}", wantedBufferSize, actualBufferSize);
 
+	m_guidMappedChannels.reserve(1024);
+	m_addressMappedChannels.reserve(1024);
+
 	return true;
 }
 
@@ -147,20 +151,37 @@ channel& relay::createChannel(const guid& inGuid)
 	return m_channels.emplace_back(newChannel);
 }
 
-bool relay::conditionalCleanup(bool force)
+void relay::sendPendingPackets()
 {
-	uint16_t cleanupCount = 0;
+	while (m_pendingPackets.size())
+	{
+		auto& pendingPacket = m_pendingPackets.front();
+		auto findRes = m_guidMappedChannels.find(pendingPacket.m_guid);
+		if (findRes != m_guidMappedChannels.end())
+		{
+			auto& currentChannel = findRes->second;
+			const auto bytesSend = m_socket->sendTo(pendingPacket.m_buffer.data(), pendingPacket.m_bytesRead, &pendingPacket.m_target);
+			if (bytesSend <= 0)
+				return;
 
-	const auto secondsSinceLastCleanup = std::chrono::duration_cast<std::chrono::seconds>(m_lastTickTime - m_lastCleanupTime).count();
-	if (secondsSinceLastCleanup > 1 || force)
+			currentChannel.m_stats.m_packetsSent++;
+			currentChannel.m_stats.m_bytesSent += bytesSend;
+		}
+		m_pendingPackets.pop();
+	}
+}
+
+void relay::conditionalCleanup(bool force)
+{
+	uint16_t cleanupItemCount = 0;
+
+	const auto secondsSinceLastCleanupMs = std::chrono::duration_cast<std::chrono::milliseconds>(m_lastTickTime - m_lastCleanupTime).count();
+	if (secondsSinceLastCleanupMs > 1800 || force)
 	{
 		for (auto it = m_channels.begin(); it != m_channels.end();)
 		{
-			if (cleanupCount > 99)
-				break;
-
-			const auto inactiveSeconds = std::chrono::duration_cast<std::chrono::seconds>(m_lastTickTime - it->m_lastUpdated).count();
-			if (inactiveSeconds > 30)
+			const auto timeSinceInactiveMs = std::chrono::duration_cast<std::chrono::milliseconds>(m_lastTickTime - it->m_lastUpdated).count();
+			if (timeSinceInactiveMs > 30000)
 			{
 				const auto channelGuidStr = it->m_guid.toString();
 				const auto stats = it->m_stats;
@@ -172,7 +193,9 @@ bool relay::conditionalCleanup(bool force)
 
 				it = m_channels.erase(it);
 
-				++cleanupCount;
+				++cleanupItemCount;
+				if (cleanupItemCount > 32)
+					break;
 			}
 			else
 			{
@@ -181,8 +204,18 @@ bool relay::conditionalCleanup(bool force)
 		}
 
 		m_lastCleanupTime = m_lastTickTime;
-		return true;
 	}
+}
 
-	return false;
+void relay::checkWarnLogTickTime()
+{
+	if (log_level::Warning > g_logLevel)
+		return;
+
+	const auto now = std::chrono::steady_clock::now();
+	const int64_t timeSinceLastTick = std::chrono::duration_cast<std::chrono::microseconds>(now - m_lastTickTime).count();
+	if (timeSinceLastTick > m_params.m_warnTickExceedTimeUs)
+	{
+		LOG(Warning, "Tick {0}us time exceeded limit {1}us", timeSinceLastTick, m_params.m_warnTickExceedTimeUs);
+	}
 }

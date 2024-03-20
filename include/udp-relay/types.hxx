@@ -62,30 +62,24 @@ namespace std
 	};
 } // namespace std
 
-// custom hash and equal_to for shared_ptr of internetaddr
+// custom hash and equal_to for internetaddr
 namespace std
 {
 	template <>
-	struct hash<std::shared_ptr<internetaddr>>
+	struct hash<internetaddr>
 	{
-		std::size_t operator()(const std::shared_ptr<internetaddr>& g) const
+		std::size_t operator()(const internetaddr& g) const
 		{
-			if (g.get() == nullptr) [[unlikely]]
-				return 0;
-
-			return std::hash<int32_t>{}(g->getIp()) ^ std::hash<uint16_t>{}(g->getPort());
+			return std::hash<int32_t>{}(g.getIp()) ^ std::hash<uint16_t>{}(g.getPort());
 		}
 	};
 
 	template <>
-	struct equal_to<std::shared_ptr<internetaddr>>
+	struct equal_to<internetaddr>
 	{
-		bool operator()(const std::shared_ptr<internetaddr>& left, const std::shared_ptr<internetaddr>& right) const
+		bool operator()(const internetaddr& left, const internetaddr& right) const
 		{
-			if (left == nullptr || right == nullptr) [[unlikely]]
-				return false;
-
-			return *left == *right;
+			return left == right;
 		}
 	};
 } // namespace std

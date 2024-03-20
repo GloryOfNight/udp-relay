@@ -10,6 +10,7 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <queue>
 #include <unordered_map>
 
 struct channel_stats
@@ -25,9 +26,17 @@ struct channel
 {
 	channel_stats m_stats{};
 	guid m_guid{};
-	sharedInternetaddr m_peerA{};
-	sharedInternetaddr m_peerB{};
+	internetaddr m_peerA{};
+	internetaddr m_peerB{};
 	std::chrono::time_point<std::chrono::steady_clock> m_lastUpdated{};
+};
+
+struct pending_packet
+{
+	guid m_guid{};
+	internetaddr m_target{};
+	std::array<uint8_t, 1024> m_buffer{};
+	int32_t m_bytesRead{};
 };
 
 struct relay_params
@@ -53,7 +62,11 @@ private:
 
 	channel& createChannel(const guid& inGuid);
 
-	bool conditionalCleanup(bool force);
+	void sendPendingPackets();
+
+	void conditionalCleanup(bool force);
+
+	void checkWarnLogTickTime();
 
 	inline bool checkHandshakePacket(const std::array<uint8_t, 1024>& buffer, size_t bytesRead) const noexcept;
 
@@ -61,7 +74,9 @@ private:
 
 	std::unordered_map<guid, channel&> m_guidMappedChannels{};
 
-	std::unordered_map<sharedInternetaddr, channel&> m_addressMappedChannels{};
+	std::unordered_map<internetaddr, channel&> m_addressMappedChannels{};
+
+	std::queue<pending_packet> m_pendingPackets{};
 
 	std::list<channel> m_channels{};
 

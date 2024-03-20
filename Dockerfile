@@ -1,5 +1,7 @@
 FROM ubuntu:24.04 as build
 
+ARG GIT_BRANCH=main
+
 RUN set -ex && \
     apt-get update && \
     apt-get install -y build-essential && \
@@ -7,7 +9,7 @@ RUN set -ex && \
     apt-get install -y cmake && \
     apt-get install -y git
 
-RUN cd /opt && git clone https://github.com/GloryOfNight/udp-relay.git && cd udp-relay && cmake --preset linux64-release && cmake --build build
+RUN cd /opt && git clone https://github.com/GloryOfNight/udp-relay.git -b ${GIT_BRANCH} && cd udp-relay && cmake --preset linux64-release && cmake --build build
 
 FROM ubuntu:24.04
 
