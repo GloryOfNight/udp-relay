@@ -7,7 +7,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  DOCKER_BUILD_ARGS: GIT_BRANCH=${{ github.ref_name }}
+  DOCKER_BUILD_ARGS: GIT_REPOSITORY=${{ github.repositoryUrl }} GIT_BRANCH=${{ github.ref_name }}
 
 jobs:
   build:
