@@ -7,7 +7,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  GIT_BRANCH: ${{ github.ref }}
+  DOCKER_BUILD_ARGS: GIT_BRANCH=main
 
 jobs:
   build:
@@ -53,7 +53,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: GIT_BRANCH=${{ env.GIT_BRANCH }}
+          build-args: ${{ env.DOCKER_BUILD_ARGS }}
 
       - name: Sign the published Docker image
         if: ${{ github.event_name != 'pull_request' }}
