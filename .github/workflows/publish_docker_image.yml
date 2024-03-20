@@ -52,7 +52,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: GIT_BRANCH=${{ env.GITHUB_REF_NAME }}
+          build-args: GIT_BRANCH=${{ github.ref.name }}
 
       - name: Sign the published Docker image
         if: ${{ github.event_name != 'pull_request' }}
