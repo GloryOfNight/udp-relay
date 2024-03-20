@@ -8,7 +8,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   DOCKER_BUILD_ARGS: |
-    GIT_REPOSITORY=${{ github.repositoryUrl }}
+    GIT_REPOSITORY=${{ github.server_url }}/${{ github.repository }}
     GIT_BRANCH=${{ github.ref_name }}
 
 jobs:
