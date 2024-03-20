@@ -7,7 +7,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  GIT_BRANCH: ${{ github.ref.name }}
+  GIT_BRANCH: ${{ github.ref }}
 
 jobs:
   build:
