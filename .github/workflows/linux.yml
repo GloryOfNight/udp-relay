@@ -20,16 +20,15 @@ jobs:
 
     - name: Install tools
       run: |
-       wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
        sudo apt-get update
        sudo apt-get upgrade
        sudo apt-get install -y cmake
        sudo apt-get install -y ninja-build
-       sudo apt-get install clang-17
+       sudo apt-get install clang-15
 
     - name: Configure and build
       run: |
-        cmake -S . -B build -DCMAKE_C_COMPILER=clang-17 -DCMAKE_CXX_COMPILER=clang++-17
+        cmake -S . -B build -DCMAKE_C_COMPILER=clang-15 -DCMAKE_CXX_COMPILER=clang++-15
         cmake --build build
 
     - name: Upload binary to release (optional)
