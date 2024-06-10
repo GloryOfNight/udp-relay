@@ -138,9 +138,6 @@ bool relay::init()
 		LOG(Error, "Error with setting recv buffer size");
 	LOG(Verbose, "Receive buffer size, wanted: {0}, actual: {1}", wantedBufferSize, actualBufferSize);
 
-	m_guidMappedChannels.reserve(1024);
-	m_addressMappedChannels.reserve(1024);
-
 	return true;
 }
 

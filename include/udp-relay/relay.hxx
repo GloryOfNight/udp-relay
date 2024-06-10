@@ -11,7 +11,6 @@
 #include <map>
 #include <memory>
 #include <queue>
-#include <unordered_map>
 
 struct channel_stats
 {
@@ -72,9 +71,9 @@ private:
 
 	relay_params m_params;
 
-	std::unordered_map<guid, channel&> m_guidMappedChannels{};
+	std::map<guid, channel&> m_guidMappedChannels{};
 
-	std::unordered_map<internetaddr, channel&> m_addressMappedChannels{};
+	std::map<internetaddr, channel&> m_addressMappedChannels{};
 
 	std::queue<pending_packet> m_pendingPackets{};
 

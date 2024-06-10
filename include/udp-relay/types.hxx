@@ -60,6 +60,22 @@ namespace std
 			return std::hash<int64_t>{}(p[0]) ^ std::hash<int64_t>{}(p[1]);
 		}
 	};
+
+	template <>
+	struct less<guid>
+	{
+		bool operator()(const guid& left, const guid& right) const
+        {
+            if (left.m_a != right.m_a)
+                return left.m_a < right.m_a;
+            if (left.m_b != right.m_b)
+                return left.m_b < right.m_b;
+            if (left.m_c != right.m_c)
+                return left.m_c < right.m_c;
+            return left.m_d < right.m_d;
+        }
+	};
+
 } // namespace std
 
 // custom hash and equal_to for internetaddr
@@ -80,6 +96,17 @@ namespace std
 		bool operator()(const internetaddr& left, const internetaddr& right) const
 		{
 			return left == right;
+		}
+	};
+
+	template <>
+	struct less<internetaddr>
+	{
+		bool operator()(const internetaddr& left, const internetaddr& right) const
+		{
+			if (left.getIp() != right.getIp())
+				return left.getIp() < right.getIp();
+			return left.getPort() < right.getPort();
 		}
 	};
 } // namespace std
