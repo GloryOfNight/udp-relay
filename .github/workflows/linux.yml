@@ -13,7 +13,7 @@ on:
 
 jobs:      
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
     - uses: actions/checkout@v4
@@ -21,14 +21,13 @@ jobs:
     - name: Install tools
       run: |
        sudo apt-get update
-       sudo apt-get upgrade
        sudo apt-get install -y cmake
        sudo apt-get install -y ninja-build
-       sudo apt-get install clang-15
+       sudo apt-get install -y clang
 
     - name: Configure and build
       run: |
-        cmake -S . -B build -DCMAKE_C_COMPILER=clang-15 -DCMAKE_CXX_COMPILER=clang++-15
+        cmake -S . -B build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
         cmake --build build
 
     - name: Upload binary to release (optional)
