@@ -40,8 +40,12 @@ namespace udprelaycore
 		if (level > g_logLevel)
 			return;
 
-		std::ostream& stream = level == log_level::Error ? std::cerr : std::cout;
-		stream << std::vformat("[{0:%F}T{0:%T}] {1}: ", std::make_format_args(std::chrono::utc_clock::now(), log_level_to_string(level))) << std::vformat(format, std::make_format_args(std::forward<Args>(args)...)) << std::endl;
+		std::ostream& ostream = level == log_level::Error ? std::cerr : std::cout;
+
+		const auto now = std::chrono::utc_clock::now();
+		const auto log_level_str = log_level_to_string(level);
+		
+		ostream << std::vformat("[{0:%F}T{0:%T}] {1}: ", std::make_format_args(now, log_level_str)) << std::vformat(format, std::make_format_args(args...)) << std::endl;
 	}
 } // namespace udprelaycore
 
