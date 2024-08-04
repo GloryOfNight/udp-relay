@@ -15,7 +15,7 @@ bool relay::run(const relay_params& params)
 	LOG(Display, "Relay initialized. Requested {0} port, actual {1}", m_params.m_primaryPort, m_socket->getPort());
 	LOG(Display, "Relay tick time warning set to {0}us", m_params.m_warnTickExceedTimeUs);
 
-	std::array<uint8_t, 1024> buffer{};
+	packet_buffer buffer{};
 	internetaddr recvAddr{};
 
 	m_lastTickTime = std::chrono::steady_clock::now();

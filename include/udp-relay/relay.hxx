@@ -12,6 +12,8 @@
 #include <memory>
 #include <queue>
 
+using packet_buffer = std::array<uint8_t, 2048>;
+
 struct channel_stats
 {
 	uint64_t m_bytesReceived{};
@@ -34,7 +36,7 @@ struct pending_packet
 {
 	guid m_guid{};
 	internetaddr m_target{};
-	std::array<uint8_t, 1024> m_buffer{};
+	packet_buffer m_buffer{};
 	int32_t m_bytesRead{};
 };
 
@@ -67,7 +69,7 @@ private:
 
 	void checkWarnLogTickTime();
 
-	inline bool checkHandshakePacket(const std::array<uint8_t, 1024>& buffer, size_t bytesRead) const noexcept;
+	inline bool checkHandshakePacket(const packet_buffer& buffer, size_t bytesRead) const noexcept;
 
 	relay_params m_params;
 
@@ -88,7 +90,7 @@ private:
 	bool m_running{false};
 };
 
-inline bool relay::checkHandshakePacket(const std::array<uint8_t, 1024>& buffer, const size_t bytesRead) const noexcept
+inline bool relay::checkHandshakePacket(const packet_buffer& buffer, const size_t bytesRead) const noexcept
 {
 	const handshake_header* header = reinterpret_cast<const handshake_header*>(buffer.data());
 	return bytesRead == 1024 && BYTESWAP16(header->m_type) == 1 && BYTESWAP16(header->m_length) == 992;
