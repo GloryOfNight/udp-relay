@@ -1,15 +1,15 @@
 # UDP Relay
 Simple udp relay that relays packets between two peers.
 
-Sometimes there is a need to make connection between to peers that are behind NAT possible. Inspired by [TURN](https://datatracker.ietf.org/doc/html/rfc8656), but unlike TURN, this relay is very simple to integate and specializes on relaying only udp packets from Peer A/B to Peer B/A (between two peers).
+Sometimes there is a need to make connection between to peers that are behind NAT possible. Inspired by [TURN](https://datatracker.ietf.org/doc/html/rfc8656), but unlike TURN, this relay is simplified and specializes on relaying only udp packets between two Peers.
 
 For peers to communitate thru such relay, clients only required to send handshake packet with same guid(128bit) values. Relay would create mapping for these clients and start relaying packets between them. After clients exchange handhsakes setup is done. Relay would relay packets indefenetly, but when both peers stop communite with each other for long period of time - repeating handhsake process might be required.
 
-It's recommended to modify relay code to better suit your specific needs. There is also a security conserns, if security important for you, you might want to address them.
+It's recommended to modify relay code to better suit your specific needs, like changing default handshake packet. There is also few security conserns, if security important for you, you might want to address them.
 
-It's not possible for this relay to have more then 2 peers within one mapping.
+It's not possible for this relay to have more then 2 peers within one mapping. Relay uses ip:port to identify other mapped address.
 
-It's single thread only.
+It's single thread only. Thats is intentional.
 
 You can check commandline arguments with `--help`.
 
@@ -20,7 +20,13 @@ You can check commandline arguments with `--help`.
 
 `peer A |NAT| <-> relay <-> |NAT| peer B. `
 
-Two peers that behind NAT and unable to communicate directly. To establish connection between them you need to know relay public address and use same guid value in handshake process. As follows:
+Basicly, to have connection trhu such relay you need to negotiate between clients only two things
+- ip address of relay
+- guid value used to map clients between each other
+
+After clients start receive packets from relay - that would indicate that connection is established.
+Relay would close mapping after 30 seconds of inactivity (by default).
+
 ```
 // peers start sending handshake values to relay
 Peer A -- handhsake packet with guid (1,2,3,4) --->  Relay *acknowledges handshake packet*
