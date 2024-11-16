@@ -31,15 +31,15 @@ Relay would close mapping after 30 seconds of inactivity (by default).
 
 ```
 // peers start sending handshake values to relay
-Peer A -- handhsake packet with guid (1,2,3,4) --->  Relay *acknowledges handshake packet*
-Peer B -- handhsake packet with guid (1,2,3,4) --->  Relay *creates mapping between Peer A and Peer B*
+Peer A -- handhsake packet with guid (1,2,3,4) -->  Relay *acknowledges handshake packet*
+Peer B -- handhsake packet with guid (1,2,3,4) -->  Relay *creates mapping between Peer A and Peer B*
 
 // when you starting to receive handhsake packets on peers side, that mean relay is established
-Peer A -- handhsake packet with guid (1,2,3,4) --->  Relay *Peer A has mapping for Peer B*
-Peer B -- handhsake packet with guid (1,2,3,4) <---  Relay *Peer A has mapping for Peer B*
+Peer A -- handhsake packet with guid (1,2,3,4) -->  Relay *Peer A has mapping for Peer B*
+Peer B <-- handhsake packet with guid (1,2,3,4) --  Relay *Peer A has mapping for Peer B*
 
-Peer B -- handhsake packet with guid (1,2,3,4) --->  Relay *Peer B has mapping for Peer A*
-Peer A -- handhsake packet with guid (1,2,3,4) <---  Relay *Peer B has mapping for Peer A*
+Peer B -- handhsake packet with guid (1,2,3,4) -->  Relay *Peer B has mapping for Peer A*
+Peer A <-- handhsake packet with guid (1,2,3,4) --  Relay *Peer B has mapping for Peer A*
 
 // now you can start communication freely via relay.
 // it's crutial to use same socket or bind same port values while you want to utilize relay.
