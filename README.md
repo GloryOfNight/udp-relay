@@ -11,7 +11,9 @@ It's not possible for this relay to have more then 2 peers within one mapping. R
 
 It's single thread only. Thats is intentional.
 
-You can check commandline arguments with `--help`.
+It's doesn't buffer any received packets. Therefore - it is possible that relay can drop packet.
+
+You can find all possible commandline arguments with `--help`.
 
 [![Windows](https://github.com/GloryOfNight/udp-relay/actions/workflows/windows.yml/badge.svg)](https://github.com/GloryOfNight/udp-relay/actions/workflows/windows.yml)
 [![Linux](https://github.com/GloryOfNight/udp-relay/actions/workflows/linux.yml/badge.svg)](https://github.com/GloryOfNight/udp-relay/actions/workflows/linux.yml)
@@ -33,8 +35,11 @@ Peer A -- handhsake packet with guid (1,2,3,4) --->  Relay *acknowledges handsha
 Peer B -- handhsake packet with guid (1,2,3,4) --->  Relay *creates mapping between Peer A and Peer B*
 
 // when you starting to receive handhsake packets on peers side, that mean relay is established
-Peer A -- handhsake packet with guid (1,2,3,4) --->  Relay *Peer A has mapping for Peer B* -- relay packet ---> Peer B
-Peer B -- handhsake packet with guid (1,2,3,4) --->  Relay *Peer B has mapping for Peer A* -- relay packet ---> Peer A
+Peer A -- handhsake packet with guid (1,2,3,4) --->  Relay *Peer A has mapping for Peer B*
+Peer B -- handhsake packet with guid (1,2,3,4) <---  Relay *Peer A has mapping for Peer B*
+
+Peer B -- handhsake packet with guid (1,2,3,4) --->  Relay *Peer B has mapping for Peer A*
+Peer A -- handhsake packet with guid (1,2,3,4) <---  Relay *Peer B has mapping for Peer A*
 
 // now you can start communication freely via relay.
 // it's crutial to use same socket or bind same port values while you want to utilize relay.
