@@ -34,6 +34,10 @@ add_library(${PROJECT_NAME}-static STATIC ${UDP_RELAY_SOURCES})
 target_link_libraries(${PROJECT_NAME}-static PUBLIC ${UDP_RELAY_LINK_LIBRARIES})
 target_include_directories(${PROJECT_NAME}-static PUBLIC "include")
 
+find_program(CLANG_TIDY_EXE NAMES "clang-tidy" REQUIRED)
+set(CLANG_TIDY_COMMAND "${CLANG_TIDY_EXE}")
+set_target_properties(${PROJECT_NAME}-static PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
+
 add_subdirectory(test)
 
 enable_sanitizers(${PROJECT_NAME} 
