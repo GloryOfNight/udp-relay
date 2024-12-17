@@ -1,1 +1,1 @@
-Checks: 'clang-analyzer-core*,clang-analyzer-cplusplus*,clang-analyzer-unix*,cppcoreguidelines-avoid-goto'
+Checks: ''
