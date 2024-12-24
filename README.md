@@ -1,7 +1,7 @@
 # UDP Relay
 Simple udp relay that relays packets between two peers.
 
-Sometimes there is a need to make connection between to peers that are behind NAT possible. Inspired by [TURN](https://datatracker.ietf.org/doc/html/rfc8656), but unlike TURN, this relay is simplified and specializes on relaying only udp packets between two Peers.
+Sometimes there is a need to make connection between to peers that are behind NAT possible. Inspired by [TURN](https://datatracker.ietf.org/doc/html/rfc8656), but unlike TURN, this relay is simplified and specializes on relaying only udp packets between two peers.
 
 For peers to communitate thru such relay, clients only required to send handshake packet with same guid(128bit) values. Relay would create mapping for these clients and start relaying packets between them. After clients exchange handhsakes setup is done. Relay would relay packets indefenetly, but when both peers stop communite with each other for long period of time - repeating handhsake process might be required.
 
@@ -10,8 +10,6 @@ It's recommended to modify relay code to better suit your specific needs, like c
 It's not possible for this relay to have more then 2 peers within one mapping. Relay uses ip:port to identify other mapped address.
 
 It's single thread only. Thats is intentional.
-
-It's doesn't buffer any received packets. Therefore - it is possible that relay can drop packet.
 
 You can find all possible commandline arguments with `--help`.
 
@@ -45,3 +43,18 @@ Peer A <-- handhsake packet with guid (1,2,3,4) --  Relay *Peer B has mapping fo
 // it's crutial to use same socket or bind same port values while you want to utilize relay.
 // note that if communication between peers stop for ~30 seconds - relay would clear mapping for addresses.
 ```
+
+By default, relay expects following header for handshake. 
+Those fields that optional mostly needed for client application to establish handshake protocol. Only required one for relay to function - m_guid.
+
+```c++
+struct handshake_header
+{
+	uint16_t m_type{};    // optional
+	uint16_t m_length{};  // optional
+	guid m_guid{};        // required - 4 x uint32
+	int64_t m_time{};     // optional
+};
+```
+> [!NOTE]
+> You probably should tailor [handshake header](include/udp-relay/types.hxx#L43) for your specific needs.
