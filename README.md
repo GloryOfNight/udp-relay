@@ -20,19 +20,20 @@ You can find all possible commandline arguments with `--help`.
 
 `peer A |NAT| <-> relay <-> |NAT| peer B. `
 
-Basicly, to have connection trhu such relay you need to negotiate between clients only two things
+To start comunication first you need to negotiate the following between peers:
 - ip address of relay
-- guid value used to map clients between each other
+- unique guid (128bit) value
 
-After clients start receive packets from relay - that would indicate that connection is established.
-Relay would close mapping after 30 seconds of inactivity (by default).
+Then you can start sending handshake packets every second or so. Until your client will receive packet back from a relay.
+That would mean connection has been established and now you can proceed sending other packet data.
 
+This process looks like this:
 ```
-// peers start sending handshake values to relay
+// peer A and B start sending handshake values to relay using same guid value
 Peer A -- handhsake packet with guid (1,2,3,4) -->  Relay *acknowledges handshake packet*
 Peer B -- handhsake packet with guid (1,2,3,4) -->  Relay *creates mapping between Peer A and Peer B*
 
-// when you starting to receive handhsake packets on peers side, that mean relay is established
+// when you starting to receive handhsake packets on peers, that mean relay is established
 Peer A -- handhsake packet with guid (1,2,3,4) -->  Relay *Peer A has mapping for Peer B*
 Peer B <-- handhsake packet with guid (1,2,3,4) --  Relay *Peer A has mapping for Peer B*
 
