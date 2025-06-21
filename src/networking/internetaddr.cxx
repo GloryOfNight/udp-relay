@@ -2,6 +2,8 @@
 
 #include "udp-relay/networking/internetaddr.hxx"
 
+#include "udp-relay/networking/network_utils.hxx"
+
 #if PLATFORM_WINDOWS
 #include <ws2tcpip.h>
 #elif PLATFORM_LINUX
@@ -47,8 +49,8 @@ std::string internetaddr::toString() const
 #if PLATFORM_WINDOWS
 	char ipBuffer[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &(m_addr.sin_addr), ipBuffer, INET_ADDRSTRLEN);
-	return std::format("{0}:{1}", ipBuffer, ntohs(m_addr.sin_port));
+	return std::format("{0}:{1}", ipBuffer, ur::ntoh16(m_addr.sin_port));
 #elif PLATFORM_LINUX
-	return std::format("{0}:{1}", inet_ntoa(m_addr.sin_addr), ntohs(m_addr.sin_port));
+	return std::format("{0}:{1}", inet_ntoa(m_addr.sin_addr), ur::ntoh16(m_addr.sin_port));
 #endif
 }

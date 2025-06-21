@@ -4,6 +4,7 @@
 
 #include "udp-relay/log.hxx"
 #include "udp-relay/networking/internetaddr.hxx"
+#include "udp-relay/networking/network_utils.hxx"
 
 #if PLATFORM_WINDOWS
 #include <WinSock2.h>
@@ -39,7 +40,7 @@ bool udpsocket::bind(int32_t port)
 	sockaddr_in address{};
 	address.sin_family = AF_INET;
 	address.sin_addr.s_addr = INADDR_ANY;
-	address.sin_port = htons(port);
+	address.sin_port = ur::hton16(port);
 
 	if (::bind(m_socket, (struct sockaddr*)&address, sizeof(address)) == -1)
 	{
@@ -81,7 +82,7 @@ uint16_t udpsocket::getPort() const
 		LOG(Error, "Failed to get port. Error code: {0}", errno);
 		return 0;
 	}
-	return ntohs(((sockaddr_in&)addr).sin_port);
+	return ur::ntoh16(((sockaddr_in&)addr).sin_port);
 }
 
 bool udpsocket::setNonBlocking(bool bNonBlocking)

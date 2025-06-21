@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "udp-relay/reldefs.h"
+#include "udp-relay/platform.h"
 
 #include <cstdint>
 #include <memory>

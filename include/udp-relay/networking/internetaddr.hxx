@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "udp-relay/reldefs.h"
+#include "udp-relay/platform.h"
 
 #if PLATFORM_WINDOWS
 #include <WinSock2.h>

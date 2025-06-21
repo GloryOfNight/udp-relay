@@ -8,37 +8,33 @@
 #include <random>
 #include <stdint.h>
 
-#ifdef _MSC_VER
-#define BYTESWAP16(x) _byteswap_ushort(static_cast<uint16_t>(x))
-#define BYTESWAP32(x) _byteswap_ulong(static_cast<uint32_t>(x))
-#define BYTESWAP64(x) _byteswap_uint64(static_cast<uint64_t>(x))
-#elif defined(__clang__)
-#define BYTESWAP16(x) __bswap_16(static_cast<uint16_t>(x))
-#define BYTESWAP32(x) __bswap_32(static_cast<uint32_t>(x))
-#define BYTESWAP64(x) __bswap_64(static_cast<uint64_t>(x))
-#endif
-
 namespace udprelay::utils
 {
+	// generate random value in range
 	template <typename T>
-	T randRange(const T min, const T max)
-	{
-		static std::random_device rd{};
-		static std::mt19937 gen(rd());
-		std::uniform_int_distribution<T> dis(min, max);
-		return static_cast<T>(dis(gen));
-	}
+	T randRange(const T min, const T max);
 
+	// parse argument list
 	template <typename T>
-	void parseArgs(const T& argList, int argc, char* argv[]); // parse argument list
+	void parseArgs(const T& argList, int argc, char* argv[]);
 
+	// print arguments helo list
 	template <typename T>
 	void printArgsHelp(const T& argList);
 
+	// parse environment variables
 	template <typename T>
-	void parseEnvp(const T& envList, char* envp[]); // parse environment variables
-
+	void parseEnvp(const T& envList, char* envp[]);
 } // namespace udprelay::utils
+
+template <typename T>
+T udprelay::utils::randRange(const T min, const T max)
+{
+	static std::random_device rd{};
+	static std::mt19937 gen(rd());
+	std::uniform_int_distribution<T> dis(min, max);
+	return static_cast<T>(dis(gen));
+}
 
 template <typename T>
 void udprelay::utils::parseArgs(const T& argList, int argc, char* argv[])
