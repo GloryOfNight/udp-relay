@@ -1,10 +1,13 @@
 // Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
 
-#include "udp-relay/unix/udpsocketUnix.hxx"
+#include "udp-relay/networking/udpsocket.hxx"
 
 #include "udp-relay/log.hxx"
-#include "udp-relay/unix/internetaddrUnix.hxx"
+#include "udp-relay/networking/internetaddr.hxx"
 
+#if PLATFORM_WINDOWS
+#include <WinSock2.h>
+#elif PLATFORM_LINUX
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -12,8 +15,17 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#endif
 
-udpsocketUnix::udpsocketUnix()
+#if PLATFORM_WINDOWS
+using suseconds_t = long;
+using socklen_t = int;
+using buffer_t = char;
+#elif PLATFORM_LINUX
+using buffer_t = void;
+#endif
+
+udpsocket::udpsocket()
 {
 	m_socket = ::socket(AF_INET, SOCK_DGRAM, 0);
 	if (m_socket == -1) [[unlikely]]
@@ -22,7 +34,7 @@ udpsocketUnix::udpsocketUnix()
 	}
 }
 
-bool udpsocketUnix::bind(int32_t port)
+bool udpsocket::bind(int32_t port)
 {
 	sockaddr_in address{};
 	address.sin_family = AF_INET;
@@ -31,31 +43,35 @@ bool udpsocketUnix::bind(int32_t port)
 
 	if (::bind(m_socket, (struct sockaddr*)&address, sizeof(address)) == -1)
 	{
-		LOG(Error, "Failed to bind socket to port {0}", port, ".");
+		LOG(Error, "Failed to bind socket to port {0}", port);
 		return -1;
 	}
 
 	return true;
 }
 
-udpsocketUnix::~udpsocketUnix()
+udpsocket::~udpsocket()
 {
 	if (m_socket != -1) [[likely]]
+#if PLATFORM_WINDOWS
+		closesocket(m_socket);
+#elif PLATFORM_LINUX
 		::close(m_socket);
+#endif
 }
 
-int32_t udpsocketUnix::sendTo(void* buffer, size_t bufferSize, const internetaddr* addr)
+int32_t udpsocket::sendTo(void* buffer, size_t bufferSize, const internetaddr* addr)
 {
-	return ::sendto(m_socket, buffer, bufferSize, 0, (struct sockaddr*)&addr->getAddr(), sizeof(sockaddr_in));
+	return ::sendto(m_socket, (const buffer_t*)buffer, bufferSize, 0, (struct sockaddr*)&addr->getAddr(), sizeof(sockaddr_in));
 }
 
-int32_t udpsocketUnix::recvFrom(void* buffer, size_t bufferSize, internetaddr* addr)
+int32_t udpsocket::recvFrom(void* buffer, size_t bufferSize, internetaddr* addr)
 {
 	socklen_t socklen = sizeof(sockaddr_in);
-	return ::recvfrom(m_socket, buffer, bufferSize, 0, (struct sockaddr*)&addr->getAddr(), &socklen);
+	return ::recvfrom(m_socket, (buffer_t*)buffer, bufferSize, 0, (struct sockaddr*)&addr->getAddr(), &socklen);
 }
 
-uint16_t udpsocketUnix::getPort() const
+uint16_t udpsocket::getPort() const
 {
 	sockaddr_storage addr{};
 	socklen_t socklen = sizeof(sockaddr_storage);
@@ -68,16 +84,21 @@ uint16_t udpsocketUnix::getPort() const
 	return ntohs(((sockaddr_in&)addr).sin_port);
 }
 
-bool udpsocketUnix::setNonBlocking(bool bNonBlocking)
+bool udpsocket::setNonBlocking(bool bNonBlocking)
 {
+#if PLATFORM_WINDOWS
+	u_long value = bNonBlocking;
+	return ioctlsocket(m_socket, FIONBIO, &value) == 0;
+#elif
 	int flags = fcntl(m_socket, F_GETFL, 0);
 	if (flags == -1) [[unlikely]]
 		return false;
 	flags = bNonBlocking ? flags | O_NONBLOCK : flags ^ (flags & O_NONBLOCK);
 	return fcntl(m_socket, F_SETFL, flags) != -1;
+#endif
 }
 
-bool udpsocketUnix::setSendBufferSize(int32_t size, int32_t& newSize)
+bool udpsocket::setSendBufferSize(int32_t size, int32_t& newSize)
 {
 	socklen_t sizeSize = sizeof(size);
 	bool bOk = setsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (char*)&size, sizeof(int32_t)) == 0;
@@ -85,7 +106,7 @@ bool udpsocketUnix::setSendBufferSize(int32_t size, int32_t& newSize)
 	return bOk;
 }
 
-bool udpsocketUnix::setRecvBufferSize(int32_t size, int32_t& newSize)
+bool udpsocket::setRecvBufferSize(int32_t size, int32_t& newSize)
 {
 	socklen_t sizeSize = sizeof(size);
 	bool bOk = setsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (char*)&size, sizeof(int32_t)) == 0;
@@ -93,7 +114,7 @@ bool udpsocketUnix::setRecvBufferSize(int32_t size, int32_t& newSize)
 	return bOk;
 }
 
-bool udpsocketUnix::waitForRead(int32_t timeoutUs)
+bool udpsocket::waitForReadUs(int32_t timeoutUs)
 {
 	timeval time;
 	time.tv_sec = 0;
@@ -107,7 +128,7 @@ bool udpsocketUnix::waitForRead(int32_t timeoutUs)
 	return selectRes > 0;
 }
 
-bool udpsocketUnix::waitForWrite(int32_t timeoutUs)
+bool udpsocket::waitForWriteUs(int32_t timeoutUs)
 {
 	timeval time;
 	time.tv_sec = 0;
@@ -121,7 +142,7 @@ bool udpsocketUnix::waitForWrite(int32_t timeoutUs)
 	return selectRes > 0;
 }
 
-bool udpsocketUnix::isValid() const
+bool udpsocket::isValid() const
 {
 	return m_socket != -1;
 }

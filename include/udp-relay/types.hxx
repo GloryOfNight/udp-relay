@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "internetaddr.hxx"
+#include "networking/internetaddr.hxx"
 #include "utils.hxx"
 
 #include <cstdint>

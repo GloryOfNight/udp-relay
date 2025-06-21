@@ -3,7 +3,7 @@
 #include "udp-relay-client/client.hxx"
 
 #include "udp-relay/log.hxx"
-#include "udp-relay/udpsocket.hxx"
+#include "udp-relay/networking/udpsocket.hxx"
 #include "udp-relay/utils.hxx"
 
 #include <algorithm>
@@ -66,7 +66,7 @@ void relay_client::run(const relay_client_params& params)
 
 	while (m_running)
 	{
-		if (m_socket->waitForRead(0))
+		if (m_socket->waitForReadUs(0))
 		{
 			int32_t bytesRead{};
 
@@ -107,7 +107,7 @@ void relay_client::run(const relay_client_params& params)
 
 			const auto randomOffset = relayEtablished ? udprelay::utils::randRange<uint32_t>(sizeof(handshake_header), packet.m_randomData.size() - 1) : 0;
 
-			if (m_socket->waitForRead(0))
+			if (m_socket->waitForReadUs(0))
 				continue;
 
 			const auto bytesSent = m_socket->sendTo(&packet, sizeof(packet) - randomOffset, &relayAddr);

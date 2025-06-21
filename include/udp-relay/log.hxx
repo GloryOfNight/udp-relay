@@ -12,7 +12,7 @@ enum class log_level : uint8_t
 	NoLogs = 0,
 	Error = 1,
 	Warning = 2,
-	Display = 3,
+	Log = 3,
 	Verbose = 4
 };
 
@@ -28,8 +28,8 @@ namespace udprelaycore
 			return "Error";
 		case log_level::Warning:
 			return "Warning";
-		case log_level::Display:
-			return "Display";
+		case log_level::Log:
+			return "Log";
 		case log_level::Verbose:
 			return "Verbose";
 		default:

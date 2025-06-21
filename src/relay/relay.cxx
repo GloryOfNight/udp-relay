@@ -3,7 +3,7 @@
 #include "udp-relay/relay.hxx"
 
 #include "udp-relay/log.hxx"
-#include "udp-relay/udpsocket.hxx"
+#include "udp-relay/networking/udpsocket.hxx"
 
 #include <array>
 
@@ -14,8 +14,8 @@ bool relay::run(const relay_params& params)
 	if (!init())
 		return false;
 
-	LOG(Display, "Relay initialized. Requested {0} port, actual {1}", m_params.m_primaryPort, m_socket->getPort());
-	LOG(Display, "Relay tick time warning set to {0}us", m_params.m_warnTickExceedTimeUs);
+	LOG(Log, "Relay initialized. Requested {0} port, actual {1}", m_params.m_primaryPort, m_socket->getPort());
+	LOG(Log, "Relay tick time warning set to {0}us", m_params.m_warnTickExceedTimeUs);
 
 	packet_buffer buffer{};
 	internetaddr recvAddr{};
@@ -27,9 +27,9 @@ bool relay::run(const relay_params& params)
 	while (m_running)
 	{
 		if (m_pendingPackets.size() == 0)
-			m_socket->waitForRead(10000);
+			m_socket->waitForReadUs(10000);
 		else
-			m_socket->waitForWrite(100);
+			m_socket->waitForWriteUs(100);
 
 		m_lastTickTime = std::chrono::steady_clock::now();
 
@@ -84,7 +84,7 @@ bool relay::run(const relay_params& params)
 					m_addressMappedChannels.emplace(guidChannel->second.m_peerA, guidChannel->second);
 					m_addressMappedChannels.emplace(guidChannel->second.m_peerB, guidChannel->second);
 
-					LOG(Display, "Channel relay established for session: \"{0}\" with peers: {1}, {2}.", nthGuid.toString(), guidChannel->second.m_peerA.toString(), guidChannel->second.m_peerB.toString());
+					LOG(Log, "Channel relay established for session: \"{0}\" with peers: {1}, {2}.", nthGuid.toString(), guidChannel->second.m_peerA.toString(), guidChannel->second.m_peerB.toString());
 				}
 			}
 		}
@@ -184,7 +184,7 @@ void relay::conditionalCleanup(bool force)
 			{
 				const auto channelGuidStr = it->m_guid.toString();
 				const auto stats = it->m_stats;
-				LOG(Display, "Channel \"{0}\" inactive and removed. Relayed: {1} packets ({2} bytes); Dropped: {3} ({4})", channelGuidStr, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsReceived - stats.m_packetsSent, stats.m_bytesReceived - stats.m_bytesSent);
+				LOG(Log, "Channel \"{0}\" inactive and removed. Relayed: {1} packets ({2} bytes); Dropped: {3} ({4})", channelGuidStr, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsReceived - stats.m_packetsSent, stats.m_bytesReceived - stats.m_bytesSent);
 
 				m_addressMappedChannels.erase(it->m_peerA);
 				m_addressMappedChannels.erase(it->m_peerB);

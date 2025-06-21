@@ -13,7 +13,7 @@
 namespace args
 {
 	bool printHelp{};											// when true - prints help and exits
-	int32_t logLevel{static_cast<int32_t>(log_level::Display)}; // 0 - no logs, 1 - errors only, 2 - warnings only, 3 - log (default), 4 - verbose
+	int32_t logLevel{static_cast<int32_t>(log_level::Log)}; // 0 - no logs, 1 - errors only, 2 - warnings only, 3 - log (default), 4 - verbose
 	int32_t port{6060};											// main port for the server
 	int32_t warnTickTimeUs{5000};								// log warning when tick exceeded specified time in microseconds
 } // namespace args
@@ -38,7 +38,7 @@ static constexpr auto envList = std::array
 
 static std::unique_ptr<relay> g_relay{};
 static int g_exitCode{};
-log_level g_logLevel{log_level::Display};
+log_level g_logLevel{log_level::Log};
 
 static void handleAbort(int sig); // handle abort signal from terminal or system
 static void handleCrash(int sig); // handle crash
@@ -70,7 +70,7 @@ int relay_main(int argc, char* argv[], char* envp[])
 
 	g_logLevel = static_cast<log_level>(args::logLevel);
 
-	LOG(Display, "Starting UDP relay. . .");
+	LOG(Log, "Starting UDP relay. . .");
 
 	g_relay = std::make_unique<relay>();
 

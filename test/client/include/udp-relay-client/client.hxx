@@ -3,7 +3,7 @@
 #pragma once
 
 #include "udp-relay/types.hxx"
-#include "udp-relay/udpsocket.hxx"
+#include "udp-relay/networking/udpsocket.hxx"
 
 #include <atomic>
 

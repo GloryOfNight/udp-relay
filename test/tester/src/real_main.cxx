@@ -68,8 +68,8 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 		args::maxClients = 1024;
 	}
 
-	LOG(Display, "Using relay address: {0}.{1}.{2}.{3}:{4}", args::relayAddr[0], args::relayAddr[1], args::relayAddr[2], args::relayAddr[3], args::relayPort);
-	LOG(Display, "Starting {0} clients", args::maxClients);
+	LOG(Log, "Using relay address: {0}.{1}.{2}.{3}:{4}", args::relayAddr[0], args::relayAddr[1], args::relayAddr[2], args::relayAddr[3], args::relayPort);
+	LOG(Log, "Starting {0} clients", args::maxClients);
 
 	for (int32_t i = 0; i < args::maxClients; i += 2)
 	{
@@ -93,7 +93,7 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 
 	const auto start = std::chrono::steady_clock::now();
 
-	LOG(Display, "Clients started. Probing relay for {0} seconds", args::shutdownAfter);
+	LOG(Log, "Clients started. Probing relay for {0} seconds", args::shutdownAfter);
 
 	g_running = true;
 	while (g_running)
@@ -104,7 +104,7 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 
 		if (args::shutdownAfter > 0 && std::chrono::duration_cast<std::chrono::seconds>(now - start).count() > args::shutdownAfter)
 		{
-			LOG(Display, "Timesup. Stopping clients.");
+			LOG(Log, "Timesup. Stopping clients.");
 
 			for (size_t i = 0; i < args::maxClients; ++i)
 				g_clients[i].stop();
@@ -116,7 +116,7 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 			for (size_t i = 0; i < args::maxClients; ++i)
 			{
 				const auto& client = g_clients[i];
-				LOG(Display, "\"{4}\". Median/Average latency: {0} / {1}. Sent/Recv packets: {2} / {3}", client.getMedianLatency(), client.getAverageLatency(), client.getPacketsSent(), client.getPacketsRecv(), client.getGuid().toString());
+				LOG(Log, "\"{4}\". Median/Average latency: {0} / {1}. Sent/Recv packets: {2} / {3}", client.getMedianLatency(), client.getAverageLatency(), client.getPacketsSent(), client.getPacketsRecv(), client.getGuid().toString());
 			}
 		}
 	}

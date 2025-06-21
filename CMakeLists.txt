@@ -13,17 +13,15 @@ include(cmake/Sanitizers.cmake)
 include(cmake/PreventInSourceBuilds.cmake)
 
 set (UDP_RELAY_SOURCES  "src/real_main.cxx"
-                        "src/relay/relay.cxx")
+                        "src/relay/relay.cxx"
+                        "src/networking/udpsocket.cxx"
+                        "src/networking/internetaddr.cxx")
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	set(UDP_RELAY_SOURCES   ${UDP_RELAY_SOURCES}
-                            "src/socket/unix/internetaddrUnix.cxx"
-                            "src/socket/unix/udpsocketUnix.cxx")
+	set(UDP_RELAY_SOURCES   ${UDP_RELAY_SOURCES})
     set(UDP_RELAY_MAIN      "src/unixmain.cxx")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    set(UDP_RELAY_SOURCES   ${UDP_RELAY_SOURCES}
-                            "src/socket/win/internetaddrWin.cxx"
-                            "src/socket/win/udpsocketWin.cxx")
+    set(UDP_RELAY_SOURCES   ${UDP_RELAY_SOURCES})
     set(UDP_RELAY_MAIN      "src/winmain.cxx")
     set(UDP_RELAY_LINK_LIBRARIES ws2_32.dll)
 endif()
