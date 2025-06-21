@@ -90,7 +90,7 @@ bool udpsocket::setNonBlocking(bool bNonBlocking)
 #if PLATFORM_WINDOWS
 	u_long value = bNonBlocking;
 	return ioctlsocket(m_socket, FIONBIO, &value) == 0;
-#elif
+#elif PLATFORM_LINUX
 	int flags = fcntl(m_socket, F_GETFL, 0);
 	if (flags == -1) [[unlikely]]
 		return false;

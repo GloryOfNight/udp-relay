@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <bit>
 #include <concepts>
+#include <cstring>
 
 namespace ur
 {
