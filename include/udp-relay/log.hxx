@@ -1,4 +1,7 @@
+// Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
+
 #pragma once
+
 #include <chrono>
 #include <cstdarg>
 #include <format>
@@ -44,7 +47,7 @@ namespace udprelaycore
 
 		const auto now = std::chrono::utc_clock::now();
 		const auto log_level_str = log_level_to_string(level);
-		
+
 		ostream << std::vformat("[{0:%F}T{0:%T}] {1}: ", std::make_format_args(now, log_level_str)) << std::vformat(format, std::make_format_args(args...)) << std::endl;
 	}
 } // namespace udprelaycore

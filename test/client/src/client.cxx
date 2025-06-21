@@ -1,3 +1,5 @@
+// Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
+
 #include "udp-relay-client/client.hxx"
 
 #include "udp-relay/log.hxx"

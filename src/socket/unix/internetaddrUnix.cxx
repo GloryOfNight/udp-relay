@@ -1,3 +1,5 @@
+// Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
+
 #include "udp-relay/unix/internetaddrUnix.hxx"
 
 #include <arpa/inet.h>

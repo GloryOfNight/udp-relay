@@ -1,3 +1,5 @@
+# Copyright (c) 2025 Siarhei Dziki aka "GloryOfNight"
+
 cmake_minimum_required(VERSION 3.21.0)
 
 project(udp-relay

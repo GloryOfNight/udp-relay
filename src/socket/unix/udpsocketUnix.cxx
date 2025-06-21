@@ -1,3 +1,5 @@
+// Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
+
 #include "udp-relay/unix/udpsocketUnix.hxx"
 
 #include "udp-relay/log.hxx"

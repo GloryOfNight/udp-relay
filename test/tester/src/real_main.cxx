@@ -1,3 +1,5 @@
+// Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
+
 #include "udp-relay-client/client.hxx"
 #include "udp-relay/utils.hxx"
 #include "udp-relay/val_ref.hxx"
@@ -116,7 +118,6 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 				const auto& client = g_clients[i];
 				LOG(Display, "\"{4}\". Median/Average latency: {0} / {1}. Sent/Recv packets: {2} / {3}", client.getMedianLatency(), client.getAverageLatency(), client.getPacketsSent(), client.getPacketsRecv(), client.getGuid().toString());
 			}
-				
 		}
 	}
 

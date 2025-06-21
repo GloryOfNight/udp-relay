@@ -1,4 +1,7 @@
+// Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
+
 #pragma once
+
 #include <string>
 #include <typeinfo>
 

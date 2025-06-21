@@ -1,3 +1,5 @@
+// Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
+
 #include <WinSock2.h>
 
 extern int relay_tester_main(int argc, char* argv[], char* envp[]);

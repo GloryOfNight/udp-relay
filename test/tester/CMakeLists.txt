@@ -1,3 +1,4 @@
+# Copyright (c) 2025 Siarhei Dziki aka "GloryOfNight"
 
 set (UDP_RELAY_TESTER_SOURCES  "src/real_main.cxx")
 

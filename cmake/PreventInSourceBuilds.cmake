@@ -1,3 +1,5 @@
+# Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
+
 #
 # This function will prevent in-source builds
 #

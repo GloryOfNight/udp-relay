@@ -1,3 +1,5 @@
+# Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
+
 if (NOT DEFINED CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 20)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)

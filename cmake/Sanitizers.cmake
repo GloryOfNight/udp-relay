@@ -1,3 +1,5 @@
+# Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
+
 function(
   enable_sanitizers
   project_name

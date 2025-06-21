@@ -1,4 +1,7 @@
+// Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
+
 #pragma once
+
 #include "udp-relay/internetaddr.hxx"
 #include "udp-relay/udpsocket.hxx"
 

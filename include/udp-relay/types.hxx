@@ -1,4 +1,7 @@
+// Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
+
 #pragma once
+
 #include "internetaddr.hxx"
 #include "utils.hxx"
 
@@ -65,15 +68,15 @@ namespace std
 	struct less<guid>
 	{
 		bool operator()(const guid& left, const guid& right) const
-        {
-            if (left.m_a != right.m_a)
-                return left.m_a < right.m_a;
-            if (left.m_b != right.m_b)
-                return left.m_b < right.m_b;
-            if (left.m_c != right.m_c)
-                return left.m_c < right.m_c;
-            return left.m_d < right.m_d;
-        }
+		{
+			if (left.m_a != right.m_a)
+				return left.m_a < right.m_a;
+			if (left.m_b != right.m_b)
+				return left.m_b < right.m_b;
+			if (left.m_c != right.m_c)
+				return left.m_c < right.m_c;
+			return left.m_d < right.m_d;
+		}
 	};
 
 } // namespace std
