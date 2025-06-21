@@ -12,7 +12,7 @@ enum class log_level : uint8_t
 	NoLogs = 0,
 	Error = 1,
 	Warning = 2,
-	Log = 3,
+	Info = 3,
 	Verbose = 4
 };
 
@@ -28,8 +28,8 @@ namespace udprelaycore
 			return "Error";
 		case log_level::Warning:
 			return "Warning";
-		case log_level::Log:
-			return "Log";
+		case log_level::Info:
+			return "Info";
 		case log_level::Verbose:
 			return "Verbose";
 		default:
@@ -38,7 +38,7 @@ namespace udprelaycore
 	}
 
 	template <typename... Args>
-	void log(const log_level level, const std::string_view format, Args... args)
+	void log(const log_level level, const std::string_view category, const std::string_view format, Args... args)
 	{
 		if (level > g_logLevel)
 			return;
@@ -48,8 +48,8 @@ namespace udprelaycore
 		const auto now = std::chrono::utc_clock::now();
 		const auto log_level_str = log_level_to_string(level);
 
-		ostream << std::vformat("[{0:%F}T{0:%T}] {1}: ", std::make_format_args(now, log_level_str)) << std::vformat(format, std::make_format_args(args...)) << std::endl;
+		ostream << std::vformat("[{0:%F}T{0:%T}] {1}: {2}: ", std::make_format_args(now, category, log_level_str)) << std::vformat(format, std::make_format_args(args...)) << std::endl;
 	}
 } // namespace udprelaycore
 
-#define LOG(level, format, ...) udprelaycore::log(log_level::level, format, ##__VA_ARGS__);
+#define LOG(level, category, format, ...) udprelaycore::log(log_level::level, #category, format, ##__VA_ARGS__);

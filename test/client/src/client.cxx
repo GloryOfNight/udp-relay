@@ -37,7 +37,7 @@ struct handshake_packet
 	{
 		// fill array with random bytes
 		std::generate(m_randomData.begin(), m_randomData.end(), []() -> uint8_t
-			{ return udprelay::utils::randRange<uint32_t>(0, UINT8_MAX); });
+			{ return ur::randRange<uint32_t>(0, UINT8_MAX); });
 	}
 };
 
@@ -47,7 +47,7 @@ void relay_client::run(const relay_client_params& params)
 
 	if (!init())
 	{
-		LOG(Error, "Client failed to initialize");
+		LOG(Error, RelayClient, "Client failed to initialize");
 		return;
 	}
 
@@ -106,7 +106,7 @@ void relay_client::run(const relay_client_params& params)
 			handshake_packet packet = handshake_packet::newPacket(m_params.m_guid);
 			packet.generateRandomPayload();
 
-			const auto randomOffset = relayEtablished ? udprelay::utils::randRange<uint32_t>(sizeof(handshake_header), packet.m_randomData.size() - 1) : 0;
+			const auto randomOffset = relayEtablished ? ur::randRange<uint32_t>(sizeof(handshake_header), packet.m_randomData.size() - 1) : 0;
 
 			if (m_socket->waitForReadUs(0))
 				continue;

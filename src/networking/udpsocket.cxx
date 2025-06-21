@@ -31,7 +31,7 @@ udpsocket::udpsocket()
 	m_socket = ::socket(AF_INET, SOCK_DGRAM, 0);
 	if (m_socket == -1) [[unlikely]]
 	{
-		LOG(Error, "Failed to create socket. Error code: {0}", errno);
+		LOG(Error, UdpSocket, "Failed to create socket. Error code: {0}", errno);
 	}
 }
 
@@ -44,7 +44,7 @@ bool udpsocket::bind(int32_t port)
 
 	if (::bind(m_socket, (struct sockaddr*)&address, sizeof(address)) == -1)
 	{
-		LOG(Error, "Failed to bind socket to port {0}", port);
+		LOG(Error, UdpSocket, "Failed to bind socket to port {0}", port);
 		return -1;
 	}
 
@@ -79,7 +79,7 @@ uint16_t udpsocket::getPort() const
 	const int res = getsockname(m_socket, (sockaddr*)&addr, &socklen) == 0;
 	if (res == 0) [[unlikely]]
 	{
-		LOG(Error, "Failed to get port. Error code: {0}", errno);
+		LOG(Error, UdpSocket, "Failed to get port. Error code: {0}", errno);
 		return 0;
 	}
 	return ur::ntoh16(((sockaddr_in&)addr).sin_port);

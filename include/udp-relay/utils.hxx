@@ -8,7 +8,7 @@
 #include <random>
 #include <stdint.h>
 
-namespace udprelay::utils
+namespace ur
 {
 	// generate random value in range
 	template <typename T>
@@ -25,10 +25,10 @@ namespace udprelay::utils
 	// parse environment variables
 	template <typename T>
 	void parseEnvp(const T& envList, char* envp[]);
-} // namespace udprelay::utils
+} // namespace ur
 
 template <typename T>
-T udprelay::utils::randRange(const T min, const T max)
+T ur::randRange(const T min, const T max)
 {
 	static std::random_device rd{};
 	static std::mt19937 gen(rd());
@@ -37,7 +37,7 @@ T udprelay::utils::randRange(const T min, const T max)
 }
 
 template <typename T>
-void udprelay::utils::parseArgs(const T& argList, int argc, char* argv[])
+void ur::parseArgs(const T& argList, int argc, char* argv[])
 {
 	static_assert(std::is_same<typename T::value_type, val_ref>::value, "T must be an array of val_ref");
 
@@ -98,7 +98,7 @@ void udprelay::utils::parseArgs(const T& argList, int argc, char* argv[])
 }
 
 template <typename T>
-void udprelay::utils::printArgsHelp(const T& argList)
+void ur::printArgsHelp(const T& argList)
 {
 	std::cout << "Available arguments list:" << std::endl;
 	for (auto& arg : argList)
@@ -112,7 +112,7 @@ void udprelay::utils::printArgsHelp(const T& argList)
 }
 
 template <typename T>
-void udprelay::utils::parseEnvp(const T& envList, char* envp[])
+void ur::parseEnvp(const T& envList, char* envp[])
 {
 	static_assert(std::is_same<typename T::value_type, val_ref>::value, "T must be an array of val_ref");
 
