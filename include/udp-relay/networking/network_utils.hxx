@@ -80,6 +80,6 @@ T ur::ntoh(T value) noexcept
 	return value;
 }
 
-#define BYTESWAP16(x) ur::byteswap(static_cast<uint16_t>(x))
-#define BYTESWAP32(x) ur::byteswap(static_cast<uint32_t>(x))
-#define BYTESWAP64(x) ur::byteswap(static_cast<uint64_t>(x))
+#define BYTESWAP16(x) ur::bs16(static_cast<uint16_t>(x))
+#define BYTESWAP32(x) ur::bs32(static_cast<uint32_t>(x))
+#define BYTESWAP64(x) ur::bs64(static_cast<uint64_t>(x))

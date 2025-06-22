@@ -74,6 +74,11 @@ uint16_t udpsocket::getPort() const
 	return ur::ntoh16(((sockaddr_in&)addr).sin_port);
 }
 
+socket_t udpsocket::getNativeSocket() const
+{
+	return m_socket;
+}
+
 int32_t udpsocket::sendTo(void* buffer, size_t bufferSize, const internetaddr* addr) const
 {
 	return ::sendto(m_socket, (const buffer_t*)buffer, bufferSize, 0, (struct sockaddr*)&addr->getAddr(), sizeof(sockaddr_in));
