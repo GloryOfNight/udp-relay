@@ -14,6 +14,8 @@ include(cmake/PreventInSourceBuilds.cmake)
 
 set (UDP_RELAY_SOURCES  "src/real_main.cxx"
                         "src/relay/relay.cxx"
+                        "src/relay/relay_server.cxx"
+                        "src/relay/relay_worker.cxx"
                         "src/networking/udpsocket.cxx"
                         "src/networking/internetaddr.cxx")
 
