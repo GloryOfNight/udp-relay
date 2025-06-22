@@ -14,7 +14,7 @@
 #include <memory>
 #include <string>
 
-struct internetaddr
+struct internetaddr final
 {
 	internetaddr();
 

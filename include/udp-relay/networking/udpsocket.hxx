@@ -8,11 +8,7 @@
 #include <memory>
 #include <stddef.h>
 
-#ifndef SE_WOULDBLOCK
-#define SE_WOULDBLOCK EWOULDBLOCK
-#endif
-
-struct internetaddr;
+using socket_t = int64_t;
 
 class udpsocket final
 {
@@ -23,35 +19,35 @@ public:
 	~udpsocket();
 
 	// bind on socket on specific port in host byte order
-	bool bind(int32_t port);
-
-	int32_t sendTo(void* buffer, size_t bufferSize, const internetaddr* addr);
-
-	int32_t recvFrom(void* buffer, size_t bufferSize, internetaddr* addr);
+	bool bind(int32_t port) const;
 
 	// @return port in host byte order
 	uint16_t getPort() const;
 
-	bool setNonBlocking(bool bNonBlocking);
+	int32_t sendTo(void* buffer, size_t bufferSize, const struct internetaddr* addr) const;
 
-	bool setSendBufferSize(int32_t size, int32_t& newSize);
+	int32_t recvFrom(void* buffer, size_t bufferSize, struct internetaddr* addr) const;
 
-	bool setRecvBufferSize(int32_t size, int32_t& newSize);
+	bool setReuseAddr(bool bAllowReuse) const;
 
-	bool waitForReadUs(int32_t timeoutUs);
+	bool setNonBlocking(bool bNonBlocking) const;
 
-	bool waitForWriteUs(int32_t timeoutUs);
+	bool setSendBufferSize(int32_t size, int32_t& newSize) const;
+
+	bool setRecvBufferSize(int32_t size, int32_t& newSize) const;
+
+	bool setRecvTimeoutUs(int64_t timeoutUs) const;
+
+	bool setSendTimeoutUs(int64_t timeoutUs) const;
+
+	bool waitForReadUs(int64_t timeoutUs) const;
+
+	bool waitForWriteUs(int64_t timeoutUs) const;
 
 	bool isValid() const;
 
 private:
-#if PLATFORM_WINDOWS
-	using SOCKET = unsigned int;
-#elif PLATFORM_LINUX
-	using SOCKET = int;
-#endif
-
-	SOCKET m_socket{static_cast<SOCKET>(-1)};
+	socket_t m_socket{static_cast<socket_t>(-1)};
 };
 
 using uniqueUdpsocket = std::unique_ptr<udpsocket>;
