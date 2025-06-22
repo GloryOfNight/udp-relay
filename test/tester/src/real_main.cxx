@@ -41,11 +41,11 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 	std::signal(SIGINT, handleAbort);
 	std::signal(SIGTERM, handleAbort);
 
-	udprelay::utils::parseArgs(argList, argc, argv);
+	ur::parseArgs(argList, argc, argv);
 
 	if (args::printHelp)
 	{
-		udprelay::utils::printArgsHelp(argList);
+		ur::printArgsHelp(argList);
 		return 0;
 	}
 
@@ -55,7 +55,7 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 	}
 	else if (args::relayAddr.size() != 4)
 	{
-		LOG(Error, "Invalid relay addr size {0}", args::relayAddr.size())
+		LOG(Error, RelayTester, "Invalid relay addr size {0}", args::relayAddr.size())
 		return 1;
 	}
 
@@ -68,8 +68,8 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 		args::maxClients = 1024;
 	}
 
-	LOG(Display, "Using relay address: {0}.{1}.{2}.{3}:{4}", args::relayAddr[0], args::relayAddr[1], args::relayAddr[2], args::relayAddr[3], args::relayPort);
-	LOG(Display, "Starting {0} clients", args::maxClients);
+	LOG(Info, RelayTester, "Using relay address: {0}.{1}.{2}.{3}:{4}", args::relayAddr[0], args::relayAddr[1], args::relayAddr[2], args::relayAddr[3], args::relayPort);
+	LOG(Info, RelayTester, "Starting {0} clients", args::maxClients);
 
 	for (int32_t i = 0; i < args::maxClients; i += 2)
 	{
@@ -93,7 +93,7 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 
 	const auto start = std::chrono::steady_clock::now();
 
-	LOG(Display, "Clients started. Probing relay for {0} seconds", args::shutdownAfter);
+	LOG(Info, RelayTester, "Clients started. Probing relay for {0} seconds", args::shutdownAfter);
 
 	g_running = true;
 	while (g_running)
@@ -104,7 +104,7 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 
 		if (args::shutdownAfter > 0 && std::chrono::duration_cast<std::chrono::seconds>(now - start).count() > args::shutdownAfter)
 		{
-			LOG(Display, "Timesup. Stopping clients.");
+			LOG(Info, RelayTester, "Timesup. Stopping clients.");
 
 			for (size_t i = 0; i < args::maxClients; ++i)
 				g_clients[i].stop();
@@ -116,7 +116,7 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 			for (size_t i = 0; i < args::maxClients; ++i)
 			{
 				const auto& client = g_clients[i];
-				LOG(Display, "\"{4}\". Median/Average latency: {0} / {1}. Sent/Recv packets: {2} / {3}", client.getMedianLatency(), client.getAverageLatency(), client.getPacketsSent(), client.getPacketsRecv(), client.getGuid().toString());
+				LOG(Info, RelayTester, "\"{4}\". Median/Average latency: {0} / {1}. Sent/Recv packets: {2} / {3}", client.getMedianLatency(), client.getAverageLatency(), client.getPacketsSent(), client.getPacketsRecv(), client.getGuid().toString());
 			}
 		}
 	}
@@ -126,7 +126,7 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 
 void handleAbort(int sig)
 {
-	LOG(Error, "CAUGHT SIGNAL - {0}", sig);
+	LOG(Error, RelayTester, "CAUGHT SIGNAL - {0}", sig);
 	for (auto& client : g_clients)
 	{
 		client.stop();

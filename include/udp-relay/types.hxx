@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "internetaddr.hxx"
+#include "networking/internetaddr.hxx"
+
 #include "utils.hxx"
 
 #include <cstdint>
@@ -21,10 +22,10 @@ struct guid
 
 	static guid newGuid()
 	{
-		const uint32_t a = udprelay::utils::randRange<uint32_t>(0, UINT32_MAX);
-		const uint32_t b = udprelay::utils::randRange<uint32_t>(0, UINT32_MAX);
-		const uint32_t c = udprelay::utils::randRange<uint32_t>(0, UINT32_MAX);
-		const uint32_t d = udprelay::utils::randRange<uint32_t>(0, UINT32_MAX);
+		const uint32_t a = ur::randRange<uint32_t>(0, UINT32_MAX);
+		const uint32_t b = ur::randRange<uint32_t>(0, UINT32_MAX);
+		const uint32_t c = ur::randRange<uint32_t>(0, UINT32_MAX);
+		const uint32_t d = ur::randRange<uint32_t>(0, UINT32_MAX);
 		return guid(a, b, c, d);
 	}
 

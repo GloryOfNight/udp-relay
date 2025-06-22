@@ -12,10 +12,10 @@
 
 namespace args
 {
-	bool printHelp{};											// when true - prints help and exits
-	int32_t logLevel{static_cast<int32_t>(log_level::Display)}; // 0 - no logs, 1 - errors only, 2 - warnings only, 3 - log (default), 4 - verbose
-	int32_t port{6060};											// main port for the server
-	int32_t warnTickTimeUs{5000};								// log warning when tick exceeded specified time in microseconds
+	bool printHelp{};										 // when true - prints help and exits
+	int32_t logLevel{static_cast<int32_t>(log_level::Info)}; // 0 - no logs, 1 - errors only, 2 - warnings only, 3 - log (default), 4 - verbose
+	int32_t port{6060};										 // main port for the server
+	int32_t warnTickTimeUs{5000};							 // log warning when tick exceeded specified time in microseconds
 } // namespace args
 
 // clang-format off
@@ -38,7 +38,7 @@ static constexpr auto envList = std::array
 
 static std::unique_ptr<relay> g_relay{};
 static int g_exitCode{};
-log_level g_logLevel{log_level::Display};
+log_level g_logLevel{log_level::Info};
 
 static void handleAbort(int sig); // handle abort signal from terminal or system
 static void handleCrash(int sig); // handle crash
@@ -53,24 +53,22 @@ int relay_main(int argc, char* argv[], char* envp[])
 	std::signal(SIGILL, handleCrash);
 	std::signal(SIGFPE, handleCrash);
 
-	udprelay::utils::parseArgs(argList, argc, argv);
-	udprelay::utils::parseEnvp(envList, envp);
+	ur::parseArgs(argList, argc, argv);
+	ur::parseEnvp(envList, envp);
 
 	if (args::printHelp)
 	{
-		udprelay::utils::printArgsHelp(argList);
+		ur::printArgsHelp(argList);
 		return 0;
 	}
 
 	if (args::port < 0 || args::port > UINT16_MAX)
 	{
-		LOG(Error, "Invalid primary port number: {0}", args::port);
+		LOG(Error, Main, "Invalid primary port number: {0}", args::port);
 		return 1;
 	}
 
 	g_logLevel = static_cast<log_level>(args::logLevel);
-
-	LOG(Display, "Starting UDP relay. . .");
 
 	g_relay = std::make_unique<relay>();
 
@@ -87,7 +85,7 @@ int relay_main(int argc, char* argv[], char* envp[])
 
 void handleAbort(int sig)
 {
-	LOG(Error, "CAUGHT SIGNAL - {0}", sig);
+	LOG(Warning, Main, "CAUGHT SIGNAL - {0}", sig);
 	if (g_relay)
 		g_relay->stop();
 
@@ -96,7 +94,7 @@ void handleAbort(int sig)
 
 void handleCrash(int sig)
 {
-	LOG(Error, "CRASHED - {0}", sig);
+	LOG(Error, Main, "CRASHED - {0}", sig);
 	if (g_relay)
 		g_relay->stop();
 
