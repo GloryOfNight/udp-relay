@@ -4,7 +4,9 @@
 
 #include "udp-relay/log.hxx"
 #include "udp-relay/networking/internetaddr.hxx"
+#include "udp-relay/networking/network_utils.hxx"
 #include "udp-relay/relay/relay_consts.hxx"
+#include "udp-relay/relay/relay_types.hxx"
 
 #include <array>
 #include <thread>
@@ -91,10 +93,35 @@ void relay_server::update()
 	if (!m_socket->waitForReadUs(1'000'000))
 		return;
 
-	std::array<uint8_t, 2048> buffer{};
 	internetaddr recvAddr{};
 
-	while (m_socket->recvFrom(buffer.data(), buffer.size(), &recvAddr))
+	int32_t bytesRecv;
+	do
 	{
-	}
+		auto& buffer = m_recv_buffer; // alias
+
+		bytesRecv = m_socket->recvFrom(buffer.data(), buffer.size(), &recvAddr);
+		if (bytesRecv == -1)
+			break;
+
+		if (bytesRecv < 8)
+			continue;
+
+		// first 8 bytes
+		const ur::packetType type = static_cast<ur::packetType>(ur::ntoh16(*reinterpret_cast<uint16_t*>(buffer[0])));
+		const uint16_t length = ur::ntoh16(*reinterpret_cast<uint16_t*>(buffer[2]));
+		const uint32_t magicCookie = ur::ntoh32(*reinterpret_cast<uint32_t*>(buffer[4]));
+
+		const bool bRelayProtocolPacket = magicCookie == ur::consts::magicCookie && type > ur::packetType::First && type < ur::packetType::Last;
+
+		if (!bRelayProtocolPacket)
+			continue;
+
+		if (type == ur::packetType::CreateAllocationRequest)
+		{
+			// next 8 bytes
+			const guid transaction_no = *reinterpret_cast<guid*>(buffer[8]);
+			
+		}
+	} while (true);
 }

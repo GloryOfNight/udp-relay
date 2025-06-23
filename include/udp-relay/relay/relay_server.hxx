@@ -6,6 +6,7 @@
 
 #include "relay_worker.hxx"
 
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -44,6 +45,9 @@ private:
 	std::vector<std::jthread> m_worker_threads{};
 
 	std::chrono::time_point<std::chrono::steady_clock> m_lastTickTime{};
+
+	// maximum possible payload for udp packet
+	std::array<uint8_t, 65507> m_recv_buffer{};
 
 	std::atomic_bool m_running{};
 };

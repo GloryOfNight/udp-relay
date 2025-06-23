@@ -11,4 +11,6 @@ namespace ur::consts
 
 	inline const int32_t desiredSendBufferSize = 0x10000;
 	inline const int32_t desiredRecvBufferSize = 0x10000;
+
+	inline const int32_t magicCookie = 0x37e7c7e3;
 } // namespace ur::consts
