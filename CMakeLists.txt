@@ -17,7 +17,8 @@ set (UDP_RELAY_SOURCES  "src/real_main.cxx"
                         "src/relay/relay_server.cxx"
                         "src/relay/relay_worker.cxx"
                         "src/networking/udpsocket.cxx"
-                        "src/networking/internetaddr.cxx")
+                        "src/networking/internetaddr.cxx"
+                        "src/networking/network_utils.cxx")
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	set(UDP_RELAY_SOURCES   ${UDP_RELAY_SOURCES})

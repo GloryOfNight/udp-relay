@@ -34,7 +34,7 @@ struct guid
 	uint32_t m_c{};
 	uint32_t m_d{};
 
-	bool operator<=>(const guid&) const = default;
+	auto operator<=>(const guid&) const = default;
 
 	std::string toString() const
 	{
