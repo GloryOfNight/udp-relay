@@ -3,13 +3,15 @@
 #include "udp-relay/relay/relay_server.hxx"
 
 #include "udp-relay/log.hxx"
-#include "udp-relay/networking/internetaddr.hxx"
 #include "udp-relay/networking/network_utils.hxx"
 #include "udp-relay/relay/relay_consts.hxx"
 #include "udp-relay/relay/relay_types.hxx"
+#include "udp-relay/relay/relay_utils.hxx"
+#include "udp-relay/utils.hxx"
 
 #include <array>
 #include <thread>
+#include <vector>
 
 relay_server::relay_server(const relay_server_params& params)
 {
@@ -93,23 +95,22 @@ void relay_server::update()
 	if (!m_socket->waitForReadUs(1'000'000))
 		return;
 
-	internetaddr recvAddr{};
-
 	int32_t bytesRecv;
 	do
 	{
 		auto& buffer = m_recv_buffer; // alias
 
-		bytesRecv = m_socket->recvFrom(buffer.data(), buffer.size(), &recvAddr);
+		bytesRecv = m_socket->recvFrom(buffer.data(), buffer.size(), &m_recv_addr);
 		if (bytesRecv == -1)
 			break;
 
-		if (bytesRecv < 8)
+		if (bytesRecv < ur::getHeaderSize())
 			continue;
 
-		// first 8 bytes
+		// read header
 		const ur::packetType type = static_cast<ur::packetType>(ur::ntoh16(*reinterpret_cast<uint16_t*>(buffer[0])));
 		const uint16_t length = ur::ntoh16(*reinterpret_cast<uint16_t*>(buffer[2]));
+		const guid transactionId = guid::ntoh(*reinterpret_cast<guid*>(buffer[8]));
 		const uint32_t magicCookie = ur::ntoh32(*reinterpret_cast<uint32_t*>(buffer[4]));
 
 		const bool bRelayProtocolPacket = magicCookie == ur::consts::magicCookie && type > ur::packetType::First && type < ur::packetType::Last;
@@ -117,11 +118,138 @@ void relay_server::update()
 		if (!bRelayProtocolPacket)
 			continue;
 
-		if (type == ur::packetType::CreateAllocationRequest)
+		const bool bPacketSizeOk = bytesRecv < ur::getMinPacketSizeForType(type);
+		const bool bPacketLengthOk = bytesRecv < ur::getMinPacketLengthForType(type);
+
+		if (!bPacketSizeOk || !bPacketLengthOk)
+			continue;
+
+		switch (type)
 		{
-			// next 8 bytes
-			const guid transaction_no = *reinterpret_cast<guid*>(buffer[8]);
-			
+		case ur::packetType::CreateAllocationRequest:
+			processAllocationRequest();
+			break;
+		case ur::packetType::JoinSessionRequest:
+			// process join
+			break;
+		default:
+			break;
 		}
 	} while (true);
+}
+
+void relay_server::processAllocationRequest()
+{
+	auto& buffer = m_recv_buffer; // alias
+
+	const guid sessionId = guid::ntoh(*reinterpret_cast<guid*>(buffer[24]));
+	const uint32_t password = ur::ntoh32(*reinterpret_cast<uint32_t*>(buffer[40]));
+
+	const uint32_t xorPassword = password ^ m_params.m_secretKey1;
+	if (xorPassword == m_params.m_publicPassword)
+	{
+		challengeResponse();
+		return;
+	}
+	else if (xorPassword == m_params.m_privatePassword)
+	{
+		// allocate response
+		return;
+	}
+
+	for (auto& challenge : m_challenges)
+	{
+		const uint32_t xorSecretPassword = xorPassword ^ challenge.m_secret;
+		if (challenge.m_addr == m_recv_addr && xorSecretPassword == m_params.m_publicPassword)
+		{
+			// allocate response
+			return;
+		}
+	}
+
+	errorResponse(ur::errorType::WrongPassword, "Wrong password");
+}
+
+void relay_server::challengeResponse()
+{
+	relay_server_challenge* newChallenge{};
+	for (size_t i = 0; i < m_challenges.size(); ++i)
+	{
+		auto duration = m_lastTickTime - m_challenges[i].m_sendTime;
+		if (duration > std::chrono::milliseconds(m_params.m_challengeTimeoutMs))
+			newChallenge = &m_challenges[i];
+	}
+
+	if (!newChallenge)
+	{
+		errorResponse(ur::errorType::Busy, "Too many requests. Try again later.");
+		return;
+	}
+
+	newChallenge->m_addr = m_recv_addr;
+	newChallenge->m_secret = ur::randRange<uint32_t>(0, UINT32_MAX);
+	newChallenge->m_sendTime = std::chrono::steady_clock::now();
+
+	constexpr uint16_t basePacketSize = ur::getMinPacketSizeForType(ur::packetType::ChallengeResponse);
+	constexpr uint16_t basePacketLength = ur::getMinPacketLengthForType(ur::packetType::ChallengeResponse);
+
+	std::array<uint8_t, basePacketSize> responseBuffer{};
+
+	prepareResponseHeader(responseBuffer, ur::packetType::ChallengeResponse, basePacketLength);
+
+	const uint32_t encodedSecret = newChallenge->m_secret ^ m_params.m_secretKey2;
+	const uint32_t encodedSecretNo = ur::hton32(encodedSecret);
+	uint16_t* secretPtr = reinterpret_cast<uint16_t*>(responseBuffer[24]);
+	*secretPtr = encodedSecretNo;
+
+	const int32_t bytesSend = m_socket->sendTo(responseBuffer.data(), responseBuffer.size(), &m_recv_addr);
+
+	if (bytesSend == -1) [[unlikely]]
+	{
+		const int32_t errorNo = ur::getLastErrno();
+		const std::string errorStr = ur::errnoToString(errorNo);
+		LOG(Warning, Relay, "Failed send challenge response for - {}; Error: {} - {}", m_recv_addr.toString(), errorNo, errorStr);
+		return;
+	}
+
+	LOG(Verbose, Relay, "Challenge response sent {}", m_recv_addr.toString());
+}
+
+void relay_server::allocationResponse()
+{
+}
+
+void relay_server::errorResponse(ur::errorType errorType, std::string_view message)
+{
+	constexpr uint16_t MessageCopySizeCap = 1024; // avoid long messages
+	const uint16_t messageCopySize = MessageCopySizeCap > message.size() ? message.size() : MessageCopySizeCap;
+
+	constexpr uint16_t basePacketSize = ur::getMinPacketSizeForType(ur::packetType::ErrorResponse);
+	constexpr uint16_t basePacketLength = ur::getMinPacketLengthForType(ur::packetType::ErrorResponse);
+	const uint16_t totalPacketLength = basePacketLength + messageCopySize;
+
+	std::vector<uint8_t> responseBuffer{};
+	responseBuffer.resize(basePacketSize + messageCopySize);
+
+	prepareResponseHeader(responseBuffer, ur::packetType::ChallengeResponse, totalPacketLength);
+
+	uint16_t* type = reinterpret_cast<uint16_t*>(responseBuffer[24]);
+	*type = ur::hton16(static_cast<uint16_t>(errorType));
+
+	uint16_t* length = reinterpret_cast<uint16_t*>(responseBuffer[26]);
+	*length = ur::hton16(message.size());
+
+	std::memcpy(responseBuffer.data() + basePacketSize, message.data(), messageCopySize);
+
+	const int32_t bytesSend = m_socket->sendTo(responseBuffer.data(), responseBuffer.size(), &m_recv_addr);
+
+	if (bytesSend == -1) [[unlikely]]
+	{
+		const int32_t errorNo = ur::getLastErrno();
+		const std::string errorStr = ur::errnoToString(errorNo);
+		LOG(Warning, Relay, "Failed send error response for - {}; Error: {} - {}", m_recv_addr.toString(), errorNo, errorStr);
+		return;
+	}
+
+	LOG(Verbose, Relay, "Error response sent {}", m_recv_addr.toString());
 }
