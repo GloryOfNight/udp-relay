@@ -7,9 +7,16 @@
 #include <concepts>
 #include <cstring>
 #include <stdint.h>
+#include <string>
 
 namespace ur
 {
+	// return last error code
+	int32_t getLastErrno() noexcept;
+
+	// return convert error code to string
+	std::string errnoToString(int32_t value);
+
 	// true if current platform little endian
 	constexpr bool isLittleEndian() noexcept
 	{

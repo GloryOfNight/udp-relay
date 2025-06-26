@@ -1,7 +1,7 @@
 // Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
 
 #include "udp-relay/log.hxx"
-#include "udp-relay/relay.hxx"
+#include "udp-relay/relay/relay_server.hxx"
 #include "udp-relay/utils.hxx"
 #include "udp-relay/val_ref.hxx"
 
@@ -36,7 +36,7 @@ static constexpr auto envList = std::array
 };
 // clang-format on
 
-static std::unique_ptr<relay> g_relay{};
+static uniqueRelayServer g_relay{};
 static int g_exitCode{};
 log_level g_logLevel{log_level::Info};
 
@@ -70,13 +70,14 @@ int relay_main(int argc, char* argv[], char* envp[])
 
 	g_logLevel = static_cast<log_level>(args::logLevel);
 
-	g_relay = std::make_unique<relay>();
+	//relay_params params{};
+	//params.m_primaryPort = args::port;
+	//params.m_warnTickExceedTimeUs = args::warnTickTimeUs;
+	//g_relay->run(params);
 
-	relay_params params{};
-	params.m_primaryPort = args::port;
-	params.m_warnTickExceedTimeUs = args::warnTickTimeUs;
-
-	g_relay->run(params);
+	relay_server_params serverParams{};
+	g_relay = std::make_unique<relay_server>(serverParams);
+	g_relay->start();
 
 	g_relay.reset();
 

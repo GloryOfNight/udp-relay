@@ -9,11 +9,13 @@
 
 enum class log_level : uint8_t
 {
-	NoLogs = 0,
-	Error = 1,
-	Warning = 2,
-	Info = 3,
-	Verbose = 4
+	NoLogs,
+	Fatal,
+	Error,
+	Warning,
+	Info,
+	Verbose,
+	Debug
 };
 
 extern log_level g_logLevel;
@@ -24,6 +26,8 @@ namespace udprelaycore
 	{
 		switch (level)
 		{
+		case log_level::Fatal:
+			return "Fatal";
 		case log_level::Error:
 			return "Error";
 		case log_level::Warning:
@@ -32,6 +36,8 @@ namespace udprelaycore
 			return "Info";
 		case log_level::Verbose:
 			return "Verbose";
+		case log_level::Debug:
+			return "Debug";
 		default:
 			return "Unknown";
 		}
@@ -43,12 +49,16 @@ namespace udprelaycore
 		if (level > g_logLevel)
 			return;
 
-		std::ostream& ostream = level == log_level::Error ? std::cerr : std::cout;
-
 		const auto now = std::chrono::utc_clock::now();
 		const auto log_level_str = log_level_to_string(level);
 
-		ostream << std::vformat("[{0:%F}T{0:%T}] {1}: {2}: ", std::make_format_args(now, category, log_level_str)) << std::vformat(format, std::make_format_args(args...)) << std::endl;
+		const std::string output = std::vformat("[{0:%F}T{0:%T}] {1}: {2}: ", std::make_format_args(now, category, log_level_str)) + std::vformat(format, std::make_format_args(args...)) + '\n';
+
+		std::ostream& ostream = level == log_level::Error ? std::cerr : std::cout;
+		ostream << output;
+
+		if (level == log_level::Fatal) [[unlikely]]
+			std::abort();
 	}
 } // namespace udprelaycore
 
