@@ -58,11 +58,11 @@ public:
 private:
 	void update();
 
-	void processAllocationRequest();
+	void processCreateAllocationRequest();
 
 	void challengeResponse();
 
-	void allocationResponse();
+	void createAllocationResponse();
 
 	void errorResponse(ur::errorType errorType, std::string_view message);
 
@@ -76,10 +76,9 @@ private:
 	std::vector<uniqueRelayWorker> m_workers{};
 	std::vector<std::jthread> m_worker_threads{};
 
-	std::chrono::time_point<std::chrono::steady_clock> m_lastTickTime{};
-
 	internetaddr m_recv_addr{};
 	udp_buffer_t m_recv_buffer{};
+	int32_t m_recv_bytes{};
 
 	std::array<relay_server_challenge, 32> m_challenges{};
 

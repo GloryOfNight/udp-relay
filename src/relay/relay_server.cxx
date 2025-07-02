@@ -16,7 +16,6 @@
 relay_server::relay_server(const relay_server_params& params)
 {
 	m_params = params;
-	m_lastTickTime = std::chrono::steady_clock::now();
 }
 
 void relay_server::start()
@@ -72,6 +71,9 @@ void relay_server::start()
 	m_running = true;
 	while (m_running)
 	{
+		if (!m_socket->waitForReadUs(1'000'000))
+			return;
+
 		update();
 	}
 }
@@ -89,22 +91,24 @@ void relay_server::stop()
 
 void relay_server::update()
 {
-	std::chrono::time_point<std::chrono::steady_clock> prevTickTime = m_lastTickTime;
-	m_lastTickTime = std::chrono::steady_clock::now();
-
-	if (!m_socket->waitForReadUs(1'000'000))
-		return;
-
-	int32_t bytesRecv;
 	do
 	{
 		auto& buffer = m_recv_buffer; // alias
 
-		bytesRecv = m_socket->recvFrom(buffer.data(), buffer.size(), &m_recv_addr);
-		if (bytesRecv == -1)
+		m_recv_bytes = m_socket->recvFrom(buffer.data(), buffer.size(), &m_recv_addr);
+		if (m_recv_bytes == -1)
+		{
+			const int32_t errorNum = ur::getLastErrno();
+			if (errorNum != EWOULDBLOCK && errorNum == EAGAIN)
+			{
+				const std::string errorStr = ur::errnoToString(errorNum);
+				LOG(Warning, Relay, "Recv failed with code: {} ({})", errorNum, errorStr);
+				continue;
+			}
 			break;
+		}
 
-		if (bytesRecv < ur::getHeaderSize())
+		if (m_recv_bytes < ur::getHeaderSize())
 			continue;
 
 		// read header
@@ -118,8 +122,8 @@ void relay_server::update()
 		if (!bRelayProtocolPacket)
 			continue;
 
-		const bool bPacketSizeOk = bytesRecv < ur::getMinPacketSizeForType(type);
-		const bool bPacketLengthOk = bytesRecv < ur::getMinPacketLengthForType(type);
+		const bool bPacketSizeOk = m_recv_bytes < ur::getMinPacketSizeForType(type);
+		const bool bPacketLengthOk = m_recv_bytes < ur::getMinPacketLengthForType(type);
 
 		if (!bPacketSizeOk || !bPacketLengthOk)
 			continue;
@@ -127,7 +131,7 @@ void relay_server::update()
 		switch (type)
 		{
 		case ur::packetType::CreateAllocationRequest:
-			processAllocationRequest();
+			processCreateAllocationRequest();
 			break;
 		case ur::packetType::JoinSessionRequest:
 			// process join
@@ -138,7 +142,7 @@ void relay_server::update()
 	} while (true);
 }
 
-void relay_server::processAllocationRequest()
+void relay_server::processCreateAllocationRequest()
 {
 	auto& buffer = m_recv_buffer; // alias
 
@@ -153,17 +157,22 @@ void relay_server::processAllocationRequest()
 	}
 	else if (xorPassword == m_params.m_privatePassword)
 	{
-		// allocate response
+		createAllocationResponse();
 		return;
 	}
 
 	for (auto& challenge : m_challenges)
 	{
-		const uint32_t xorSecretPassword = xorPassword ^ challenge.m_secret;
-		if (challenge.m_addr == m_recv_addr && xorSecretPassword == m_params.m_publicPassword)
+		const bool bPasswordOk = (challenge.m_secret ^ m_params.m_secretKey1) == m_params.m_publicPassword;
+		if (challenge.m_addr == m_recv_addr && bPasswordOk)
 		{
-			// allocate response
-			return;
+			const auto duration = std::chrono::steady_clock::now() - challenge.m_sendTime;
+			if (duration > std::chrono::milliseconds(m_params.m_challengeTimeoutMs))
+			{
+				challenge = relay_server_challenge(); // reset challenge after it was passed
+				createAllocationResponse();
+				return;
+			}
 		}
 	}
 
@@ -172,12 +181,15 @@ void relay_server::processAllocationRequest()
 
 void relay_server::challengeResponse()
 {
+	const auto now = std::chrono::steady_clock::now();
+
 	relay_server_challenge* newChallenge{};
-	for (size_t i = 0; i < m_challenges.size(); ++i)
+	for (auto& challenge : m_challenges)
 	{
-		auto duration = m_lastTickTime - m_challenges[i].m_sendTime;
-		if (duration > std::chrono::milliseconds(m_params.m_challengeTimeoutMs))
-			newChallenge = &m_challenges[i];
+		const bool bSameAddr = challenge.m_addr == m_recv_addr;
+		const bool bTimeout = (now - challenge.m_sendTime) > std::chrono::milliseconds(m_params.m_challengeTimeoutMs);
+		if (bTimeout || bSameAddr)
+			newChallenge = &challenge;
 	}
 
 	if (!newChallenge)
@@ -215,7 +227,7 @@ void relay_server::challengeResponse()
 	LOG(Verbose, Relay, "Challenge response sent {}", m_recv_addr.toString());
 }
 
-void relay_server::allocationResponse()
+void relay_server::createAllocationResponse()
 {
 }
 
