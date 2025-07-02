@@ -17,6 +17,14 @@
 #include <thread>
 #include <vector>
 
+struct relay_server_allocation
+{
+	guid m_sessionId{};
+	int32_t m_hostIp{};
+	std::chrono::time_point<std::chrono::steady_clock> m_createdAt{};
+	std::chrono::time_point<std::chrono::steady_clock> m_lastTransmissionAt{};
+};
+
 struct relay_server_params
 {
 	uint16_t m_primaryPort{6060};
@@ -81,6 +89,8 @@ private:
 	int32_t m_recv_bytes{};
 
 	std::array<relay_server_challenge, 32> m_challenges{};
+
+	std::map<guid, relay_server_allocation> m_sessions{};
 
 	std::atomic_bool m_running{};
 };

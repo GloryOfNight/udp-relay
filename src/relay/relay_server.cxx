@@ -229,6 +229,14 @@ void relay_server::challengeResponse()
 
 void relay_server::createAllocationResponse()
 {
+	auto& buffer = m_recv_buffer; // alias
+
+	guid sessionId = guid::ntoh(*reinterpret_cast<guid*>(buffer[24]));
+
+	if (sessionId == guid())
+		sessionId = guid::newGuid();
+
+	LOG(Info, Relay, "Allocating new session with id \'{}\' for addr \'{}\'", sessionId.toString(), m_recv_addr.toString());
 }
 
 void relay_server::errorResponse(ur::errorType errorType, std::string_view message)
