@@ -5,6 +5,7 @@
 #include "udp-relay/networking/internetaddr.hxx"
 #include "udp-relay/networking/udpsocket.hxx"
 
+#include "relay_consts.hxx"
 #include "relay_types.hxx"
 #include "relay_worker.hxx"
 
@@ -17,12 +18,24 @@
 #include <thread>
 #include <vector>
 
+struct relay_server_allocation_client
+{
+	int32_t m_ip{};
+	uint16_t m_port{};
+	ur::timepoint m_lastTransmissionTime{};
+};
+
 struct relay_server_allocation
 {
 	guid m_sessionId{};
+	int32_t m_secret{};
+
 	int32_t m_hostIp{};
-	std::chrono::time_point<std::chrono::steady_clock> m_createdAt{};
-	std::chrono::time_point<std::chrono::steady_clock> m_lastTransmissionAt{};
+
+	ur::timepoint m_createdTime{};
+	ur::timepoint m_lastTransmissionTime{};
+
+	std::array<relay_server_allocation_client, ur::consts::maxClients> m_clientList{};
 };
 
 struct relay_server_params
@@ -47,7 +60,7 @@ struct relay_server_challenge
 {
 	internetaddr m_addr{};
 	uint32_t m_secret{};
-	std::chrono::time_point<std::chrono::steady_clock> m_sendTime{};
+	ur::timepoint m_sendTime{};
 };
 
 //

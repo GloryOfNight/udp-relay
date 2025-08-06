@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <string>
+#include <chrono>
 
 namespace ur
 {
@@ -29,6 +30,8 @@ namespace ur
 		WrongPassword = 2,
 		Last = 2
 	};
+
+	using timepoint = std::chrono::time_point<std::chrono::steady_clock>;
 } // namespace ur
 
 struct guid

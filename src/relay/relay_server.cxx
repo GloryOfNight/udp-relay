@@ -4,7 +4,6 @@
 
 #include "udp-relay/log.hxx"
 #include "udp-relay/networking/network_utils.hxx"
-#include "udp-relay/relay/relay_consts.hxx"
 #include "udp-relay/relay/relay_types.hxx"
 #include "udp-relay/relay/relay_utils.hxx"
 #include "udp-relay/utils.hxx"
@@ -55,14 +54,16 @@ void relay_server::start()
 	if (!m_socket->setRecvBufferSize(ur::consts::desiredRecvBufferSize, actualRecvBufferSize))
 		LOG(Error, Relay, "Error with setting recv buffer size");
 
-	LOG(Info, Relay, "Relay main socket initialized on port: {}. SendBufSize: {}. RecvBufSize: {}.", m_socket->getPort(), actualSendBufferSize, actualRecvBufferSize);
+	const size_t workerCount = std::clamp(m_params.m_workerPortEnd - m_params.m_workerPortStart, 1, ur::consts::maxClients);
 
-	m_workers.reserve(m_params.m_workerPortEnd - m_params.m_workerPortStart);
-	for (uint16_t i = m_params.m_workerPortStart; i < m_params.m_workerPortEnd; ++i)
+	LOG(Info, Relay, "Relay main socket initialized on port: {}. SendBufSize: {}. RecvBufSize: {}. Max clients per session: {}", m_socket->getPort(), actualSendBufferSize, actualRecvBufferSize, workerCount);
+
+	m_workers.reserve(workerCount);
+	for (uint16_t i = 0; i < workerCount; ++i)
 	{
 		relay_worker_params workerParams{};
-		workerParams.workerId = i - m_params.m_workerPortStart;
-		workerParams.port = i;
+		workerParams.workerId = i;
+		workerParams.port = i + m_params.m_workerPortStart;
 
 		auto& newRelayWorker = m_workers.emplace_back(std::make_unique<relay_worker>(workerParams));
 		m_worker_threads.emplace_back(std::jthread(&relay_worker::start, newRelayWorker.get()));
@@ -229,14 +230,42 @@ void relay_server::challengeResponse()
 
 void relay_server::createAllocationResponse()
 {
-	auto& buffer = m_recv_buffer; // alias
+	relay_server_allocation newSession{};
 
-	guid sessionId = guid::ntoh(*reinterpret_cast<guid*>(buffer[24]));
+	newSession.m_sessionId = guid::ntoh(*reinterpret_cast<guid*>(m_recv_buffer[24]));
+	if (newSession.m_sessionId == guid())
+		newSession.m_sessionId = guid::newGuid();
 
-	if (sessionId == guid())
-		sessionId = guid::newGuid();
+	newSession.m_secret = ur::randRange(INT32_MIN, INT32_MAX);
 
-	LOG(Info, Relay, "Allocating new session with id \'{}\' for addr \'{}\'", sessionId.toString(), m_recv_addr.toString());
+	newSession.m_createdTime = std::chrono::steady_clock::now();
+	newSession.m_lastTransmissionTime = newSession.m_createdTime;
+
+	m_sessions.emplace(newSession.m_sessionId, newSession);
+
+	LOG(Info, Relay, "Allocated new session \'{}\' for addr \'{}\'", newSession.m_sessionId.toString(), m_recv_addr.toString());
+
+	std::vector<uint8_t> responseBuffer{};
+	constexpr uint16_t basePacketSize = ur::getMinPacketSizeForType(ur::packetType::CreateAllocationResponse);
+	constexpr uint16_t basePacketLength = ur::getMinPacketLengthForType(ur::packetType::CreateAllocationResponse);
+	const uint16_t totalPacketLength = basePacketLength;
+	responseBuffer.resize(basePacketSize);
+
+	prepareResponseHeader(responseBuffer, ur::packetType::CreateAllocationResponse, totalPacketLength);
+
+	guid* sessionId = reinterpret_cast<guid*>(responseBuffer[24]);
+	*sessionId = guid::hton(newSession.m_sessionId);
+
+	const int32_t bytesSend = m_socket->sendTo(responseBuffer.data(), responseBuffer.size(), &m_recv_addr);
+
+	if (bytesSend == -1) [[unlikely]]
+	{
+		const int32_t errorNo = ur::getLastErrno();
+		const std::string errorStr = ur::errnoToString(errorNo);
+		LOG(Warning, Relay, "Failed send error response for - {}; Error: {} - {}", m_recv_addr.toString(), errorNo, errorStr);
+	}
+
+	LOG(Verbose, Relay, "Allocation response sent {}", m_recv_addr.toString());
 }
 
 void relay_server::errorResponse(ur::errorType errorType, std::string_view message)
