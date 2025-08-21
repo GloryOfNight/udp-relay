@@ -28,7 +28,7 @@ struct relay_server_allocation_client
 struct relay_server_allocation
 {
 	guid m_sessionId{};
-	int32_t m_secret{};
+	uint32_t m_secret{};
 
 	int32_t m_hostIp{};
 
@@ -79,11 +79,11 @@ public:
 private:
 	void update();
 
-	void processCreateAllocationRequest();
+	void processCreateSessionRequest();
 
 	void challengeResponse();
 
-	void createAllocationResponse();
+	void createSessionResponse();
 
 	void errorResponse(ur::errorType errorType, std::string_view message);
 

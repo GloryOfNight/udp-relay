@@ -132,18 +132,19 @@ void relay_server::update()
 		switch (type)
 		{
 		case ur::packetType::CreateAllocationRequest:
-			processCreateAllocationRequest();
+			processCreateSessionRequest();
 			break;
-		case ur::packetType::JoinSessionRequest:
-			// process join
-			break;
+		case ur::packetType::JoinSessionAsHostRequest:
+			break; // process join
+		case ur::packetType::JoinSessionAsClientRequest:
+			break; // process join
 		default:
 			break;
 		}
 	} while (true);
 }
 
-void relay_server::processCreateAllocationRequest()
+void relay_server::processCreateSessionRequest()
 {
 	auto& buffer = m_recv_buffer; // alias
 
@@ -158,7 +159,7 @@ void relay_server::processCreateAllocationRequest()
 	}
 	else if (xorPassword == m_params.m_privatePassword)
 	{
-		createAllocationResponse();
+		createSessionResponse();
 		return;
 	}
 
@@ -171,7 +172,7 @@ void relay_server::processCreateAllocationRequest()
 			if (duration > std::chrono::milliseconds(m_params.m_challengeTimeoutMs))
 			{
 				challenge = relay_server_challenge(); // reset challenge after it was passed
-				createAllocationResponse();
+				createSessionResponse();
 				return;
 			}
 		}
@@ -228,7 +229,7 @@ void relay_server::challengeResponse()
 	LOG(Verbose, Relay, "Challenge response sent {}", m_recv_addr.toString());
 }
 
-void relay_server::createAllocationResponse()
+void relay_server::createSessionResponse()
 {
 	relay_server_allocation newSession{};
 
@@ -236,7 +237,7 @@ void relay_server::createAllocationResponse()
 	if (newSession.m_sessionId == guid())
 		newSession.m_sessionId = guid::newGuid();
 
-	newSession.m_secret = ur::randRange(INT32_MIN, INT32_MAX);
+	newSession.m_secret = ur::randRange(0U, UINT32_MAX);
 
 	newSession.m_createdTime = std::chrono::steady_clock::now();
 	newSession.m_lastTransmissionTime = newSession.m_createdTime;
@@ -246,15 +247,18 @@ void relay_server::createAllocationResponse()
 	LOG(Info, Relay, "Allocated new session \'{}\' for addr \'{}\'", newSession.m_sessionId.toString(), m_recv_addr.toString());
 
 	std::vector<uint8_t> responseBuffer{};
-	constexpr uint16_t basePacketSize = ur::getMinPacketSizeForType(ur::packetType::CreateAllocationResponse);
-	constexpr uint16_t basePacketLength = ur::getMinPacketLengthForType(ur::packetType::CreateAllocationResponse);
+	constexpr uint16_t basePacketSize = ur::getMinPacketSizeForType(ur::packetType::CreateSessionResponse);
+	constexpr uint16_t basePacketLength = ur::getMinPacketLengthForType(ur::packetType::CreateSessionResponse);
 	const uint16_t totalPacketLength = basePacketLength;
 	responseBuffer.resize(basePacketSize);
 
-	prepareResponseHeader(responseBuffer, ur::packetType::CreateAllocationResponse, totalPacketLength);
+	prepareResponseHeader(responseBuffer, ur::packetType::CreateSessionResponse, totalPacketLength);
 
 	guid* sessionId = reinterpret_cast<guid*>(responseBuffer[24]);
 	*sessionId = guid::hton(newSession.m_sessionId);
+
+	uint32_t* secret = reinterpret_cast<uint32_t*>(responseBuffer[40]);
+	*secret = ur::hton32(newSession.m_secret ^ m_params.m_secretKey2);
 
 	const int32_t bytesSend = m_socket->sendTo(responseBuffer.data(), responseBuffer.size(), &m_recv_addr);
 

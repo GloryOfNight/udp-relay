@@ -38,11 +38,13 @@ namespace ur
 		{
 		case ur::packetType::CreateAllocationRequest:
 			return 20;
-		case ur::packetType::CreateAllocationResponse:
-			return 0;
 		case ur::packetType::ChallengeResponse:
 			return 4;
-		case ur::packetType::JoinSessionRequest:
+		case ur::packetType::CreateSessionResponse:
+			return 18;
+		case ur::packetType::JoinSessionAsHostRequest:
+			return 0;
+		case ur::packetType::JoinSessionAsClientRequest:
 			return 0;
 		case ur::packetType::JoinSessionResponse:
 			return 0;

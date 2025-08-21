@@ -5,9 +5,9 @@
 #include "udp-relay/networking/network_utils.hxx"
 #include "udp-relay/utils.hxx"
 
+#include <chrono>
 #include <cstdint>
 #include <string>
-#include <chrono>
 
 namespace ur
 {
@@ -15,12 +15,13 @@ namespace ur
 	{
 		First = 0,
 		CreateAllocationRequest = 1,
-		CreateAllocationResponse = 2,
+		CreateSessionResponse = 2,
 		ChallengeResponse = 3,
-		JoinSessionRequest = 4,
-		JoinSessionResponse = 5,
-		ErrorResponse = 6,
-		Last = 7
+		JoinSessionAsHostRequest = 4,
+		JoinSessionAsClientRequest = 5,
+		JoinSessionResponse = 6,
+		ErrorResponse = 7,
+		Last = 8
 	};
 
 	enum class errorType : uint16_t
