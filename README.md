@@ -57,5 +57,3 @@ struct handshake_header
 	int64_t m_time{};     // optional
 };
 ```
-> [!NOTE]
-> You probably should tailor [handshake header](include/udp-relay/types.hxx#L43) for your specific needs.
