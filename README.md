@@ -1,52 +1,50 @@
 # UDP Relay
-Simple udp relay that relays packets between two peers.
+Simple UDP relay that relays packets between two peers.
 
-Sometimes there is a need to make connection between to peers that are behind NAT possible. Inspired by [TURN](https://datatracker.ietf.org/doc/html/rfc8656), but unlike TURN, this relay is simplified and specializes on relaying only udp packets between two peers.
+Sometimes there is a need to make a connection between two peers that are behind NAT. Inspired by [TURN](https://datatracker.ietf.org/doc/html/rfc8656), but unlike TURN, this relay is simplified and intended only to relay UDP packets between two peers.
 
-For peers to communitate thru such relay, clients only required to send handshake packet with same guid(128bit) values. Relay would create mapping for these clients and start relaying packets between them. After clients exchange handhsakes setup is done. Relay would relay packets indefenetly, but when both peers stop communite with each other for long period of time - repeating handhsake process might be required.
+For peers to communicate through this relay, clients are only required to send a handshake packet with the same guid (128-bit) value. The relay will create a mapping for these clients and start relaying packets between them.
 
-It's recommended to modify relay code to better suit your specific needs, like changing default handshake packet. There is also few security conserns, if security important for you, you might want to address them.
+It's recommended to modify the relay code to better suit your specific needs, such as changing the default handshake packet. There are also a few security concerns; if security is important to you, you may want to address them.
 
-It's not possible for this relay to have more then 2 peers within one mapping. Relay uses ip:port to identify other mapped address.
+This relay cannot have more than two peers within a single mapping. The relay uses ip:port to identify mapped addresses.
 
-It's single thread only. Thats is intentional.
+This project is single-threaded by design.
 
-You can find all possible commandline arguments with `--help`.
+You can find all available command-line arguments with `--help`.
 
 [![Windows](https://github.com/GloryOfNight/udp-relay/actions/workflows/windows.yml/badge.svg)](https://github.com/GloryOfNight/udp-relay/actions/workflows/windows.yml)
 [![Linux](https://github.com/GloryOfNight/udp-relay/actions/workflows/linux.yml/badge.svg)](https://github.com/GloryOfNight/udp-relay/actions/workflows/linux.yml)
 
 # How it works
 
-`peer A |NAT| <-> relay <-> |NAT| peer B. `
+`peer A |NAT| <-> relay <-> |NAT| peer B.`
 
-To start comunication first you need to negotiate the following between peers:
-- ip address of relay
-- unique guid (128bit) value
+To start communication, first you need to agree on the following between peers:
+- IP address of the relay
+- Unique GUID (128-bit) value
 
-Then you can start sending handshake packets every second or so. Until your client will receive packet back from a relay.
-That would mean connection has been established and now you can proceed sending other packet data.
+Then you can start sending handshake packets every second or so until your client receives a packet back from the relay. This means a connection has been established, and you can proceed to send other packet data.
 
 This process looks like this:
-```
-// peer A and B start sending handshake values to relay using same guid value
-Peer A -- handhsake packet with guid (1,2,3,4) -->  Relay *acknowledges handshake packet*
-Peer B -- handhsake packet with guid (1,2,3,4) -->  Relay *creates mapping between Peer A and Peer B*
+```c++
+// peer A and B start sending handshake values to relay using the same GUID value
+Peer A -- handshake packet with GUID (1,2,3,4) -->  Relay *acknowledges handshake packet*
+Peer B -- handshake packet with GUID (1,2,3,4) -->  Relay *creates mapping between Peer A and Peer B*
 
-// when you starting to receive handhsake packets on peers, that mean relay is established
-Peer A -- handhsake packet with guid (1,2,3,4) -->  Relay *Peer A has mapping for Peer B*
-Peer B <-- handhsake packet with guid (1,2,3,4) --  Relay *Peer A has mapping for Peer B*
+// when you start to receive handshake packets on peers, that means relay is established
+Peer A -- handshake packet with GUID (1,2,3,4) -->  Relay *Peer A has mapping for Peer B*
+Peer B <-- handshake packet with GUID (1,2,3,4) --  Relay *Peer A has mapping for Peer B*
 
-Peer B -- handhsake packet with guid (1,2,3,4) -->  Relay *Peer B has mapping for Peer A*
-Peer A <-- handhsake packet with guid (1,2,3,4) --  Relay *Peer B has mapping for Peer A*
+Peer B -- handshake packet with GUID (1,2,3,4) -->  Relay *Peer B has mapping for Peer A*
+Peer A <-- handshake packet with GUID (1,2,3,4) --  Relay *Peer B has mapping for Peer A*
 
 // now you can start communication freely via relay.
-// it's crutial to use same socket or bind same port values while you want to utilize relay.
-// note that if communication between peers stop for ~30 seconds - relay would clear mapping for addresses.
+// it's crucial to use the same socket or bind the same port values while you want to utilize the relay.
+// note that if communication between peers stops for ~30 seconds - relay will clear the mapping for addresses.
 ```
 
-By default, relay expects following header for handshake. 
-Those fields that optional mostly needed for client application to establish handshake protocol. Only required one for relay to function - m_guid.
+By default, the relay expects the following header for the handshake. Fields marked optional are mostly needed by the client application to establish the handshake protocol. The only field required by the relay to function is m_guid.
 
 ```c++
 struct handshake_header
