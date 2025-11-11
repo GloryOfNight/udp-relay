@@ -64,7 +64,7 @@ void relay_client::run(const relay_client_params& params)
 
 	m_running = true;
 
-	bool relayEtablished = false;
+	bool relayEstablished = false;
 
 	while (m_running)
 	{
@@ -72,7 +72,7 @@ void relay_client::run(const relay_client_params& params)
 		{
 			int32_t bytesRead{};
 
-			relayEtablished = true;
+			relayEstablished = true;
 			bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), &recvAddr);
 
 			if (bytesRead >= sizeof(handshake_header))
@@ -93,9 +93,11 @@ void relay_client::run(const relay_client_params& params)
 				}
 				else if (header->m_type == ur::net::hton16(2))
 				{
-					const auto packetTimeNs = std::chrono::steady_clock::now().time_since_epoch() - std::chrono::steady_clock::duration(ur::net::ntoh64(packet->m_time));
+					const auto recvNs = std::chrono::steady_clock::now().time_since_epoch().count();
+					const auto sentNs = ur::net::ntoh64(packet->m_time);
+					const auto packetTimeNs = std::chrono::nanoseconds(recvNs - sentNs);
 					const auto packetTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(packetTimeNs);
-					m_latencies.push_back(packetTimeMs.count());
+					m_latenciesMs.push_back(packetTimeMs.count());
 				}
 			}
 		}
@@ -108,7 +110,7 @@ void relay_client::run(const relay_client_params& params)
 			handshake_packet packet = handshake_packet::newPacket(m_params.m_guid);
 			packet.generateRandomPayload();
 
-			const auto randomOffset = relayEtablished ? ur::randRange<uint32_t>(sizeof(handshake_header), packet.m_randomData.size() - 1) : 0;
+			const auto randomOffset = relayEstablished ? ur::randRange<uint32_t>(sizeof(handshake_header), packet.m_randomData.size() - 1) : 0;
 
 			if (m_socket->waitForReadUs(0))
 				continue;
@@ -129,10 +131,10 @@ void relay_client::stop()
 
 int32_t relay_client::getMedianLatency() const
 {
-	if (m_latencies.size() <= 2)
+	if (m_latenciesMs.size() <= 2)
 		return -1;
 
-	auto latencies = m_latencies;
+	auto latencies = m_latenciesMs;
 	std::sort(latencies.begin(), latencies.end());
 
 	const size_t median = latencies.size() / 2;
@@ -141,20 +143,20 @@ int32_t relay_client::getMedianLatency() const
 
 int32_t relay_client::getAverageLatency() const
 {
-	if (m_latencies.size() == 0)
+	if (m_latenciesMs.size() == 0)
 		return -1;
 
 	int64_t sum{};
-	for (auto latency : m_latencies)
+	for (auto latency : m_latenciesMs)
 	{
 		sum += latency;
 	}
-	return sum / m_latencies.size();
+	return sum / m_latenciesMs.size();
 }
 
 bool relay_client::init()
 {
-	m_latencies.reserve(2048);
+	m_latenciesMs.reserve(2048);
 
 	m_socket = udpsocketFactory::createUdpSocket();
 	if (!m_socket || !m_socket->isValid())

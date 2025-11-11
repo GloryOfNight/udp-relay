@@ -35,7 +35,7 @@ private:
 
 	uniqueUdpsocket m_socket{};
 
-	std::vector<int32_t> m_latencies{};
+	std::vector<int32_t> m_latenciesMs{};
 
 	uint32_t m_packetsSent = 0;
 	uint32_t m_packetsRecv = 0;

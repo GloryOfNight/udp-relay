@@ -14,8 +14,7 @@ namespace args
 {
 	bool printHelp{};										 // when true - prints help and exits
 	int32_t logLevel{static_cast<int32_t>(log_level::Info)}; // 0 - no logs, 1 - errors only, 2 - warnings only, 3 - log (default), 4 - verbose
-	int32_t port{6060};										 // main port for the server
-	int32_t warnTickTimeUs{5000};							 // log warning when tick exceeded specified time in microseconds
+	int32_t port{};											 // main port for the server
 } // namespace args
 
 // clang-format off
@@ -23,8 +22,7 @@ static constexpr auto argList = std::array
 {
 	val_ref{"--help", args::printHelp,							"--help                         = print help" },
 	val_ref{"--log-level", args::logLevel,						"--log-level <value>            = 0 - no logs, 1 - errors only, 2 - warnings only, 3 - log (default), 4 - verbose" },
-	val_ref{"--port", args::port,								"--port <value>                 = main port for accepting requests" },
-	val_ref{"--warn-tick-time", args::warnTickTimeUs,			"--warn-tick-time <value>       = log warning when tick exceeded specified time in microseconds" },
+	val_ref{"--port", args::port,								"--port <value>                 = main port for accepting requests" }
 };
 // clang-format on
 
@@ -73,12 +71,13 @@ int relay_main(int argc, char* argv[], char* envp[])
 	g_relay = std::make_unique<relay>();
 
 	relay_params params{};
-	params.m_primaryPort = args::port;
-	params.m_warnTickExceedTimeUs = args::warnTickTimeUs;
+	if (args::port)
+		params.m_primaryPort = args::port;
 
-	g_relay->run(params);
-
-	g_relay.reset();
+	if (g_relay->init(params))
+	{
+		g_relay->run();
+	}
 
 	return g_exitCode;
 }

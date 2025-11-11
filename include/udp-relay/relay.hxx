@@ -9,14 +9,14 @@
 #include "types.hxx"
 
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <list>
 #include <map>
 #include <memory>
 #include <queue>
-
-using packet_buffer = std::array<uint8_t, 2048>;
+#include <vector>
 
 struct channel_stats
 {
@@ -38,16 +38,21 @@ struct channel
 
 struct pending_packet
 {
-	guid m_guid{};
+	guid m_channelGuid{};
 	internetaddr m_target{};
-	packet_buffer m_buffer{};
-	int32_t m_bytesRead{};
+	std::vector<uint8_t> m_buffer{};
 };
 
 struct relay_params
 {
-	uint16_t m_primaryPort{};
-	int32_t m_warnTickExceedTimeUs{};
+	uint16_t m_primaryPort{6060};
+	uint32_t m_recvBufferSize{65507};
+	uint32_t m_socketRecvBufferSize{0x10000};
+	uint32_t m_socketSendBufferSize{0x10000};
+	int32_t m_cleanupTimeMs{1800};
+	int32_t m_cleanupInactiveChannelAfterMs{30000};
+	int32_t m_sleepUs{500};
+	int32_t m_sleepWhenInactiveUs{10000};
 };
 
 class relay
@@ -58,30 +63,36 @@ public:
 	relay(relay&&) = delete;
 	~relay() = default;
 
-	bool run(const relay_params& params);
+	bool init(const relay_params& params);
+
+	void run();
 
 	void stop();
 
 private:
-	bool init();
+	void processIncoming();
+
+	void processOutcoming();
+
+	bool checkHandshakePacket(const uint8_t* buffer, size_t bytesRead) const noexcept;
 
 	channel& createChannel(const guid& inGuid);
 
-	void sendPendingPackets();
-
-	void conditionalCleanup(bool force);
-
-	void checkWarnLogTickTime();
-
-	inline bool checkHandshakePacket(const packet_buffer& buffer, size_t bytesRead) const noexcept;
+	void conditionalCleanup(bool force = false);
 
 	relay_params m_params;
 
+	internetaddr m_recvAddr{};
+
+	std::vector<uint8_t> m_recvBuffer{};
+
+	// when first client handshake comes, it maps here to assosiate with guid
 	std::map<guid, channel&> m_guidMappedChannels{};
 
+	// when second client comes with same guid value, as in m_guidMappedChannels, it maps both addresses here
 	std::map<internetaddr, channel&> m_addressMappedChannels{};
 
-	std::queue<pending_packet> m_pendingPackets{};
+	std::queue<pending_packet> m_sendQueue{};
 
 	std::list<channel> m_channels{};
 
@@ -91,10 +102,5 @@ private:
 
 	std::chrono::time_point<std::chrono::steady_clock> m_lastCleanupTime{};
 
-	bool m_running{false};
+	std::atomic<bool> m_running{false};
 };
-
-inline bool relay::checkHandshakePacket(const packet_buffer& buffer, const size_t bytesRead) const noexcept
-{
-	return bytesRead >= handshake_header_min_size;
-}
