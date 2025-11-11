@@ -16,7 +16,7 @@
   ],
   "buildPresets": [
     {
-      "name": "msvc2022",
+      "name": "msvc2022-debug",
       "displayName": "Debug",
       "configurePreset": "msvc2022",
       "configuration": "Debug"

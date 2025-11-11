@@ -55,7 +55,7 @@ bool udpsocket::bind(int32_t port) const
 	if (::bind(m_socket, (struct sockaddr*)&address, sizeof(address)) == -1)
 	{
 		LOG(Error, UdpSocket, "Failed to bind socket to port {0}", port);
-		return -1;
+		return false;
 	}
 
 	return true;

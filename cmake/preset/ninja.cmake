@@ -16,7 +16,7 @@
   ],
   "buildPresets": [
     {
-      "name": "ninja",
+      "name": "ninja-debug",
       "displayName": "Debug",
       "configurePreset": "ninja-multi",
       "configuration": "Debug"

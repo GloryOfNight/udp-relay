@@ -27,8 +27,8 @@ jobs:
 
     - name: Configure and build
       run: |
-        cmake -S . -B build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-        cmake --build build
+        cmake --preset ninja-multi
+        cmake --build --preset ninja-release
 
     - name: Upload binary to release (optional)
       if: ${{ inputs.upload_url }}

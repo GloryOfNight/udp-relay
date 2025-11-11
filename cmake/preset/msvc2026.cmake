@@ -16,7 +16,7 @@
   ],
   "buildPresets": [
     {
-      "name": "msvc2026",
+      "name": "msvc2026-debug",
       "displayName": "Debug",
       "configurePreset": "msvc2026",
       "configuration": "Debug"

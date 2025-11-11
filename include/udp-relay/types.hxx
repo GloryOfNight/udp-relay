@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <compare>
 
 struct guid
 {
@@ -34,7 +35,7 @@ struct guid
 	uint32_t m_c{};
 	uint32_t m_d{};
 
-	bool operator<=>(const guid&) const = default;
+	std::strong_ordering operator<=>(const guid&) const = default;
 
 	std::string toString() const
 	{
