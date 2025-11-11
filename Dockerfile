@@ -1,27 +1,39 @@
-FROM ubuntu:24.04 as build
+# ===== Build stage =====
+FROM ubuntu:24.04 AS build
 
+# Set noninteractive frontend
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Build arguments
 ARG GIT_REPOSITORY=https://github.com/GloryOfNight/udp-relay.git
 ARG GIT_BRANCH=main
 
-RUN set -ex && \
-    apt-get update && \
-    apt-get install -y clang && \
-    apt-get install -y clang-tools && \
-    apt-get install -y ninja-build && \
-    apt-get install -y cmake && \
-    apt-get install -y git
+# Install build dependencies in one RUN to reduce layers
+RUN apt-get update && \
+    apt-get install -y \
+        clang \
+        clang-tools \
+        cmake \
+        ninja-build \
+        git
 
-RUN cd /opt && git clone $GIT_REPOSITORY -b ${GIT_BRANCH} --depth 1 && cd udp-relay && cmake --preset ninja-multi && cmake --build --preset ninja-release
+# Clone and build
+RUN cd /opt && \
+    git clone --branch $GIT_BRANCH --depth 1 $GIT_REPOSITORY udp-relay && \
+    cd udp-relay && \
+    cmake --preset ninja-multi && \
+    cmake --build --preset ninja-release
 
+# ===== Runtime stage =====
 FROM ubuntu:24.04
 
+# Expose UDP port
 EXPOSE 6060/udp
 
-RUN apt update
-
-RUN mkdir /opt/udp-relay
-COPY --from=build /opt/udp-relay/build/Release /opt/udp-relay/udp-relay
+# Copy built binary
+COPY --from=build /opt/udp-relay/build/Release/udp-relay /opt/bin/udp-relay
+RUN chmod +x /opt/bin/udp-relay
 
 WORKDIR /opt/udp-relay
 
-ENTRYPOINT ["/opt/udp-relay/udp-relay"]
+ENTRYPOINT ["/opt/bin/udp-relay"]
