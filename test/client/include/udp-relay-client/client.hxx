@@ -11,7 +11,6 @@ struct relay_client_params
 {
 	guid m_guid{};
 	int32_t m_sendIntervalMs{};
-	int32_t m_sleepMs{};
 	int32_t m_server_ip{};
 	uint16_t m_server_port{};
 };

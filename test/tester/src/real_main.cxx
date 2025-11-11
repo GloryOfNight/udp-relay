@@ -83,7 +83,6 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 		reinterpret_cast<uint8_t*>(&param.m_server_ip)[3] = args::relayAddr[3];
 
 		param.m_server_port = args::relayPort;
-		param.m_sleepMs = 1;
 
 		std::thread(std::bind(&relay_client::run, &g_clients[i], param)).detach();
 		std::thread(std::bind(&relay_client::run, &g_clients[i + 1], param)).detach();

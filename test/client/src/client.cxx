@@ -68,7 +68,7 @@ void relay_client::run(const relay_client_params& params)
 
 	while (m_running)
 	{
-		if (m_socket->waitForReadUs(0))
+		if (m_socket->waitForReadUs(500))
 		{
 			int32_t bytesRead{};
 
@@ -112,15 +112,10 @@ void relay_client::run(const relay_client_params& params)
 
 			const auto randomOffset = relayEstablished ? ur::randRange<uint32_t>(sizeof(handshake_header), packet.m_randomData.size() - 1) : 0;
 
-			if (m_socket->waitForReadUs(0))
-				continue;
-
 			const auto bytesSent = m_socket->sendTo(&packet, sizeof(packet) - randomOffset, &relayAddr);
 			if (bytesSent > 0)
 				++m_packetsSent;
 		};
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(m_params.m_sleepMs));
 	}
 }
 
