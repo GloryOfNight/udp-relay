@@ -51,8 +51,6 @@ struct relay_params
 	uint32_t m_socketSendBufferSize{0x10000};
 	int32_t m_cleanupTimeMs{1800};
 	int32_t m_cleanupInactiveChannelAfterMs{30000};
-	int32_t m_sleepUs{500};
-	int32_t m_sleepWhenInactiveUs{10000};
 };
 
 class relay
@@ -86,7 +84,7 @@ private:
 
 	std::vector<uint8_t> m_recvBuffer{};
 
-	// when first client handshake comes, it maps here to assosiate with guid
+	// when first client handshake comes, it maps here to associate with guid
 	std::map<guid, channel&> m_guidMappedChannels{};
 
 	// when second client comes with same guid value, as in m_guidMappedChannels, it maps both addresses here
