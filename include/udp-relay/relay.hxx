@@ -96,6 +96,5 @@ private:
 
 inline bool relay::checkHandshakePacket(const packet_buffer& buffer, const size_t bytesRead) const noexcept
 {
-	const handshake_header* header = reinterpret_cast<const handshake_header*>(buffer.data());
-	return bytesRead == 1024 && BYTESWAP16(header->m_type) == 1 && BYTESWAP16(header->m_length) == 992;
+	return bytesRead >= handshake_header_min_size;
 }

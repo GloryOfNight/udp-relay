@@ -6,9 +6,9 @@
 
 #include "utils.hxx"
 
+#include <compare>
 #include <cstdint>
 #include <memory>
-#include <compare>
 
 struct guid
 {
@@ -45,13 +45,14 @@ struct guid
 	}
 };
 
+const uint16_t handshake_header_min_size = 20;
 struct handshake_header
 {
 	uint16_t m_type{};
 	uint16_t m_length{};
 	guid m_guid{};
-	int64_t m_time{};
 };
+static_assert(sizeof(handshake_header) == handshake_header_min_size);
 
 // custom hash for guid
 namespace std

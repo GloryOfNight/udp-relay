@@ -51,9 +51,8 @@ Those fields that optional mostly needed for client application to establish han
 ```c++
 struct handshake_header
 {
-	uint16_t m_type{};    // optional
-	uint16_t m_length{};  // optional
-	guid m_guid{};        // required - 4 x uint32
-	int64_t m_time{};     // optional
+	uint16_t m_type{};    // optional - 2 bytes
+	uint16_t m_length{};  // optional - 2 bytes
+	guid m_guid{};        // required - 4 x 4 bytes (uint32_t)
 };
 ```

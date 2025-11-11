@@ -49,8 +49,8 @@ std::string internetaddr::toString() const
 #if PLATFORM_WINDOWS
 	char ipBuffer[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &(m_addr.sin_addr), ipBuffer, INET_ADDRSTRLEN);
-	return std::format("{0}:{1}", ipBuffer, ur::ntoh16(m_addr.sin_port));
+	return std::format("{0}:{1}", ipBuffer, ur::net::ntoh16(m_addr.sin_port));
 #elif PLATFORM_LINUX
-	return std::format("{0}:{1}", inet_ntoa(m_addr.sin_addr), ur::ntoh16(m_addr.sin_port));
+	return std::format("{0}:{1}", inet_ntoa(m_addr.sin_addr), ur::net::ntoh16(m_addr.sin_port));
 #endif
 }

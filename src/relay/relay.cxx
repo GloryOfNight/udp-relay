@@ -73,7 +73,8 @@ bool relay::run(const relay_params& params)
 			else if (checkHandshakePacket(buffer, bytesRead))
 			{
 				const auto& recvGuid = reinterpret_cast<const handshake_header*>(buffer.data())->m_guid;
-				const guid nthGuid = guid(BYTESWAP32(recvGuid.m_a), BYTESWAP32(recvGuid.m_b), BYTESWAP32(recvGuid.m_c), BYTESWAP32(recvGuid.m_d));
+
+				const guid nthGuid = guid(ur::net::ntoh32(recvGuid.m_a), ur::net::ntoh32(recvGuid.m_b), ur::net::ntoh32(recvGuid.m_c), ur::net::ntoh32(recvGuid.m_d));
 
 				auto guidChannel = m_guidMappedChannels.find(nthGuid);
 				if (guidChannel == m_guidMappedChannels.end())

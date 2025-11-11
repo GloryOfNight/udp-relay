@@ -8,7 +8,7 @@
 #include <cstring>
 #include <stdint.h>
 
-namespace ur
+namespace ur::net
 {
 	// true if current platform little endian
 	constexpr bool isLittleEndian() noexcept
@@ -53,7 +53,7 @@ namespace ur
 } // namespace ur
 
 template <std::integral T>
-T ur::byteswap(T value) noexcept
+T ur::net::byteswap(T value) noexcept
 {
 	static_assert(std::has_unique_object_representations_v<T>, "T may not have padding bits");
 	uint8_t value_representation[sizeof(T)];
@@ -63,23 +63,19 @@ T ur::byteswap(T value) noexcept
 }
 
 template <std::integral T>
-T ur::hton(T value) noexcept
+T ur::net::hton(T value) noexcept
 {
 	static_assert(std::has_unique_object_representations_v<T>, "T may not have padding bits");
-	if (ur::isLittleEndian())
+	if (ur::net::isLittleEndian())
 		return byteswap(value);
 	return value;
 }
 
 template <std::integral T>
-T ur::ntoh(T value) noexcept
+T ur::net::ntoh(T value) noexcept
 {
 	static_assert(std::has_unique_object_representations_v<T>, "T may not have padding bits");
-	if (ur::isLittleEndian())
+	if (ur::net::isLittleEndian())
 		return byteswap(value);
 	return value;
 }
-
-#define BYTESWAP16(x) ur::bs16(static_cast<uint16_t>(x))
-#define BYTESWAP32(x) ur::bs32(static_cast<uint32_t>(x))
-#define BYTESWAP64(x) ur::bs64(static_cast<uint64_t>(x))

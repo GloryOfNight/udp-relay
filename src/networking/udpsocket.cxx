@@ -50,7 +50,7 @@ bool udpsocket::bind(int32_t port) const
 	sockaddr_in address{};
 	address.sin_family = AF_INET;
 	address.sin_addr.s_addr = INADDR_ANY;
-	address.sin_port = ur::hton16(port);
+	address.sin_port = ur::net::hton16(port);
 
 	if (::bind(m_socket, (struct sockaddr*)&address, sizeof(address)) == -1)
 	{
@@ -71,7 +71,7 @@ uint16_t udpsocket::getPort() const
 		LOG(Error, UdpSocket, "Failed to get port. Error code: {0}", errno);
 		return 0;
 	}
-	return ur::ntoh16(((sockaddr_in&)addr).sin_port);
+	return ur::net::ntoh16(((sockaddr_in&)addr).sin_port);
 }
 
 socket_t udpsocket::getNativeSocket() const
