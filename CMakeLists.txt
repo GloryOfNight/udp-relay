@@ -8,6 +8,7 @@ project(udp-relay
         HOMEPAGE_URL "https://github.com/GloryOfNight/clang-format-all"
         LANGUAGES CXX C)
 
+include(cmake/ProjectDefaults.cmake)
 include(cmake/ProjectOptions.cmake)
 include(cmake/Sanitizers.cmake)
 include(cmake/PreventInSourceBuilds.cmake)
@@ -48,3 +49,6 @@ enable_sanitizers(${PROJECT_NAME}
                     ${ENABLE_SANITIZER_MEMORY})
 
 install(TARGETS ${PROJECT_NAME})
+
+# Write .gitignore file ignoring all contents in the build dir
+file (WRITE ${CMAKE_BINARY_DIR}/.gitignore "*")
