@@ -75,7 +75,7 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 	{
 		relay_client_params param;
 		param.m_guid = guid::newGuid();
-		param.m_sendIntervalMs = 300;
+		param.m_sendIntervalMs = 16;
 
 		reinterpret_cast<uint8_t*>(&param.m_server_ip)[0] = args::relayAddr[0];
 		reinterpret_cast<uint8_t*>(&param.m_server_ip)[1] = args::relayAddr[1];

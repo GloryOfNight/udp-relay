@@ -113,7 +113,7 @@ void relay_client::run(const relay_client_params& params)
 			handshake_packet packet = handshake_packet::newPacket(m_params.m_guid);
 			packet.generateRandomPayload();
 
-			const auto randomOffset = relayEstablished ? ur::randRange<uint32_t>(sizeof(handshake_header), packet.m_randomData.size() - 1) : 0;
+			const auto randomOffset = relayEstablished ? ur::randRange<uint32_t>(0, sizeof(packet)) : 0;
 
 			const auto bytesSent = m_socket->sendTo(&packet, sizeof(packet) - randomOffset, &relayAddr);
 			if (bytesSent > 0)
