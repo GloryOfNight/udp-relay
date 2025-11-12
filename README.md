@@ -44,7 +44,7 @@ Peer A <-- handshake packet with GUID (1,2,3,4) --  Relay *Peer B has mapping fo
 // note that if communication between peers stops for ~30 seconds - relay will clear the mapping for addresses.
 ```
 
-By default, the relay expects the following header for the handshake. Fields marked optional are mostly needed by the client application to establish the handshake protocol. The only field required by the relay to function is m_guid.
+By default, the relay expects the following header for the handshake. magicNumber used to identify handshake packets and GUID can't be null.
 
 ```c++
 struct handshake_header
