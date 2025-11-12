@@ -59,19 +59,17 @@ void relay::run()
 		return;
 	}
 
-	m_lastTickTime = std::chrono::steady_clock::now();
-	m_lastCleanupTime = m_lastTickTime;
 	m_running = true;
 
 	while (m_running)
 	{
 		m_lastTickTime = std::chrono::steady_clock::now();
 
-		if (m_socket->waitForReadUs(500))
-			processIncoming();
-
-		if (m_socket->waitForWriteUs(500))
+		if (m_socket->waitForWriteUs(1000))
 			processOutcoming();
+
+		if (m_socket->waitForReadUs(15000))
+			processIncoming();
 
 		conditionalCleanup();
 	}
@@ -84,9 +82,13 @@ void relay::stop()
 
 void relay::processIncoming()
 {
-	const int32_t bytesRead = m_socket->recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), &m_recvAddr);
-	if (bytesRead > 0)
+	int32_t bytesRead{};
+	do
 	{
+		bytesRead = m_socket->recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), &m_recvAddr);
+		if (bytesRead < 0)
+			return;
+
 		const auto findRes = m_addressMappedChannels.find(m_recvAddr);
 		// if recvAddr has a channel mapped to it, as well as two valid peers, relay packet to the other peer
 		if (findRes != m_addressMappedChannels.end() && findRes->second.m_peerA.isValid() && findRes->second.m_peerB.isValid())
@@ -102,7 +104,7 @@ void relay::processIncoming()
 
 			// try relay packet immediately and if failed, add to send queue
 			const auto bytesSend = m_socket->sendTo(m_recvBuffer.data(), bytesRead, &sendAddr);
-			if (bytesSend > 0)
+			if (bytesSend >= 0)
 			{
 				currentChannel.m_stats.m_packetsSent++;
 				currentChannel.m_stats.m_bytesSent += bytesSend;
@@ -112,6 +114,7 @@ void relay::processIncoming()
 				auto pendingPacket = pending_packet();
 				pendingPacket.m_channelGuid = currentChannel.m_guid;
 				pendingPacket.m_target = sendAddr;
+				pendingPacket.m_expireAt = m_lastTickTime + std::chrono::milliseconds(m_params.m_expirePacketAfterMs);
 				pendingPacket.m_buffer.resize(bytesRead);
 				memcpy(pendingPacket.m_buffer.data(), m_recvBuffer.data(), bytesRead);
 				m_sendQueue.push(std::move(pendingPacket));
@@ -145,7 +148,8 @@ void relay::processIncoming()
 				LOG(Info, Relay, "Channel relay established for session: \"{0}\" with peers: {1}, {2}.", nthGuid.toString(), guidChannel->second.m_peerA.toString(), guidChannel->second.m_peerB.toString());
 			}
 		}
-	}
+
+	} while (true);
 }
 
 void relay::processOutcoming()
@@ -153,8 +157,10 @@ void relay::processOutcoming()
 	while (m_sendQueue.size())
 	{
 		auto& pendingPacket = m_sendQueue.front();
+		const bool packetWithinExpireLimit = pendingPacket.m_expireAt > m_lastTickTime;
+
 		auto findRes = m_guidMappedChannels.find(pendingPacket.m_channelGuid);
-		if (findRes != m_guidMappedChannels.end())
+		if (packetWithinExpireLimit && findRes != m_guidMappedChannels.end())
 		{
 			auto& currentChannel = findRes->second;
 			const auto bytesSend = m_socket->sendTo(pendingPacket.m_buffer.data(), pendingPacket.m_buffer.size(), &pendingPacket.m_target);
@@ -164,6 +170,7 @@ void relay::processOutcoming()
 			currentChannel.m_stats.m_packetsSent++;
 			currentChannel.m_stats.m_bytesSent += bytesSend;
 		}
+
 		m_sendQueue.pop();
 	}
 }
@@ -177,10 +184,7 @@ channel& relay::createChannel(const guid& inGuid)
 
 void relay::conditionalCleanup(bool force)
 {
-	uint16_t cleanupItemCount = 0;
-
-	const auto secondsSinceLastCleanupMs = std::chrono::duration_cast<std::chrono::milliseconds>(m_lastTickTime - m_lastCleanupTime).count();
-	if (secondsSinceLastCleanupMs > m_params.m_cleanupTimeMs || force)
+	if (m_lastTickTime >= m_nextCleanupTime || force)
 	{
 		for (auto it = m_channels.begin(); it != m_channels.end();)
 		{
@@ -196,10 +200,6 @@ void relay::conditionalCleanup(bool force)
 				m_guidMappedChannels.erase(it->m_guid);
 
 				it = m_channels.erase(it);
-
-				++cleanupItemCount;
-				if (cleanupItemCount > 32)
-					break;
 			}
 			else
 			{
@@ -207,11 +207,16 @@ void relay::conditionalCleanup(bool force)
 			}
 		}
 
-		m_lastCleanupTime = m_lastTickTime;
+		LOG_FLUSH();
+
+		m_nextCleanupTime = m_lastTickTime + std::chrono::milliseconds(m_params.m_cleanupTimeMs);
 	}
 }
 
 bool relay::checkHandshakePacket(const uint8_t* buffer, const size_t bytesRead) const noexcept
 {
-	return bytesRead >= handshake_header_min_size;
+	const auto header = reinterpret_cast<const handshake_header*>(buffer);
+	if (bytesRead >= handshake_header_min_size)
+		return ur::net::ntoh32(header->m_magicNumber) == handshake_header_magic_number || header->m_magicNumber == handshake_header_magic_number;
+	return false;
 }

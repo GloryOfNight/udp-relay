@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.28.0)
 project(udp-relay
         VERSION 1.0
         DESCRIPTION "Instanly simple and efficient UDP packet relay"
-        HOMEPAGE_URL "https://github.com/GloryOfNight/clang-format-all"
+        HOMEPAGE_URL "https://github.com/GloryOfNight/udp-relay"
         LANGUAGES CXX C)
 
 include(cmake/ProjectDefaults.cmake)
@@ -13,29 +13,42 @@ include(cmake/ProjectOptions.cmake)
 include(cmake/Sanitizers.cmake)
 include(cmake/PreventInSourceBuilds.cmake)
 
-set (UDP_RELAY_SOURCES  "src/real_main.cxx"
-                        "src/relay/relay.cxx"
-                        "src/networking/udpsocket.cxx"
-                        "src/networking/internetaddr.cxx")
+set (UDP_RELAY_SOURCES  src/real_main.cxx
+                        src/relay/relay.cxx
+                        src/networking/udpsocket.cxx
+                        src/networking/internetaddr.cxx)
 
-if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	set(UDP_RELAY_SOURCES   ${UDP_RELAY_SOURCES})
-    set(UDP_RELAY_MAIN      "src/unixmain.cxx")
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    set(UDP_RELAY_SOURCES   ${UDP_RELAY_SOURCES})
-    set(UDP_RELAY_MAIN      "src/winmain.cxx")
-    set(UDP_RELAY_LINK_LIBRARIES ws2_32.dll)
+set(UDP_RELAY_MAIN      $<$<PLATFORM_ID:Linux>:src/unixmain.cxx>
+                        $<$<PLATFORM_ID:Windows>:src/winmain.cxx>)
+
+set(UDP_RELAY_LINK_LIBRARIES $<$<PLATFORM_ID:Windows>:ws2_32.dll>)
+
+if (ENABLE_BUILD_EXEC)
+    add_executable(${PROJECT_NAME} ${UDP_RELAY_MAIN} ${UDP_RELAY_SOURCES})
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${UDP_RELAY_LINK_LIBRARIES})
+    target_include_directories(${PROJECT_NAME} PRIVATE include)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE  $<$<CONFIG:Debug>:UR_BUILD_DEBUG=1> 
+                                                        $<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>,$<CONFIG:MinSizeRel>>:UR_BUILD_RELEASE=1>)
+    install(TARGETS ${PROJECT_NAME})
 endif()
 
-add_executable(${PROJECT_NAME} ${UDP_RELAY_MAIN} ${UDP_RELAY_SOURCES})
-target_link_libraries(${PROJECT_NAME} PRIVATE ${UDP_RELAY_LINK_LIBRARIES})
-target_include_directories(${PROJECT_NAME} PRIVATE "include")
+if (ENABLE_BUILD_STATIC_LIB)
+    add_library(${PROJECT_NAME}-static STATIC ${UDP_RELAY_SOURCES})
+    target_link_libraries(${PROJECT_NAME}-static PUBLIC ${UDP_RELAY_LINK_LIBRARIES})
+    target_include_directories(${PROJECT_NAME}-static PUBLIC    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                                                $<INSTALL_INTERFACE:include>)
+    target_compile_definitions(${PROJECT_NAME}-static PRIVATE   $<$<CONFIG:Debug>:UR_BUILD_DEBUG=1> 
+                                                                $<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>,$<CONFIG:MinSizeRel>>:UR_BUILD_RELEASE=1>)
+    install(TARGETS ${PROJECT_NAME}-static EXPORT ${PROJECT_NAME}Targets)
+    install(EXPORT ${PROJECT_NAME}Targets DESTINATION cmake)
+    install(DIRECTORY include DESTINATION include)
 
-add_library(${PROJECT_NAME}-static STATIC ${UDP_RELAY_SOURCES})
-target_link_libraries(${PROJECT_NAME}-static PUBLIC ${UDP_RELAY_LINK_LIBRARIES})
-target_include_directories(${PROJECT_NAME}-static PUBLIC "include")
+    if (ENABLE_BUILD_TEST)
+        add_subdirectory(test)
+    endif()
+endif()
 
-add_subdirectory(test)
+
 
 enable_sanitizers(${PROJECT_NAME} 
                     ${ENABLE_SANITIZER_ADDRESS} 
@@ -43,8 +56,6 @@ enable_sanitizers(${PROJECT_NAME}
                     ${ENABLE_SANITIZER_UNDEFINED} 
                     ${ENABLE_SANITIZER_THREAD} 
                     ${ENABLE_SANITIZER_MEMORY})
-
-install(TARGETS ${PROJECT_NAME})
 
 # Write .gitignore file ignoring all contents in the build dir
 file (WRITE ${CMAKE_BINARY_DIR}/.gitignore "*")

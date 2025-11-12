@@ -15,6 +15,8 @@
 struct handshake_packet
 {
 	handshake_header m_header{};
+	uint16_t m_type{};
+	uint16_t m_length{};
 	int64_t m_time{};
 	std::array<uint8_t, 992> m_randomData{};
 
@@ -22,13 +24,14 @@ struct handshake_packet
 	{
 		handshake_packet packet{};
 
-		packet.m_header.m_type = ur::net::hton16(1);
-		packet.m_header.m_length = ur::net::hton16(992);
+		packet.m_header.m_magicNumber = ur::net::hton32(handshake_header_magic_number);
 		packet.m_header.m_guid.m_a = ur::net::hton32(guid.m_a);
 		packet.m_header.m_guid.m_b = ur::net::hton32(guid.m_b);
 		packet.m_header.m_guid.m_c = ur::net::hton32(guid.m_c);
 		packet.m_header.m_guid.m_d = ur::net::hton32(guid.m_d);
 
+		packet.m_type = ur::net::hton16(1);
+		packet.m_length = ur::net::hton16(992);
 		packet.m_time = ur::net::hton64(std::chrono::steady_clock::now().time_since_epoch().count());
 
 		return packet;
@@ -82,16 +85,16 @@ void relay_client::run(const relay_client_params& params)
 				const auto* packet = reinterpret_cast<handshake_packet*>(buffer.data());
 				const auto* header = &packet->m_header;
 
-				if (header->m_type == ur::net::hton16(1))
+				if (packet->m_type == ur::net::hton16(1))
 				{
 					handshake_packet recvPacket = reinterpret_cast<handshake_packet&>(*buffer.data());
-					recvPacket.m_header.m_type = ur::net::hton16(2);
+					recvPacket.m_type = ur::net::hton16(2);
 
 					const auto bytesSent = m_socket->sendTo(&recvPacket, bytesRead, &relayAddr);
 					if (bytesSent > 0)
 						++m_packetsSent;
 				}
-				else if (header->m_type == ur::net::hton16(2))
+				else if (packet->m_type == ur::net::hton16(2))
 				{
 					const auto recvNs = std::chrono::steady_clock::now().time_since_epoch().count();
 					const auto sentNs = ur::net::ntoh64(packet->m_time);

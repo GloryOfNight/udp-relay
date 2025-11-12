@@ -29,23 +29,25 @@ struct channel_stats
 
 struct channel
 {
-	channel_stats m_stats{};
 	guid m_guid{};
 	internetaddr m_peerA{};
 	internetaddr m_peerB{};
 	std::chrono::time_point<std::chrono::steady_clock> m_lastUpdated{};
+	channel_stats m_stats{};
 };
 
 struct pending_packet
 {
 	guid m_channelGuid{};
 	internetaddr m_target{};
+	std::chrono::time_point<std::chrono::steady_clock> m_expireAt{};
 	std::vector<uint8_t> m_buffer{};
 };
 
 struct relay_params
 {
 	uint16_t m_primaryPort{6060};
+	uint16_t m_expirePacketAfterMs{20};
 	uint32_t m_recvBufferSize{65507};
 	uint32_t m_socketRecvBufferSize{0x10000};
 	uint32_t m_socketSendBufferSize{0x10000};
@@ -96,9 +98,10 @@ private:
 
 	uniqueUdpsocket m_socket{};
 
+	// lastTickTime used instead of now()
 	std::chrono::time_point<std::chrono::steady_clock> m_lastTickTime{};
 
-	std::chrono::time_point<std::chrono::steady_clock> m_lastCleanupTime{};
+	std::chrono::time_point<std::chrono::steady_clock> m_nextCleanupTime{};
 
 	std::atomic<bool> m_running{false};
 };

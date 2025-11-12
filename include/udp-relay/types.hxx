@@ -45,11 +45,11 @@ struct guid
 	}
 };
 
+const uint32_t handshake_header_magic_number = 0x4B28000;
 const uint16_t handshake_header_min_size = 20;
 struct handshake_header
 {
-	uint16_t m_type{};
-	uint16_t m_length{};
+	int32_t m_magicNumber{handshake_header_magic_number};
 	guid m_guid{};
 };
 static_assert(sizeof(handshake_header) == handshake_header_min_size);

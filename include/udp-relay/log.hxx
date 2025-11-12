@@ -16,11 +16,17 @@ enum class log_level : uint8_t
 	Verbose = 4
 };
 
-extern log_level g_logLevel;
+extern log_level g_runtimeLogLevel;
 
-namespace udprelaycore
+#if UR_BUILD_RELEASE
+static constexpr log_level g_compileLogLevel{log_level::Info};
+#else
+static constexpr log_level g_compileLogLevel{log_level::Verbose};
+#endif
+
+namespace ur::core::log
 {
-	static std::string log_level_to_string(const log_level level)
+	static const char* log_level_to_string(const log_level level)
 	{
 		switch (level)
 		{
@@ -40,16 +46,28 @@ namespace udprelaycore
 	template <typename... Args>
 	void log(const log_level level, const std::string_view category, const std::string_view format, Args... args)
 	{
-		if (level > g_logLevel)
+		if (level > g_runtimeLogLevel)
 			return;
 
-		std::ostream& ostream = level == log_level::Error ? std::cerr : std::cout;
-
 		const auto now = std::chrono::utc_clock::now();
-		const auto log_level_str = log_level_to_string(level);
+		const char* logLevelStr = log_level_to_string(level);
+		const std::string logBase = std::vformat("[{0:%F}T{0:%T}] {1}: {2}:", std::make_format_args(now, category, logLevelStr));
+		const std::string logMessage = std::vformat(format, std::make_format_args(args...));
+		const std::string logFinal = std::vformat("{0} {1}\n", std::make_format_args(logBase, logMessage));
 
-		ostream << std::vformat("[{0:%F}T{0:%T}] {1}: {2}: ", std::make_format_args(now, category, log_level_str)) << std::vformat(format, std::make_format_args(args...)) << std::endl;
+		std::ostream& ostream = level == log_level::Error ? std::cerr : std::cout;
+		ostream << logFinal;
 	}
-} // namespace udprelaycore
 
-#define LOG(level, category, format, ...) udprelaycore::log(log_level::level, #category, format, ##__VA_ARGS__);
+	static void flush()
+	{
+		std::cout.flush();
+	}
+} // namespace ur::core::log
+
+#define LOG(level, category, format, ...)                \
+	if constexpr (log_level::level <= g_compileLogLevel) \
+		ur::core::log::log(log_level::level, #category, format, ##__VA_ARGS__);
+
+#define LOG_FLUSH() \
+	ur::core::log::flush();

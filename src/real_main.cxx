@@ -36,7 +36,7 @@ static constexpr auto envList = std::array
 
 static std::unique_ptr<relay> g_relay{};
 static int g_exitCode{};
-log_level g_logLevel{log_level::Info};
+log_level g_runtimeLogLevel{log_level::Info};
 
 static void handleAbort(int sig); // handle abort signal from terminal or system
 static void handleCrash(int sig); // handle crash
@@ -66,7 +66,7 @@ int relay_main(int argc, char* argv[], char* envp[])
 		return 1;
 	}
 
-	g_logLevel = static_cast<log_level>(args::logLevel);
+	g_runtimeLogLevel = static_cast<log_level>(args::logLevel);
 
 	g_relay = std::make_unique<relay>();
 
