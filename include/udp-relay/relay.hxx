@@ -13,9 +13,9 @@
 #include <chrono>
 #include <cstdint>
 #include <list>
+#include <map>
 #include <memory>
 #include <queue>
-#include <unordered_map>
 #include <vector>
 
 struct channel_stats
@@ -93,10 +93,10 @@ private:
 	std::vector<uint8_t> m_recvBuffer{};
 
 	// when first client handshake comes, it maps here to associate with guid
-	std::unordered_map<guid, channel&> m_guidMappedChannels{};
+	std::map<guid, channel&> m_guidMappedChannels{};
 
 	// when second client comes with same guid value, as in m_guidMappedChannels, it maps both addresses here
-	std::unordered_map<internetaddr, channel&> m_addressMappedChannels{};
+	std::map<internetaddr, channel&> m_addressMappedChannels{};
 
 	std::queue<pending_packet> m_sendQueue{};
 
