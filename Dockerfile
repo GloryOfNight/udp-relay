@@ -21,7 +21,7 @@ RUN apt-get update && \
 RUN cd /opt && \
     git clone --branch $GIT_BRANCH --depth 1 $GIT_REPOSITORY udp-relay && \
     cd udp-relay && \
-    cmake --preset ninja-multi && \
+    cmake --preset ninja-multi -DENABLE_BUILD_STATIC_LIB=OFF && \
     cmake --build --preset ninja-release
 
 # ===== Runtime stage =====
