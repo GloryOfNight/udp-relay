@@ -49,8 +49,7 @@ By default, the relay expects the following header for the handshake. Fields mar
 ```c++
 struct handshake_header
 {
-	uint16_t m_type{};    // optional - 2 bytes
-	uint16_t m_length{};  // optional - 2 bytes
-	guid m_guid{};        // required - 4 x 4 bytes (uint32_t)
+	uint32_t m_magicNumber{0x4B28000}; 	// required - 4 bytes
+	guid m_guid{};        				// required - 4 x 4 bytes (uint32_t)
 };
 ```
