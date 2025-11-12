@@ -19,6 +19,7 @@ class relay_client
 {
 public:
 	void run(const relay_client_params& params);
+	void stopSending();
 	void stop();
 
 	int32_t getMedianLatency() const;
@@ -40,4 +41,5 @@ private:
 	uint32_t m_packetsRecv = 0;
 
 	std::atomic_bool m_running = false;
+	std::atomic_bool m_allowSend = false;
 };

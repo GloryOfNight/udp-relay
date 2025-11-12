@@ -177,9 +177,7 @@ void relay::processOutcoming()
 
 channel& relay::createChannel(const guid& inGuid)
 {
-	channel newChannel{};
-	newChannel.m_guid = inGuid;
-	return m_channels.emplace_back(newChannel);
+	return m_channels.emplace_back(channel(inGuid));
 }
 
 void relay::conditionalCleanup(bool force)

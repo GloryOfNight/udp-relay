@@ -26,7 +26,7 @@ using buffer_t = char;
 using buffer_t = void;
 #endif
 
-udpsocket::udpsocket()
+udpsocket::udpsocket() noexcept
 {
 	m_socket = ::socket(AF_INET, SOCK_DGRAM, 0);
 	if (m_socket == -1) [[unlikely]]
@@ -35,7 +35,7 @@ udpsocket::udpsocket()
 	}
 }
 
-udpsocket::~udpsocket()
+udpsocket::~udpsocket() noexcept
 {
 	if (m_socket != -1) [[likely]]
 #if PLATFORM_WINDOWS
@@ -74,23 +74,23 @@ uint16_t udpsocket::getPort() const
 	return ur::net::ntoh16(((sockaddr_in&)addr).sin_port);
 }
 
-socket_t udpsocket::getNativeSocket() const
+socket_t udpsocket::getNativeSocket() const noexcept
 {
 	return m_socket;
 }
 
-int32_t udpsocket::sendTo(void* buffer, size_t bufferSize, const internetaddr* addr) const
+int32_t udpsocket::sendTo(void* buffer, size_t bufferSize, const internetaddr* addr) const noexcept
 {
 	return ::sendto(m_socket, (const buffer_t*)buffer, bufferSize, 0, (struct sockaddr*)&addr->getAddr(), sizeof(sockaddr_in));
 }
 
-int32_t udpsocket::recvFrom(void* buffer, size_t bufferSize, internetaddr* addr) const
+int32_t udpsocket::recvFrom(void* buffer, size_t bufferSize, internetaddr* addr) const noexcept
 {
 	socklen_t socklen = sizeof(sockaddr_in);
 	return ::recvfrom(m_socket, (buffer_t*)buffer, bufferSize, 0, (struct sockaddr*)&addr->getAddr(), &socklen);
 }
 
-bool udpsocket::setReuseAddr(bool bAllowReuse) const
+bool udpsocket::setReuseAddr(bool bAllowReuse) const noexcept
 {
 #if PLATFORM_WINDOWS
 	const bool opt = bAllowReuse;
@@ -101,7 +101,7 @@ bool udpsocket::setReuseAddr(bool bAllowReuse) const
 	return bOk;
 }
 
-bool udpsocket::setNonBlocking(bool bNonBlocking) const
+bool udpsocket::setNonBlocking(bool bNonBlocking) const noexcept
 {
 #if PLATFORM_WINDOWS
 	u_long value = bNonBlocking;
@@ -115,7 +115,7 @@ bool udpsocket::setNonBlocking(bool bNonBlocking) const
 #endif
 }
 
-bool udpsocket::setSendBufferSize(int32_t size, int32_t& newSize) const
+bool udpsocket::setSendBufferSize(int32_t size, int32_t& newSize) const noexcept
 {
 	const bool bOk = setsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (char*)&size, sizeof(size)) == 0;
 	socklen_t sizeSize = sizeof(size);
@@ -123,7 +123,7 @@ bool udpsocket::setSendBufferSize(int32_t size, int32_t& newSize) const
 	return bOk;
 }
 
-bool udpsocket::setRecvBufferSize(int32_t size, int32_t& newSize) const
+bool udpsocket::setRecvBufferSize(int32_t size, int32_t& newSize) const noexcept
 {
 	const bool bOk = setsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (buffer_t*)&size, sizeof(size)) == 0;
 	socklen_t sizeSize = sizeof(size);
@@ -131,7 +131,7 @@ bool udpsocket::setRecvBufferSize(int32_t size, int32_t& newSize) const
 	return bOk;
 }
 
-bool udpsocket::setRecvTimeoutUs(int64_t timeoutUs) const
+bool udpsocket::setRecvTimeoutUs(int64_t timeoutUs) const noexcept
 {
 #if PLATFORM_WINDOWS
 	DWORD time = (timeoutUs + 999) / 1000;
@@ -144,7 +144,7 @@ bool udpsocket::setRecvTimeoutUs(int64_t timeoutUs) const
 	return bOk;
 }
 
-bool udpsocket::setSendTimeoutUs(int64_t timeoutUs) const
+bool udpsocket::setSendTimeoutUs(int64_t timeoutUs) const noexcept
 {
 #if PLATFORM_WINDOWS
 	DWORD time = (timeoutUs + 999) / 1000;
@@ -157,7 +157,7 @@ bool udpsocket::setSendTimeoutUs(int64_t timeoutUs) const
 	return bOk;
 }
 
-bool udpsocket::waitForReadUs(int64_t timeoutUs) const
+bool udpsocket::waitForReadUs(int64_t timeoutUs) const noexcept
 {
 	timeval time;
 	time.tv_sec = timeoutUs / 1000000;
@@ -171,7 +171,7 @@ bool udpsocket::waitForReadUs(int64_t timeoutUs) const
 	return selectRes > 0;
 }
 
-bool udpsocket::waitForWriteUs(int64_t timeoutUs) const
+bool udpsocket::waitForWriteUs(int64_t timeoutUs) const noexcept
 {
 	timeval time;
 	time.tv_sec = timeoutUs / 1000000;
@@ -185,7 +185,7 @@ bool udpsocket::waitForWriteUs(int64_t timeoutUs) const
 	return selectRes > 0;
 }
 
-bool udpsocket::isValid() const
+bool udpsocket::isValid() const noexcept
 {
 	return m_socket != -1;
 }

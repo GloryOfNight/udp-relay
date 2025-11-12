@@ -13,9 +13,9 @@
 #include <chrono>
 #include <cstdint>
 #include <list>
-#include <map>
 #include <memory>
 #include <queue>
+#include <unordered_map>
 #include <vector>
 
 struct channel_stats
@@ -29,7 +29,13 @@ struct channel_stats
 
 struct channel
 {
-	guid m_guid{};
+	channel() = default;
+	channel(const guid& inGuid)
+		: m_guid{inGuid}
+	{
+	}
+
+	const guid m_guid{};
 	internetaddr m_peerA{};
 	internetaddr m_peerB{};
 	std::chrono::time_point<std::chrono::steady_clock> m_lastUpdated{};
@@ -47,7 +53,7 @@ struct pending_packet
 struct relay_params
 {
 	uint16_t m_primaryPort{6060};
-	uint16_t m_expirePacketAfterMs{20};
+	uint16_t m_expirePacketAfterMs{5};
 	uint32_t m_recvBufferSize{65507};
 	uint32_t m_socketRecvBufferSize{0x10000};
 	uint32_t m_socketSendBufferSize{0x10000};
@@ -87,10 +93,10 @@ private:
 	std::vector<uint8_t> m_recvBuffer{};
 
 	// when first client handshake comes, it maps here to associate with guid
-	std::map<guid, channel&> m_guidMappedChannels{};
+	std::unordered_map<guid, channel&> m_guidMappedChannels{};
 
 	// when second client comes with same guid value, as in m_guidMappedChannels, it maps both addresses here
-	std::map<internetaddr, channel&> m_addressMappedChannels{};
+	std::unordered_map<internetaddr, channel&> m_addressMappedChannels{};
 
 	std::queue<pending_packet> m_sendQueue{};
 

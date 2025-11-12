@@ -12,8 +12,8 @@
 
 struct guid
 {
-	guid() = default;
-	guid(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
+	guid() noexcept = default;
+	guid(uint32_t a, uint32_t b, uint32_t c, uint32_t d) noexcept
 		: m_a{a}
 		, m_b{b}
 		, m_c{c}
@@ -60,17 +60,18 @@ namespace std
 	template <>
 	struct hash<guid>
 	{
-		std::size_t operator()(const guid& g) const
+		std::size_t operator()(const guid& g) const noexcept
 		{
-			const int64_t* p = reinterpret_cast<const int64_t*>(&g);
-			return std::hash<int64_t>{}(p[0]) ^ std::hash<int64_t>{}(p[1]);
+			const uint64_t high = *reinterpret_cast<const uint64_t*>(&g.m_a);
+			const uint64_t low = *reinterpret_cast<const uint64_t*>(&g.m_c);
+			return std::hash<uint64_t>{}(high ^ low);
 		}
 	};
 
 	template <>
 	struct less<guid>
 	{
-		bool operator()(const guid& left, const guid& right) const
+		bool operator()(const guid& left, const guid& right) const noexcept
 		{
 			if (left.m_a != right.m_a)
 				return left.m_a < right.m_a;
@@ -90,16 +91,16 @@ namespace std
 	template <>
 	struct hash<internetaddr>
 	{
-		std::size_t operator()(const internetaddr& g) const
+		std::size_t operator()(const internetaddr& g) const noexcept
 		{
-			return std::hash<int32_t>{}(g.getIp()) ^ std::hash<uint16_t>{}(g.getPort());
+			return std::hash<int32_t>{}(g.getIp() ^ g.getPort());
 		}
 	};
 
 	template <>
 	struct equal_to<internetaddr>
 	{
-		bool operator()(const internetaddr& left, const internetaddr& right) const
+		bool operator()(const internetaddr& left, const internetaddr& right) const noexcept
 		{
 			return left == right;
 		}
@@ -108,7 +109,7 @@ namespace std
 	template <>
 	struct less<internetaddr>
 	{
-		bool operator()(const internetaddr& left, const internetaddr& right) const
+		bool operator()(const internetaddr& left, const internetaddr& right) const noexcept
 		{
 			if (left.getIp() != right.getIp())
 				return left.getIp() < right.getIp();

@@ -66,6 +66,7 @@ void relay_client::run(const relay_client_params& params)
 	auto lastSendTime = std::chrono::steady_clock::now();
 
 	m_running = true;
+	m_allowSend = true;
 
 	bool relayEstablished = false;
 
@@ -106,7 +107,7 @@ void relay_client::run(const relay_client_params& params)
 		}
 
 		const auto now = std::chrono::steady_clock::now();
-		if (now - lastSendTime > std::chrono::milliseconds(m_params.m_sendIntervalMs))
+		if (m_allowSend && now - lastSendTime > std::chrono::milliseconds(m_params.m_sendIntervalMs))
 		{
 			lastSendTime = now;
 
@@ -120,6 +121,11 @@ void relay_client::run(const relay_client_params& params)
 				++m_packetsSent;
 		};
 	}
+}
+
+void relay_client::stopSending()
+{
+	m_allowSend = false;
 }
 
 void relay_client::stop()
