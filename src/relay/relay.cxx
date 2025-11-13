@@ -117,7 +117,7 @@ void relay::processIncoming()
 				pendingPacket.m_target = sendAddr;
 				pendingPacket.m_expireAt = m_lastTickTime + std::chrono::milliseconds(m_params.m_expirePacketAfterMs);
 				pendingPacket.m_buffer.resize(bytesRead);
-				memcpy(pendingPacket.m_buffer.data(), m_recvBuffer.data(), bytesRead);
+				std::memcpy(pendingPacket.m_buffer.data(), m_recvBuffer.data(), bytesRead);
 
 				m_sendQueue.push(std::move(pendingPacket));
 			}
@@ -218,7 +218,7 @@ std::pair<bool, handshake_header> relay_helpers::deserializePacket(const uint8_t
 		return std::pair<bool, handshake_header>();
 
 	handshake_header netHeader;
-	memcpy(&netHeader, buffer, sizeof(handshake_header));
+	std::memcpy(&netHeader, buffer, sizeof(handshake_header));
 
 	handshake_header hostHeader;
 	hostHeader.m_magicNumber = ur::net::ntoh32(netHeader.m_magicNumber);

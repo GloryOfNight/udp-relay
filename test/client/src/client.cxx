@@ -44,7 +44,7 @@ static std::vector<uint8_t> serializePacket(const handshake_packet& value)
 
 	std::vector<uint8_t> output{};
 	output.resize(sizeof(handshake_packet));
-	memcpy(output.data(), &netValue, sizeof(netValue));
+	std::memcpy(output.data(), &netValue, sizeof(netValue));
 	return output;
 }
 
@@ -54,7 +54,7 @@ static std::pair<bool, handshake_packet> deserializePacket(const uint8_t* buf, c
 		return std::pair<bool, handshake_packet>{};
 
 	handshake_packet netValue{};
-	memcpy(&netValue, buf, handshake_packet_data_size);
+	std::memcpy(&netValue, buf, handshake_packet_data_size);
 
 	handshake_packet hostValue{};
 	hostValue.m_header.m_magicNumber = ur::net::ntoh32(netValue.m_header.m_magicNumber);
