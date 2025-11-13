@@ -61,6 +61,11 @@ struct relay_params
 	int32_t m_expirePacketAfterMs{5};
 };
 
+struct relay_helpers
+{
+	static std::pair<bool, handshake_header> deserializePacket(const uint8_t* buffer, const size_t len);
+};
+
 class relay
 {
 public:
@@ -79,8 +84,6 @@ private:
 	void processIncoming();
 
 	void processOutcoming();
-
-	bool checkHandshakePacket(const uint8_t* buffer, size_t bytesRead) const noexcept;
 
 	channel& createChannel(const guid& inGuid);
 

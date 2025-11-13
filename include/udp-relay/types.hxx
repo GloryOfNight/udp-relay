@@ -43,13 +43,18 @@ struct guid
 		std::snprintf(buffer, sizeof(buffer), "%08x-%04x-%04x-%04x-%04x%08x", m_a, m_b >> 16, m_b & 0xFFFF, m_c >> 16, m_c & 0xFFFF, m_d);
 		return std::string(buffer);
 	}
+
+	bool isValid() const noexcept
+	{
+		return m_a || m_b || m_c || m_d;
+	}
 };
 
 const uint32_t handshake_header_magic_number = 0x4B28000;
 const uint16_t handshake_header_min_size = 20;
 struct handshake_header
 {
-	int32_t m_magicNumber{handshake_header_magic_number};
+	uint32_t m_magicNumber{handshake_header_magic_number};
 	guid m_guid{};
 };
 static_assert(sizeof(handshake_header) == handshake_header_min_size);
@@ -62,8 +67,8 @@ namespace std
 	{
 		std::size_t operator()(const guid& g) const noexcept
 		{
-			const uint64_t high = *reinterpret_cast<const uint64_t*>(&g.m_a);
-			const uint64_t low = *reinterpret_cast<const uint64_t*>(&g.m_c);
+			const uint64_t high = (static_cast<uint64_t>(g.m_a) << 32) | static_cast<uint64_t>(g.m_b);
+			const uint64_t low = (static_cast<uint64_t>(g.m_c) << 32) | static_cast<uint64_t>(g.m_d);
 			return std::hash<uint64_t>{}(high ^ low);
 		}
 	};

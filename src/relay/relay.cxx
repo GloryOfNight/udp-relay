@@ -122,16 +122,16 @@ void relay::processIncoming()
 				m_sendQueue.push(std::move(pendingPacket));
 			}
 		}
-		else if (checkHandshakePacket(m_recvBuffer.data(), bytesRead))
+		// check if packet is relay handshake header, and extract guid if possible
+		else if (const auto& [bOk, header] = relay_helpers::deserializePacket(m_recvBuffer.data(), bytesRead); bOk)
 		{
-			const auto& recvGuid = reinterpret_cast<const handshake_header*>(m_recvBuffer.data())->m_guid;
+			if (header.m_magicNumber != handshake_header_magic_number && header.m_guid.isValid())
+				continue;
 
-			const guid nthGuid = guid(ur::net::ntoh32(recvGuid.m_a), ur::net::ntoh32(recvGuid.m_b), ur::net::ntoh32(recvGuid.m_c), ur::net::ntoh32(recvGuid.m_d));
-
-			auto guidChannel = m_guidMappedChannels.find(nthGuid);
+			auto guidChannel = m_guidMappedChannels.find(header.m_guid);
 			if (guidChannel == m_guidMappedChannels.end())
 			{
-				channel& newChannel = createChannel(nthGuid);
+				channel& newChannel = createChannel(header.m_guid);
 				newChannel.m_peerA = m_recvAddr;
 				newChannel.m_lastUpdated = m_lastTickTime;
 
@@ -147,7 +147,7 @@ void relay::processIncoming()
 				m_addressMappedChannels.emplace(guidChannel->second.m_peerA, guidChannel->second);
 				m_addressMappedChannels.emplace(guidChannel->second.m_peerB, guidChannel->second);
 
-				LOG(Info, Relay, "Channel relay established for session: \"{0}\" with peers: {1}, {2}.", nthGuid.toString(), guidChannel->second.m_peerA.toString(), guidChannel->second.m_peerB.toString());
+				LOG(Info, Relay, "Channel relay established for session: \"{0}\" with peers: {1}, {2}.", header.m_guid.toString(), guidChannel->second.m_peerA.toString(), guidChannel->second.m_peerB.toString());
 			}
 		}
 	}
@@ -212,10 +212,19 @@ void relay::conditionalCleanup(bool force)
 	}
 }
 
-bool relay::checkHandshakePacket(const uint8_t* buffer, const size_t bytesRead) const noexcept
+std::pair<bool, handshake_header> relay_helpers::deserializePacket(const uint8_t* buffer, const size_t len)
 {
-	const auto header = reinterpret_cast<const handshake_header*>(buffer);
-	if (bytesRead >= handshake_header_min_size)
-		return ur::net::ntoh32(header->m_magicNumber) == handshake_header_magic_number || header->m_magicNumber == handshake_header_magic_number;
-	return false;
+	if (len < sizeof(handshake_header))
+		return std::pair<bool, handshake_header>();
+
+	handshake_header netHeader;
+	memcpy(&netHeader, buffer, sizeof(handshake_header));
+
+	handshake_header hostHeader;
+	hostHeader.m_magicNumber = ur::net::ntoh32(netHeader.m_magicNumber);
+	hostHeader.m_guid.m_a = ur::net::ntoh32(netHeader.m_guid.m_a);
+	hostHeader.m_guid.m_b = ur::net::ntoh32(netHeader.m_guid.m_b);
+	hostHeader.m_guid.m_c = ur::net::ntoh32(netHeader.m_guid.m_c);
+	hostHeader.m_guid.m_d = ur::net::ntoh32(netHeader.m_guid.m_d);
+	return std::pair<bool, handshake_header>(true, hostHeader);
 }
