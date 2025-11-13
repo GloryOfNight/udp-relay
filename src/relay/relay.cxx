@@ -82,9 +82,10 @@ void relay::stop()
 
 void relay::processIncoming()
 {
-	int32_t bytesRead{};
-	do
+	const int32_t maxRecvCycles = 32;
+	for (int32_t currentCycle = 0; currentCycle < maxRecvCycles; ++currentCycle)
 	{
+		int32_t bytesRead{};
 		bytesRead = m_socket->recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), &m_recvAddr);
 		if (bytesRead < 0)
 			return;
@@ -109,14 +110,15 @@ void relay::processIncoming()
 				currentChannel.m_stats.m_packetsSent++;
 				currentChannel.m_stats.m_bytesSent += bytesSend;
 			}
-			else
+			else if (m_params.m_expirePacketAfterMs)
 			{
-				auto pendingPacket = pending_packet();
+				pending_packet pendingPacket = pending_packet();
 				pendingPacket.m_channelGuid = currentChannel.m_guid;
 				pendingPacket.m_target = sendAddr;
 				pendingPacket.m_expireAt = m_lastTickTime + std::chrono::milliseconds(m_params.m_expirePacketAfterMs);
 				pendingPacket.m_buffer.resize(bytesRead);
 				memcpy(pendingPacket.m_buffer.data(), m_recvBuffer.data(), bytesRead);
+
 				m_sendQueue.push(std::move(pendingPacket));
 			}
 		}
@@ -148,8 +150,7 @@ void relay::processIncoming()
 				LOG(Info, Relay, "Channel relay established for session: \"{0}\" with peers: {1}, {2}.", nthGuid.toString(), guidChannel->second.m_peerA.toString(), guidChannel->second.m_peerB.toString());
 			}
 		}
-
-	} while (true);
+	}
 }
 
 void relay::processOutcoming()

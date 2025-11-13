@@ -9,7 +9,11 @@
 #include <stddef.h>
 
 // handle for native sockets descriptors
-using socket_t = int64_t;
+#if PLATFORM_WINDOWS
+using socket_t = uint64_t;
+#elif PLATFORM_LINUX
+using socket_t = int;
+#endif
 
 // socket for UDP messaging
 class udpsocket final
@@ -21,7 +25,7 @@ public:
 	~udpsocket() noexcept;
 
 	// bind on socket on specific port in host byte order
-	bool bind(int32_t port) const;
+	bool bind(uint16_t port) const;
 
 	// get socket port in host byte order
 	uint16_t getPort() const;
@@ -63,7 +67,7 @@ public:
 	bool waitForWriteUs(int64_t timeoutUs) const noexcept;
 
 private:
-	socket_t m_socket{static_cast<socket_t>(-1)};
+	socket_t m_socket;
 };
 
 using uniqueUdpsocket = std::unique_ptr<udpsocket>;

@@ -59,7 +59,7 @@ namespace ur::core::log
 		ostream << logFinal;
 	}
 
-	static void flush()
+	static inline void flush()
 	{
 		std::cout.flush();
 	}
@@ -67,7 +67,7 @@ namespace ur::core::log
 
 #define LOG(level, category, format, ...)                \
 	if constexpr (log_level::level <= g_compileLogLevel) \
-		ur::core::log::log(log_level::level, #category, format, ##__VA_ARGS__);
+		ur::core::log::log(log_level::level, #category, format, __VA_ARGS__);
 
 #define LOG_FLUSH() \
 	ur::core::log::flush();

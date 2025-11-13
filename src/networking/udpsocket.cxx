@@ -22,14 +22,17 @@
 using suseconds_t = long;
 using socklen_t = int;
 using buffer_t = char;
+const socket_t socketInvalid = INVALID_SOCKET;
 #elif PLATFORM_LINUX
 using buffer_t = void;
+const socket_t socketInvalid = -1;
 #endif
 
 udpsocket::udpsocket() noexcept
+	: m_socket{socketInvalid}
 {
 	m_socket = ::socket(AF_INET, SOCK_DGRAM, 0);
-	if (m_socket == -1) [[unlikely]]
+	if (!isValid()) [[unlikely]]
 	{
 		LOG(Error, UdpSocket, "Failed to create socket. Error code: {0}", errno);
 	}
@@ -37,7 +40,7 @@ udpsocket::udpsocket() noexcept
 
 udpsocket::~udpsocket() noexcept
 {
-	if (m_socket != -1) [[likely]]
+	if (isValid())
 #if PLATFORM_WINDOWS
 		closesocket(m_socket);
 #elif PLATFORM_LINUX
@@ -45,7 +48,7 @@ udpsocket::~udpsocket() noexcept
 #endif
 }
 
-bool udpsocket::bind(int32_t port) const
+bool udpsocket::bind(uint16_t port) const
 {
 	sockaddr_in address{};
 	address.sin_family = AF_INET;
@@ -187,5 +190,5 @@ bool udpsocket::waitForWriteUs(int64_t timeoutUs) const noexcept
 
 bool udpsocket::isValid() const noexcept
 {
-	return m_socket != -1;
+	return m_socket != socketInvalid;
 }

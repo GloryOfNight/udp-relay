@@ -53,12 +53,12 @@ struct pending_packet
 struct relay_params
 {
 	uint16_t m_primaryPort{6060};
-	uint16_t m_expirePacketAfterMs{5};
 	uint32_t m_recvBufferSize{65507};
 	uint32_t m_socketRecvBufferSize{0x10000};
 	uint32_t m_socketSendBufferSize{0x10000};
 	int32_t m_cleanupTimeMs{1800};
 	int32_t m_cleanupInactiveChannelAfterMs{30000};
+	int32_t m_expirePacketAfterMs{5};
 };
 
 class relay
@@ -109,5 +109,5 @@ private:
 
 	std::chrono::time_point<std::chrono::steady_clock> m_nextCleanupTime{};
 
-	std::atomic<bool> m_running{false};
+	std::atomic_bool m_running{false};
 };

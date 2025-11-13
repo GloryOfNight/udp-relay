@@ -14,15 +14,21 @@ namespace args
 {
 	bool printHelp{};										 // when true - prints help and exits
 	int32_t logLevel{static_cast<int32_t>(log_level::Info)}; // 0 - no logs, 1 - errors only, 2 - warnings only, 3 - log (default), 4 - verbose
-	int32_t port{};											 // main port for the server
+	relay_params relayParams{};
 } // namespace args
 
 // clang-format off
 static constexpr auto argList = std::array
 {
-	val_ref{"--help", args::printHelp,							"--help                         = print help" },
-	val_ref{"--log-level", args::logLevel,						"--log-level <value>            = 0 - no logs, 1 - errors only, 2 - warnings only, 3 - log (default), 4 - verbose" },
-	val_ref{"--port", args::port,								"--port <value>                 = main port for accepting requests" }
+	val_ref{"--help", args::printHelp,																"--help										= print help" },
+	val_ref{"--log-level", args::logLevel,															"--log-level <value>						= 0 - no logs, 1 - errors only, 2 - warnings only, 3 - log (default), 4 - verbose" },
+	val_ref{"--port", args::relayParams.m_primaryPort,												"--port <value>								= main port for accepting requests" },
+	val_ref{"--recvBufferSize", args::relayParams.m_recvBufferSize,									"--recvBufferSize <value>					= receive buffer size, allowing bigger packets to pass thru relay" },
+	val_ref{"--socketRecvBufferSize", args::relayParams.m_socketRecvBufferSize,						"--socketRecvBufferSize <value>             = receive buffer size for internal socket" },
+	val_ref{"--socketSendBufferSize", args::relayParams.m_socketSendBufferSize,						"--socketSendBufferSize <value>             = send buffer size for internal socket" },
+	val_ref{"--cleanupTimeMs", args::relayParams.m_cleanupTimeMs,									"--cleanupTimeMs <value>					= how often relay should perform clean check" },
+	val_ref{"--cleanupInactiveChannelAfterMs", args::relayParams.m_cleanupInactiveChannelAfterMs,	"--cleanupInactiveChannelAfterMs <value>    = inactivity timeout for channel" },
+	val_ref{"--expirePacketAfterMs", args::relayParams.m_expirePacketAfterMs,						"--expirePacketAfterMs <value>				= drop packet if packet not relayed within timeout. 0 or negative - do not reattempt relay" },
 };
 // clang-format on
 
@@ -34,8 +40,9 @@ static constexpr auto envList = std::array
 };
 // clang-format on
 
-static std::unique_ptr<relay> g_relay{};
+static relay g_relay{};
 static int g_exitCode{};
+
 log_level g_runtimeLogLevel{log_level::Info};
 
 static void handleAbort(int sig); // handle abort signal from terminal or system
@@ -60,23 +67,11 @@ int relay_main(int argc, char* argv[], char* envp[])
 		return 0;
 	}
 
-	if (args::port < 0 || args::port > UINT16_MAX)
-	{
-		LOG(Error, Main, "Invalid primary port number: {0}", args::port);
-		return 1;
-	}
-
 	g_runtimeLogLevel = static_cast<log_level>(args::logLevel);
 
-	g_relay = std::make_unique<relay>();
-
-	relay_params params{};
-	if (args::port)
-		params.m_primaryPort = args::port;
-
-	if (g_relay->init(params))
+	if (g_relay.init(args::relayParams))
 	{
-		g_relay->run();
+		g_relay.run();
 	}
 
 	return g_exitCode;
@@ -84,9 +79,9 @@ int relay_main(int argc, char* argv[], char* envp[])
 
 void handleAbort(int sig)
 {
-	LOG(Warning, Main, "CAUGHT SIGNAL - {0}", sig);
-	if (g_relay)
-		g_relay->stop();
+	LOG(Info, Main, "CAUGHT SIGNAL - {0}", sig);
+
+	g_relay.stop();
 
 	g_exitCode = 128 + sig;
 }
@@ -94,8 +89,8 @@ void handleAbort(int sig)
 void handleCrash(int sig)
 {
 	LOG(Error, Main, "CRASHED - {0}", sig);
-	if (g_relay)
-		g_relay->stop();
+
+	g_relay.stop();
 
 	g_exitCode = 128 + sig;
 }
