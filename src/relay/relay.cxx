@@ -32,17 +32,21 @@ bool relay::init(const relay_params& params)
 		return false;
 	}
 
-	LOG(Info, Relay, "Relay initialized, requested {0} port, actual: {1}", params.m_primaryPort, newSocket->getPort());
+	if (params.m_socketSendBufferSize)
+	{
+		if (!newSocket->setSendBufferSize(params.m_socketSendBufferSize))
+			LOG(Warning, Relay, "Failed set send buffer size to {}", params.m_socketSendBufferSize);
+		LOG(Info, Relay, "Socket set send buffer size {} requested", params.m_socketSendBufferSize);
+	}
 
-	int32_t actualBufferSize{};
+	if (params.m_socketRecvBufferSize)
+	{
+		if (!newSocket->setRecvBufferSize(params.m_socketRecvBufferSize))
+			LOG(Warning, Relay, "Failed set recv buffer size to {}", params.m_socketRecvBufferSize);
+		LOG(Info, Relay, "Socket set recv buffer size {} requested", params.m_socketRecvBufferSize);
+	}
 
-	if (!newSocket->setSendBufferSize(params.m_socketSendBufferSize, actualBufferSize))
-		LOG(Warning, Relay, "Failed set send buffer size to {}", params.m_socketSendBufferSize);
-	LOG(Info, Relay, "Socket set send buffer size, requested: {0}, actual: {1}", params.m_socketSendBufferSize, actualBufferSize);
-
-	if (!newSocket->setRecvBufferSize(params.m_socketRecvBufferSize, actualBufferSize))
-		LOG(Warning, Relay, "Failed set recv buffer size to {}", params.m_socketRecvBufferSize);
-	LOG(Info, Relay, "Socket set recv buffer size, requested: {0}, actual: {1}", params.m_socketRecvBufferSize, actualBufferSize);
+	LOG(Info, Relay, "Relay initialized on port {}. SndBuf={}, RcvBuf={}", newSocket->getPort(), newSocket->getSendBufferSize(), newSocket->getRecvBufferSize());
 
 	m_params = params;
 	m_socket = std::move(newSocket);
@@ -128,26 +132,26 @@ void relay::processIncoming()
 			if (header.m_magicNumber != handshake_header_magic_number && header.m_guid.isValid())
 				continue;
 
-			auto guidChannel = m_guidMappedChannels.find(header.m_guid);
-			if (guidChannel == m_guidMappedChannels.end())
+			auto findChannel = m_channels.find(header.m_guid);
+			if (findChannel == m_channels.end())
 			{
-				channel& newChannel = createChannel(header.m_guid);
+				channel newChannel = channel(header.m_guid);
 				newChannel.m_peerA = m_recvAddr;
 				newChannel.m_lastUpdated = m_lastTickTime;
 
-				m_guidMappedChannels.emplace(newChannel.m_guid, newChannel);
+				m_channels.emplace(header.m_guid, std::move(newChannel));
 
 				LOG(Verbose, Relay, "Accepted new client with guid: \"{0}\"", newChannel.m_guid.toString());
 			}
-			else if (guidChannel->second.m_peerA != m_recvAddr && !guidChannel->second.m_peerB.isValid())
+			else if (findChannel->second.m_peerA != m_recvAddr && !findChannel->second.m_peerB.isValid())
 			{
-				guidChannel->second.m_peerB = m_recvAddr;
-				guidChannel->second.m_lastUpdated = m_lastTickTime;
+				findChannel->second.m_peerB = m_recvAddr;
+				findChannel->second.m_lastUpdated = m_lastTickTime;
 
-				m_addressMappedChannels.emplace(guidChannel->second.m_peerA, guidChannel->second);
-				m_addressMappedChannels.emplace(guidChannel->second.m_peerB, guidChannel->second);
+				m_addressMappedChannels.emplace(findChannel->second.m_peerA, findChannel->second);
+				m_addressMappedChannels.emplace(findChannel->second.m_peerB, findChannel->second);
 
-				LOG(Info, Relay, "Channel relay established for session: \"{0}\" with peers: {1}, {2}.", header.m_guid.toString(), guidChannel->second.m_peerA.toString(), guidChannel->second.m_peerB.toString());
+				LOG(Info, Relay, "Channel relay established for session: \"{0}\" with peers: {1}, {2}.", header.m_guid.toString(), findChannel->second.m_peerA.toString(), findChannel->second.m_peerB.toString());
 			}
 		}
 	}
@@ -160,10 +164,10 @@ void relay::processOutcoming()
 		auto& pendingPacket = m_sendQueue.front();
 		const bool packetWithinExpireLimit = pendingPacket.m_expireAt > m_lastTickTime;
 
-		auto findRes = m_guidMappedChannels.find(pendingPacket.m_channelGuid);
-		if (packetWithinExpireLimit && findRes != m_guidMappedChannels.end())
+		auto findChannel = m_channels.find(pendingPacket.m_channelGuid);
+		if (packetWithinExpireLimit && findChannel != m_channels.end())
 		{
-			auto& currentChannel = findRes->second;
+			auto& currentChannel = findChannel->second;
 			const auto bytesSend = m_socket->sendTo(pendingPacket.m_buffer.data(), pendingPacket.m_buffer.size(), &pendingPacket.m_target);
 			if (bytesSend <= 0)
 				return;
@@ -176,27 +180,21 @@ void relay::processOutcoming()
 	}
 }
 
-channel& relay::createChannel(const guid& inGuid)
-{
-	return m_channels.emplace_back(channel(inGuid));
-}
-
 void relay::conditionalCleanup(bool force)
 {
 	if (m_lastTickTime >= m_nextCleanupTime || force)
 	{
 		for (auto it = m_channels.begin(); it != m_channels.end();)
 		{
-			const auto timeSinceInactiveMs = std::chrono::duration_cast<std::chrono::milliseconds>(m_lastTickTime - it->m_lastUpdated).count();
+			const auto timeSinceInactiveMs = std::chrono::duration_cast<std::chrono::milliseconds>(m_lastTickTime - it->second.m_lastUpdated).count();
 			if (timeSinceInactiveMs > m_params.m_cleanupInactiveChannelAfterMs)
 			{
-				const auto channelGuidStr = it->m_guid.toString();
-				const auto stats = it->m_stats;
+				const auto channelGuidStr = it->second.m_guid.toString();
+				const auto stats = it->second.m_stats;
 				LOG(Info, Relay, "Channel \"{0}\" inactive and removed. Relayed: {1} packets ({2} bytes); Dropped: {3} ({4})", channelGuidStr, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsReceived - stats.m_packetsSent, stats.m_bytesReceived - stats.m_bytesSent);
 
-				m_addressMappedChannels.erase(it->m_peerA);
-				m_addressMappedChannels.erase(it->m_peerB);
-				m_guidMappedChannels.erase(it->m_guid);
+				m_addressMappedChannels.erase(it->second.m_peerA);
+				m_addressMappedChannels.erase(it->second.m_peerB);
 
 				it = m_channels.erase(it);
 			}

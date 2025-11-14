@@ -49,10 +49,16 @@ public:
 	bool setNonBlocking(bool bNonBlocking = true) const noexcept;
 
 	// sets send buffer size. Returns true on success and sets newSize to actual buffer size applied.
-	bool setSendBufferSize(int32_t size, int32_t& newSize) const noexcept;
+	bool setSendBufferSize(int32_t size) const noexcept;
+
+	// return send buffer size
+	int32_t getSendBufferSize() const noexcept;
 
 	// sets recv buffer size. Returns true on success and sets newSize to actual buffer size applied.
-	bool setRecvBufferSize(int32_t size, int32_t& newSize) const noexcept;
+	bool setRecvBufferSize(int32_t size) const noexcept;
+
+	// return recv buffer size
+	int32_t getRecvBufferSize() const noexcept;
 
 	// set send operation timeout, used in blocking sockets. Return true on success.
 	bool setSendTimeoutUs(int64_t timeoutUs) const noexcept;

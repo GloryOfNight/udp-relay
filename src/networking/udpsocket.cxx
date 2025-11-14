@@ -118,20 +118,30 @@ bool udpsocket::setNonBlocking(bool bNonBlocking) const noexcept
 #endif
 }
 
-bool udpsocket::setSendBufferSize(int32_t size, int32_t& newSize) const noexcept
+bool udpsocket::setSendBufferSize(int32_t size) const noexcept
 {
-	const bool bOk = setsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (char*)&size, sizeof(size)) == 0;
-	socklen_t sizeSize = sizeof(size);
-	getsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (char*)&newSize, &sizeSize);
-	return bOk;
+	return setsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (char*)&size, sizeof(size)) == 0;
 }
 
-bool udpsocket::setRecvBufferSize(int32_t size, int32_t& newSize) const noexcept
+int32_t udpsocket::getSendBufferSize() const noexcept
 {
-	const bool bOk = setsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (buffer_t*)&size, sizeof(size)) == 0;
+	int32_t size{};
 	socklen_t sizeSize = sizeof(size);
-	getsockopt(m_socket, SOL_SOCKET, SO_RCVBUF, (buffer_t*)&newSize, &sizeSize);
-	return bOk;
+	getsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (buffer_t*)&size, &sizeSize);
+	return size;
+}
+
+bool udpsocket::setRecvBufferSize(int32_t size) const noexcept
+{
+	return setsockopt(m_socket, SOL_SOCKET, SO_RCVBUF, (buffer_t*)&size, sizeof(size)) == 0;
+}
+
+int32_t udpsocket::getRecvBufferSize() const noexcept
+{
+	int32_t size{};
+	socklen_t sizeSize = sizeof(size);
+	getsockopt(m_socket, SOL_SOCKET, SO_RCVBUF, (buffer_t*)&size, &sizeSize);
+	return size;
 }
 
 bool udpsocket::setRecvTimeoutUs(int64_t timeoutUs) const noexcept
