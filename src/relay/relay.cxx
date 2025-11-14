@@ -46,7 +46,10 @@ bool relay::init(const relay_params& params)
 		LOG(Info, Relay, "Socket set recv buffer size {} requested", params.m_socketRecvBufferSize);
 	}
 
-	LOG(Info, Relay, "Relay initialized on port {}. SndBuf={}, RcvBuf={}", newSocket->getPort(), newSocket->getSendBufferSize(), newSocket->getRecvBufferSize());
+	
+	LOG(Info, Relay, "Relay initialized on port {}. SndBuf={}, RcvBuf={}. Version: {}.{}.{}",
+		newSocket->getPort(), newSocket->getSendBufferSize(), newSocket->getRecvBufferSize(),
+		UR_PROJECT_VERSION_MAJOR, UR_PROJECT_VERSION_MINOR, UR_PROJECT_VERSION_PATCH);
 
 	m_params = params;
 	m_socket = std::move(newSocket);
