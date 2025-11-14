@@ -49,7 +49,7 @@ By default, the relay expects the following header for the handshake. magicNumbe
 ```c++
 struct alignas(8) handshake_header     // aligned by 8
 {
-	uint32_t m_magicNumber{0x4B28000}; // required - 4 x bytes - must be exact same number
+	uint32_t m_magicNumber{0x4B28000}; // required - 4 bytes - must be exact same number
 	uint32_t m_reserved{};             // spacing
 	guid m_guid{};                     // required - 4 x 4 bytes - must be not null
 };
