@@ -12,10 +12,9 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
-#include <list>
-#include <map>
 #include <memory>
 #include <queue>
+#include <unordered_map>
 #include <vector>
 
 struct channel_stats
@@ -53,12 +52,17 @@ struct pending_packet
 struct relay_params
 {
 	uint16_t m_primaryPort{6060};
-	uint16_t m_expirePacketAfterMs{5};
 	uint32_t m_recvBufferSize{65507};
-	uint32_t m_socketRecvBufferSize{0x10000};
-	uint32_t m_socketSendBufferSize{0x10000};
+	uint32_t m_socketRecvBufferSize{0};
+	uint32_t m_socketSendBufferSize{0};
 	int32_t m_cleanupTimeMs{1800};
 	int32_t m_cleanupInactiveChannelAfterMs{30000};
+	int32_t m_expirePacketAfterMs{5};
+};
+
+struct relay_helpers
+{
+	static std::pair<bool, handshake_header> deserializePacket(const uint8_t* buffer, const size_t len);
 };
 
 class relay
@@ -80,8 +84,6 @@ private:
 
 	void processOutcoming();
 
-	bool checkHandshakePacket(const uint8_t* buffer, size_t bytesRead) const noexcept;
-
 	channel& createChannel(const guid& inGuid);
 
 	void conditionalCleanup(bool force = false);
@@ -92,15 +94,13 @@ private:
 
 	std::vector<uint8_t> m_recvBuffer{};
 
-	// when first client handshake comes, it maps here to associate with guid
-	std::map<guid, channel&> m_guidMappedChannels{};
+	// when first client handshake comes, channel is created
+	std::unordered_map<guid, channel> m_channels{};
 
 	// when second client comes with same guid value, as in m_guidMappedChannels, it maps both addresses here
-	std::map<internetaddr, channel&> m_addressMappedChannels{};
+	std::unordered_map<internetaddr, channel&> m_addressMappedChannels{};
 
 	std::queue<pending_packet> m_sendQueue{};
-
-	std::list<channel> m_channels{};
 
 	uniqueUdpsocket m_socket{};
 
@@ -109,5 +109,5 @@ private:
 
 	std::chrono::time_point<std::chrono::steady_clock> m_nextCleanupTime{};
 
-	std::atomic<bool> m_running{false};
+	std::atomic_bool m_running{false};
 };

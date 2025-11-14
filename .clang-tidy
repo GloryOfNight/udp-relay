@@ -1,1 +1,8 @@
-Checks: 'clang-analyzer-core*,clang-analyzer-cplusplus*,clang-analyzer-unix*,cppcoreguidelines-avoid-goto,cppcoreguidelines-init-variables'
+Checks: >
+    -clang-analyzer-*,
+    clang-analyzer-core*,
+    clang-analyzer-cplusplus*
+
+UseColor: true
+WarningsAsErrors: false
+FormatStyle: 'file'

@@ -3,7 +3,7 @@
 cmake_minimum_required(VERSION 3.28.0)
 
 project(udp-relay
-        VERSION 1.0
+        VERSION 0.5.0
         DESCRIPTION "Instanly simple and efficient UDP packet relay"
         HOMEPAGE_URL "https://github.com/GloryOfNight/udp-relay"
         LANGUAGES CXX C)
@@ -21,34 +21,32 @@ set (UDP_RELAY_SOURCES  src/real_main.cxx
 set(UDP_RELAY_MAIN      $<$<PLATFORM_ID:Linux>:src/unixmain.cxx>
                         $<$<PLATFORM_ID:Windows>:src/winmain.cxx>)
 
-set(UDP_RELAY_LINK_LIBRARIES $<$<PLATFORM_ID:Windows>:ws2_32.dll>)
+add_library(${PROJECT_NAME}-static STATIC ${UDP_RELAY_SOURCES})
+target_link_libraries(${PROJECT_NAME}-static PUBLIC $<$<PLATFORM_ID:Windows>:ws2_32.dll>)
+
+target_include_directories(${PROJECT_NAME}-static PUBLIC    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                                            $<INSTALL_INTERFACE:include>)
+
+target_compile_definitions(${PROJECT_NAME}-static PRIVATE   $<$<CONFIG:Debug>:UR_BUILD_DEBUG=1> 
+                                                            $<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>,$<CONFIG:MinSizeRel>>:UR_BUILD_RELEASE=1>
+                                                            UR_PROJECT_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+                                                            UR_PROJECT_VERSION_MINOR=${PROJECT_VERSION_MINOR}
+                                                            UR_PROJECT_VERSION_PATCH=${PROJECT_VERSION_PATCH})
+
+install(TARGETS ${PROJECT_NAME}-static EXPORT ${PROJECT_NAME}Targets)
+install(EXPORT ${PROJECT_NAME}Targets DESTINATION cmake)
+install(DIRECTORY include DESTINATION include)
+
 
 if (ENABLE_BUILD_EXEC)
-    add_executable(${PROJECT_NAME} ${UDP_RELAY_MAIN} ${UDP_RELAY_SOURCES})
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${UDP_RELAY_LINK_LIBRARIES})
-    target_include_directories(${PROJECT_NAME} PRIVATE include)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE  $<$<CONFIG:Debug>:UR_BUILD_DEBUG=1> 
-                                                        $<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>,$<CONFIG:MinSizeRel>>:UR_BUILD_RELEASE=1>)
+    add_executable(${PROJECT_NAME} ${UDP_RELAY_MAIN})
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}-static)
     install(TARGETS ${PROJECT_NAME})
 endif()
 
-if (ENABLE_BUILD_STATIC_LIB)
-    add_library(${PROJECT_NAME}-static STATIC ${UDP_RELAY_SOURCES})
-    target_link_libraries(${PROJECT_NAME}-static PUBLIC ${UDP_RELAY_LINK_LIBRARIES})
-    target_include_directories(${PROJECT_NAME}-static PUBLIC    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                                                                $<INSTALL_INTERFACE:include>)
-    target_compile_definitions(${PROJECT_NAME}-static PRIVATE   $<$<CONFIG:Debug>:UR_BUILD_DEBUG=1> 
-                                                                $<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>,$<CONFIG:MinSizeRel>>:UR_BUILD_RELEASE=1>)
-    install(TARGETS ${PROJECT_NAME}-static EXPORT ${PROJECT_NAME}Targets)
-    install(EXPORT ${PROJECT_NAME}Targets DESTINATION cmake)
-    install(DIRECTORY include DESTINATION include)
-
-    if (ENABLE_BUILD_TEST)
-        add_subdirectory(test)
-    endif()
+if (ENABLE_BUILD_TEST)
+    add_subdirectory(test)
 endif()
-
-
 
 enable_sanitizers(${PROJECT_NAME} 
                     ${ENABLE_SANITIZER_ADDRESS} 

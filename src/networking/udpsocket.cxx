@@ -22,14 +22,17 @@
 using suseconds_t = long;
 using socklen_t = int;
 using buffer_t = char;
+const socket_t socketInvalid = INVALID_SOCKET;
 #elif PLATFORM_LINUX
 using buffer_t = void;
+const socket_t socketInvalid = -1;
 #endif
 
 udpsocket::udpsocket() noexcept
+	: m_socket{socketInvalid}
 {
 	m_socket = ::socket(AF_INET, SOCK_DGRAM, 0);
-	if (m_socket == -1) [[unlikely]]
+	if (!isValid()) [[unlikely]]
 	{
 		LOG(Error, UdpSocket, "Failed to create socket. Error code: {0}", errno);
 	}
@@ -37,7 +40,7 @@ udpsocket::udpsocket() noexcept
 
 udpsocket::~udpsocket() noexcept
 {
-	if (m_socket != -1) [[likely]]
+	if (isValid())
 #if PLATFORM_WINDOWS
 		closesocket(m_socket);
 #elif PLATFORM_LINUX
@@ -45,7 +48,7 @@ udpsocket::~udpsocket() noexcept
 #endif
 }
 
-bool udpsocket::bind(int32_t port) const
+bool udpsocket::bind(uint16_t port) const
 {
 	sockaddr_in address{};
 	address.sin_family = AF_INET;
@@ -115,20 +118,30 @@ bool udpsocket::setNonBlocking(bool bNonBlocking) const noexcept
 #endif
 }
 
-bool udpsocket::setSendBufferSize(int32_t size, int32_t& newSize) const noexcept
+bool udpsocket::setSendBufferSize(int32_t size) const noexcept
 {
-	const bool bOk = setsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (char*)&size, sizeof(size)) == 0;
-	socklen_t sizeSize = sizeof(size);
-	getsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (char*)&newSize, &sizeSize);
-	return bOk;
+	return setsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (char*)&size, sizeof(size)) == 0;
 }
 
-bool udpsocket::setRecvBufferSize(int32_t size, int32_t& newSize) const noexcept
+int32_t udpsocket::getSendBufferSize() const noexcept
 {
-	const bool bOk = setsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (buffer_t*)&size, sizeof(size)) == 0;
+	int32_t size{};
 	socklen_t sizeSize = sizeof(size);
-	getsockopt(m_socket, SOL_SOCKET, SO_RCVBUF, (buffer_t*)&newSize, &sizeSize);
-	return bOk;
+	getsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, (buffer_t*)&size, &sizeSize);
+	return size;
+}
+
+bool udpsocket::setRecvBufferSize(int32_t size) const noexcept
+{
+	return setsockopt(m_socket, SOL_SOCKET, SO_RCVBUF, (buffer_t*)&size, sizeof(size)) == 0;
+}
+
+int32_t udpsocket::getRecvBufferSize() const noexcept
+{
+	int32_t size{};
+	socklen_t sizeSize = sizeof(size);
+	getsockopt(m_socket, SOL_SOCKET, SO_RCVBUF, (buffer_t*)&size, &sizeSize);
+	return size;
 }
 
 bool udpsocket::setRecvTimeoutUs(int64_t timeoutUs) const noexcept
@@ -187,5 +200,5 @@ bool udpsocket::waitForWriteUs(int64_t timeoutUs) const noexcept
 
 bool udpsocket::isValid() const noexcept
 {
-	return m_socket != -1;
+	return m_socket != socketInvalid;
 }

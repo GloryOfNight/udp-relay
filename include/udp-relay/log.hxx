@@ -59,7 +59,7 @@ namespace ur::core::log
 		ostream << logFinal;
 	}
 
-	static void flush()
+	static inline void flush()
 	{
 		std::cout.flush();
 	}

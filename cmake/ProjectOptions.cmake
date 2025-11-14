@@ -1,7 +1,6 @@
 # Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
 
 option(ENABLE_BUILD_EXEC "Should build udp-relay as executable" ON)
-option(ENABLE_BUILD_STATIC_LIB "Should build udp-relay as static lib" ON)
 option(ENABLE_BUILD_TEST "Should build test functionality" ON)
 
 option(ENABLE_SANITIZER_ADDRESS "Enable address sanitizer" OFF)

@@ -43,13 +43,19 @@ struct guid
 		std::snprintf(buffer, sizeof(buffer), "%08x-%04x-%04x-%04x-%04x%08x", m_a, m_b >> 16, m_b & 0xFFFF, m_c >> 16, m_c & 0xFFFF, m_d);
 		return std::string(buffer);
 	}
+
+	bool isValid() const noexcept
+	{
+		return m_a || m_b || m_c || m_d;
+	}
 };
 
 const uint32_t handshake_header_magic_number = 0x4B28000;
-const uint16_t handshake_header_min_size = 20;
-struct handshake_header
+const uint16_t handshake_header_min_size = 24;
+struct alignas(8) handshake_header
 {
-	int32_t m_magicNumber{handshake_header_magic_number};
+	uint32_t m_magicNumber{handshake_header_magic_number};
+	uint32_t m_reserved{};
 	guid m_guid{};
 };
 static_assert(sizeof(handshake_header) == handshake_header_min_size);
@@ -62,8 +68,8 @@ namespace std
 	{
 		std::size_t operator()(const guid& g) const noexcept
 		{
-			const uint64_t high = *reinterpret_cast<const uint64_t*>(&g.m_a);
-			const uint64_t low = *reinterpret_cast<const uint64_t*>(&g.m_c);
+			const uint64_t high = (static_cast<uint64_t>(g.m_a) << 32) | static_cast<uint64_t>(g.m_b);
+			const uint64_t low = (static_cast<uint64_t>(g.m_c) << 32) | static_cast<uint64_t>(g.m_d);
 			return std::hash<uint64_t>{}(high ^ low);
 		}
 	};
@@ -71,15 +77,10 @@ namespace std
 	template <>
 	struct less<guid>
 	{
-		bool operator()(const guid& left, const guid& right) const noexcept
+		bool operator()(const guid& a, const guid& b) const noexcept
 		{
-			if (left.m_a != right.m_a)
-				return left.m_a < right.m_a;
-			if (left.m_b != right.m_b)
-				return left.m_b < right.m_b;
-			if (left.m_c != right.m_c)
-				return left.m_c < right.m_c;
-			return left.m_d < right.m_d;
+			return std::tie(a.m_a, a.m_b, a.m_c, a.m_d) <
+				   std::tie(b.m_a, b.m_b, b.m_c, b.m_d);
 		}
 	};
 
@@ -93,7 +94,8 @@ namespace std
 	{
 		std::size_t operator()(const internetaddr& g) const noexcept
 		{
-			return std::hash<int32_t>{}(g.getIp() ^ g.getPort());
+			const uint64_t value = (static_cast<uint64_t>(g.getIp()) << 32) | static_cast<uint64_t>(g.getPort());
+			return std::hash<uint64_t>{}(value);
 		}
 	};
 
