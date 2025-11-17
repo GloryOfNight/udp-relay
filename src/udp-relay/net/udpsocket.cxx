@@ -6,9 +6,9 @@
 #include "udp-relay/net/internetaddr.hxx"
 #include "udp-relay/net/network_utils.hxx"
 
-#if PLATFORM_WINDOWS
+#if UR_PLATFORM_WINDOWS
 #include <WinSock2.h>
-#elif PLATFORM_LINUX
+#elif UR_PLATFORM_LINUX
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>

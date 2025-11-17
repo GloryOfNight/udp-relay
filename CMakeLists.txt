@@ -31,7 +31,7 @@ target_include_directories(${PROJECT_NAME}-static PUBLIC    $<BUILD_INTERFACE:${
 target_compile_definitions(${PROJECT_NAME}-static PUBLIC    UR_BUILD_DEBUG=$<CONFIG:Debug>
                                                             UR_BUILD_RELEASE=$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>,$<CONFIG:MinSizeRel>>
                                                             UR_PLATFORM_WINDOWS=$<PLATFORM_ID:Windows>
-                                                            UR_PLATFORM_LINUX=$<PLATFORM_ID:Linux
+                                                            UR_PLATFORM_LINUX=$<PLATFORM_ID:Linux>
                                                             UR_PROJECT_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
                                                             UR_PROJECT_VERSION_MINOR=${PROJECT_VERSION_MINOR}
                                                             UR_PROJECT_VERSION_PATCH=${PROJECT_VERSION_PATCH})

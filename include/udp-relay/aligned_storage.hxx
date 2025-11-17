@@ -6,7 +6,7 @@
 
 namespace ur
 {
-	template <size_t _alignment, size_t _size>
+	template <std::size_t _alignment, std::size_t _size>
 	struct aligned_storage
 	{
 		aligned_storage()
@@ -24,12 +24,12 @@ namespace ur
 			::operator delete(m_data, std::align_val_t(_alignment));
 		}
 
-		constexpr size_t size() const
+		constexpr std::size_t size() const
 		{
 			return _size;
 		}
 
-		constexpr size_t alignment() const
+		constexpr std::size_t alignment() const
 		{
 			return _alignment;
 		}
