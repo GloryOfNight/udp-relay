@@ -44,9 +44,9 @@ struct guid
 		return std::string(buffer);
 	}
 
-	bool isValid() const noexcept
+	bool isNull() const noexcept
 	{
-		return m_a || m_b || m_c || m_d;
+		return !(m_a || m_b || m_c || m_d);
 	}
 };
 

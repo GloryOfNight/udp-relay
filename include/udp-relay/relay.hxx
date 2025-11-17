@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "udp-relay/aligned_storage.hxx"
 #include "udp-relay/networking/internetaddr.hxx"
 #include "udp-relay/networking/network_utils.hxx"
 #include "udp-relay/networking/udpsocket.hxx"
@@ -12,10 +13,10 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <cstdlib>
 #include <memory>
 #include <queue>
 #include <unordered_map>
-#include <vector>
 
 struct channel_stats
 {
@@ -24,6 +25,8 @@ struct channel_stats
 
 	uint32_t m_packetsReceived{};
 	uint32_t m_packetsSent{};
+
+	uint32_t m_sendPacketDelays{};
 };
 
 struct channel
@@ -52,7 +55,6 @@ struct pending_packet
 struct relay_params
 {
 	uint16_t m_primaryPort{6060};
-	uint32_t m_recvBufferSize{65507};
 	uint32_t m_socketRecvBufferSize{0};
 	uint32_t m_socketSendBufferSize{0};
 	int32_t m_cleanupTimeMs{1800};
@@ -60,10 +62,7 @@ struct relay_params
 	int32_t m_expirePacketAfterMs{5};
 };
 
-struct relay_helpers
-{
-	static std::pair<bool, handshake_header> deserializePacket(const uint8_t* buffer, const size_t len);
-};
+using recvBufferStorage = ur::aligned_storage<alignof(std::max_align_t), 65536>;
 
 class relay
 {
@@ -92,7 +91,7 @@ private:
 
 	internetaddr m_recvAddr{};
 
-	std::vector<uint8_t> m_recvBuffer{};
+	recvBufferStorage m_recvBuffer{};
 
 	// when first client handshake comes, channel is created
 	std::unordered_map<guid, channel> m_channels{};

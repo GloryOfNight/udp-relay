@@ -3,7 +3,7 @@
 cmake_minimum_required(VERSION 3.28.0)
 
 project(udp-relay
-        VERSION 0.5.0
+        VERSION 0.5.1
         DESCRIPTION "Instanly simple and efficient UDP packet relay"
         HOMEPAGE_URL "https://github.com/GloryOfNight/udp-relay"
         LANGUAGES CXX C)
@@ -14,7 +14,8 @@ include(cmake/Sanitizers.cmake)
 include(cmake/PreventInSourceBuilds.cmake)
 
 set (UDP_RELAY_SOURCES  src/real_main.cxx
-                        src/relay/relay.cxx
+                        src/udp-relay/relay.cxx
+                        src/udp-relay/version.cxx
                         src/networking/udpsocket.cxx
                         src/networking/internetaddr.cxx)
 
