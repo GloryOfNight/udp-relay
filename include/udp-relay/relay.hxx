@@ -4,9 +4,8 @@
 
 #include "udp-relay/aligned_storage.hxx"
 #include "udp-relay/guid.hxx"
-#include "udp-relay/networking/internetaddr.hxx"
-#include "udp-relay/networking/network_utils.hxx"
-#include "udp-relay/networking/udpsocket.hxx"
+#include "udp-relay/net/internetaddr.hxx"
+#include "udp-relay/net/udpsocket.hxx"
 
 #include <array>
 #include <atomic>

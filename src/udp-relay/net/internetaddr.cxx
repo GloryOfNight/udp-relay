@@ -1,8 +1,8 @@
 // Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
 
-#include "udp-relay/networking/internetaddr.hxx"
+#include "udp-relay/net/internetaddr.hxx"
 
-#include "udp-relay/networking/network_utils.hxx"
+#include "udp-relay/net/network_utils.hxx"
 
 #if UR_PLATFORM_WINDOWS
 #include <ws2tcpip.h>
