@@ -44,12 +44,12 @@ Peer A <-- handshake packet with GUID (1,2,3,4) --  Relay *Peer B has mapping fo
 // note that if communication between peers stops for ~30 seconds - relay will clear the mapping for addresses.
 ```
 
-By default, the relay expects the following header for the handshake. magicNumber used to identify handshake packets and GUID can't be null.
+By default, the relay expects the following header for the handshake. magicNumber used to identify handshake packets and GUID can't be null. Relay expects header in network byte order, after communication channel is established - relay doesn't care about contents of received packets.
 
 ```c++
 struct alignas(8) handshake_header     // aligned by 8
 {
-	uint32_t m_magicNumber{0x4B28000}; // required - 4 x bytes - must be exact same number
+	uint32_t m_magicNumber{0x4B28000}; // required - 4 bytes - must be exact same number
 	uint32_t m_reserved{};             // spacing
 	guid m_guid{};                     // required - 4 x 4 bytes - must be not null
 };
