@@ -2,11 +2,9 @@
 
 #pragma once
 
-#include "udp-relay/platform.h"
-
-#if PLATFORM_WINDOWS
+#if UR_PLATFORM_WINDOWS
 #include <WinSock2.h>
-#elif PLATFORM_LINUX
+#elif UR_PLATFORM_LINUX
 #include <netinet/in.h>
 #endif
 

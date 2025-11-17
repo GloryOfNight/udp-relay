@@ -18,12 +18,12 @@
 #include <unistd.h>
 #endif
 
-#if PLATFORM_WINDOWS
+#if UR_PLATFORM_WINDOWS
 using suseconds_t = long;
 using socklen_t = int;
 using buffer_t = char;
 const socket_t socketInvalid = INVALID_SOCKET;
-#elif PLATFORM_LINUX
+#elif UR_PLATFORM_LINUX
 using buffer_t = void;
 const socket_t socketInvalid = -1;
 #endif
@@ -41,9 +41,9 @@ udpsocket::udpsocket() noexcept
 udpsocket::~udpsocket() noexcept
 {
 	if (isValid())
-#if PLATFORM_WINDOWS
+#if UR_PLATFORM_WINDOWS
 		closesocket(m_socket);
-#elif PLATFORM_LINUX
+#elif UR_PLATFORM_LINUX
 		::close(m_socket);
 #endif
 }
@@ -95,9 +95,9 @@ int32_t udpsocket::recvFrom(void* buffer, size_t bufferSize, internetaddr* addr)
 
 bool udpsocket::setReuseAddr(bool bAllowReuse) const noexcept
 {
-#if PLATFORM_WINDOWS
+#if UR_PLATFORM_WINDOWS
 	const bool opt = bAllowReuse;
-#elif PLATFORM_LINUX
+#elif UR_PLATFORM_LINUX
 	const int opt = bAllowReuse;
 #endif
 	const bool bOk = setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, (buffer_t*)&opt, sizeof(opt)) == 0;
@@ -106,10 +106,10 @@ bool udpsocket::setReuseAddr(bool bAllowReuse) const noexcept
 
 bool udpsocket::setNonBlocking(bool bNonBlocking) const noexcept
 {
-#if PLATFORM_WINDOWS
+#if UR_PLATFORM_WINDOWS
 	u_long value = bNonBlocking;
 	return ioctlsocket(m_socket, FIONBIO, &value) == 0;
-#elif PLATFORM_LINUX
+#elif UR_PLATFORM_LINUX
 	int flags = fcntl(m_socket, F_GETFL, 0);
 	if (flags == -1) [[unlikely]]
 		return false;
@@ -146,9 +146,9 @@ int32_t udpsocket::getRecvBufferSize() const noexcept
 
 bool udpsocket::setRecvTimeoutUs(int64_t timeoutUs) const noexcept
 {
-#if PLATFORM_WINDOWS
+#if UR_PLATFORM_WINDOWS
 	DWORD time = (timeoutUs + 999) / 1000;
-#elif PLATFORM_LINUX
+#elif UR_PLATFORM_LINUX
 	timeval time;
 	time.tv_sec = timeoutUs / 1000000;
 	time.tv_usec = timeoutUs % 1000000;
@@ -159,9 +159,9 @@ bool udpsocket::setRecvTimeoutUs(int64_t timeoutUs) const noexcept
 
 bool udpsocket::setSendTimeoutUs(int64_t timeoutUs) const noexcept
 {
-#if PLATFORM_WINDOWS
+#if UR_PLATFORM_WINDOWS
 	DWORD time = (timeoutUs + 999) / 1000;
-#elif PLATFORM_LINUX
+#elif UR_PLATFORM_LINUX
 	timeval time;
 	time.tv_sec = timeoutUs / 1000000;
 	time.tv_usec = timeoutUs % 1000000;

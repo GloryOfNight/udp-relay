@@ -2,16 +2,14 @@
 
 #pragma once
 
-#include "udp-relay/platform.h"
-
 #include <cstdint>
 #include <memory>
 #include <stddef.h>
 
 // handle for native sockets descriptors
-#if PLATFORM_WINDOWS
+#if UR_PLATFORM_WINDOWS
 using socket_t = uint64_t;
-#elif PLATFORM_LINUX
+#elif UR_PLATFORM_LINUX
 using socket_t = int;
 #endif
 

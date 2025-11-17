@@ -4,9 +4,9 @@
 
 #include "udp-relay/networking/network_utils.hxx"
 
-#if PLATFORM_WINDOWS
+#if UR_PLATFORM_WINDOWS
 #include <ws2tcpip.h>
-#elif PLATFORM_LINUX
+#elif UR_PLATFORM_LINUX
 #include <arpa/inet.h>
 #endif
 
@@ -46,11 +46,11 @@ void internetaddr::setPort(const uint16_t port) noexcept
 
 std::string internetaddr::toString() const
 {
-#if PLATFORM_WINDOWS
+#if UR_PLATFORM_WINDOWS
 	char ipBuffer[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &(m_addr.sin_addr), ipBuffer, INET_ADDRSTRLEN);
 	return std::format("{0}:{1}", ipBuffer, ur::net::ntoh16(m_addr.sin_port));
-#elif PLATFORM_LINUX
+#elif UR_PLATFORM_LINUX
 	return std::format("{0}:{1}", inet_ntoa(m_addr.sin_addr), ur::net::ntoh16(m_addr.sin_port));
 #endif
 }
