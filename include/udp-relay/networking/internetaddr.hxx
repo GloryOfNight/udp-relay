@@ -50,3 +50,36 @@ private:
 
 using uniqueInternetaddr = std::unique_ptr<internetaddr>;
 using sharedInternetaddr = std::shared_ptr<internetaddr>;
+
+namespace std
+{
+	template <>
+	struct hash<internetaddr>
+	{
+		std::size_t operator()(const internetaddr& g) const noexcept
+		{
+			const uint64_t value = (static_cast<uint64_t>(g.getIp()) << 32) | static_cast<uint64_t>(g.getPort());
+			return std::hash<uint64_t>{}(value);
+		}
+	};
+
+	template <>
+	struct equal_to<internetaddr>
+	{
+		bool operator()(const internetaddr& left, const internetaddr& right) const noexcept
+		{
+			return left == right;
+		}
+	};
+
+	template <>
+	struct less<internetaddr>
+	{
+		bool operator()(const internetaddr& left, const internetaddr& right) const noexcept
+		{
+			if (left.getIp() != right.getIp())
+				return left.getIp() < right.getIp();
+			return left.getPort() < right.getPort();
+		}
+	};
+} // namespace std

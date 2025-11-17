@@ -5,6 +5,7 @@
 #include "udp-relay/log.hxx"
 #include "udp-relay/networking/network_utils.hxx"
 #include "udp-relay/networking/udpsocket.hxx"
+#include "udp-relay/relay.hxx"
 #include "udp-relay/utils.hxx"
 
 #include <algorithm>

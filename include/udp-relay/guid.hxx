@@ -1,14 +1,9 @@
-// Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
-
 #pragma once
-
-#include "networking/internetaddr.hxx"
 
 #include "utils.hxx"
 
-#include <compare>
 #include <cstdint>
-#include <memory>
+#include <string>
 
 struct guid
 {
@@ -50,16 +45,6 @@ struct guid
 	}
 };
 
-const uint32_t handshake_header_magic_number = 0x4B28000;
-const uint16_t handshake_header_min_size = 24;
-struct alignas(8) handshake_header
-{
-	uint32_t m_magicNumber{handshake_header_magic_number};
-	uint32_t m_reserved{};
-	guid m_guid{};
-};
-static_assert(sizeof(handshake_header) == handshake_header_min_size);
-
 // custom hash for guid
 namespace std
 {
@@ -84,38 +69,4 @@ namespace std
 		}
 	};
 
-} // namespace std
-
-// custom hash and equal_to for internetaddr
-namespace std
-{
-	template <>
-	struct hash<internetaddr>
-	{
-		std::size_t operator()(const internetaddr& g) const noexcept
-		{
-			const uint64_t value = (static_cast<uint64_t>(g.getIp()) << 32) | static_cast<uint64_t>(g.getPort());
-			return std::hash<uint64_t>{}(value);
-		}
-	};
-
-	template <>
-	struct equal_to<internetaddr>
-	{
-		bool operator()(const internetaddr& left, const internetaddr& right) const noexcept
-		{
-			return left == right;
-		}
-	};
-
-	template <>
-	struct less<internetaddr>
-	{
-		bool operator()(const internetaddr& left, const internetaddr& right) const noexcept
-		{
-			if (left.getIp() != right.getIp())
-				return left.getIp() < right.getIp();
-			return left.getPort() < right.getPort();
-		}
-	};
 } // namespace std

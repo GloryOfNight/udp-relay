@@ -2,8 +2,8 @@
 
 #pragma once
 
+#include "udp-relay/guid.hxx"
 #include "udp-relay/networking/udpsocket.hxx"
-#include "udp-relay/types.hxx"
 
 #include <atomic>
 

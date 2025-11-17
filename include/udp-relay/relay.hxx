@@ -3,11 +3,10 @@
 #pragma once
 
 #include "udp-relay/aligned_storage.hxx"
+#include "udp-relay/guid.hxx"
 #include "udp-relay/networking/internetaddr.hxx"
 #include "udp-relay/networking/network_utils.hxx"
 #include "udp-relay/networking/udpsocket.hxx"
-
-#include "types.hxx"
 
 #include <array>
 #include <atomic>
@@ -61,6 +60,16 @@ struct relay_params
 	int32_t m_cleanupInactiveChannelAfterMs{30000};
 	int32_t m_expirePacketAfterMs{5};
 };
+
+const uint32_t handshake_header_magic_number = 0x4B28000;
+const uint16_t handshake_header_min_size = 24;
+struct alignas(8) handshake_header
+{
+	uint32_t m_magicNumber{handshake_header_magic_number};
+	uint32_t m_reserved{};
+	guid m_guid{};
+};
+static_assert(sizeof(handshake_header) == handshake_header_min_size);
 
 using recvBufferStorage = ur::aligned_storage<alignof(std::max_align_t), 65536>;
 
