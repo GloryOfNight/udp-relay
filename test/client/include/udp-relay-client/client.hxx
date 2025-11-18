@@ -13,6 +13,7 @@ struct relay_client_params
 	int32_t m_sendIntervalMs{};
 	int32_t m_server_ip{};
 	uint16_t m_server_port{};
+	bool useIpv6{};
 };
 
 class relay_client

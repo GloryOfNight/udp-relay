@@ -17,13 +17,13 @@ using socket_t = int;
 class udpsocket final
 {
 public:
-	udpsocket() noexcept;
+	udpsocket(bool ipv6) noexcept;
 	udpsocket(const udpsocket&) = delete;
 	udpsocket(udpsocket&&) = delete;
 	~udpsocket() noexcept;
 
 	// bind on socket on specific port in host byte order
-	bool bind(uint16_t port) const;
+	bool bind(const struct internetaddr& addr) const;
 
 	// get socket port in host byte order
 	uint16_t getPort() const;
@@ -34,11 +34,16 @@ public:
 	// true if socket handle is valid and class ready to use
 	bool isValid() const noexcept;
 
+	bool isIpv6() const noexcept;
+
 	// sends data to addr. Return bytes sent or -1 on error
 	int32_t sendTo(void* buffer, size_t bufferSize, const struct internetaddr* addr) const noexcept;
 
 	//  receives data. Return bytes received or -1 on error
 	int32_t recvFrom(void* buffer, size_t bufferSize, struct internetaddr* addr) const noexcept;
+
+	// for ipv6 socket, set if socket should be ipv6 only or dual-stack
+	bool setOnlyIpv6(bool value) const noexcept;
 
 	// allow socket to reuse addr
 	bool setReuseAddr(bool bAllowReuse = true) const noexcept;
@@ -80,8 +85,9 @@ class udpsocketFactory
 {
 public:
 	// creates unique udp socket handle
-	static uniqueUdpsocket createUdpSocket()
+	template <typename... T>
+	static uniqueUdpsocket createUdpSocket(T&&... t)
 	{
-		return uniqueUdpsocket(new udpsocket());
+		return uniqueUdpsocket(new udpsocket(std::forward<T>(t)...));
 	}
 };

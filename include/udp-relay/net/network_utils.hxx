@@ -37,19 +37,19 @@ namespace ur::net
 
 	// clang-format off
 	// Inline wrappers for 16-bit
-	inline uint16_t bs16(uint16_t v)	noexcept { return byteswap<uint16_t>(v);}
-	inline uint16_t hton16(uint16_t v)	noexcept { return hton<uint16_t>(v);	}
-	inline uint16_t ntoh16(uint16_t v)	noexcept { return ntoh<uint16_t>(v);	}
+	constexpr uint16_t bs16(uint16_t v)	noexcept { return byteswap<uint16_t>(v);}
+	constexpr uint16_t hton16(uint16_t v)	noexcept { return hton<uint16_t>(v);	}
+	constexpr uint16_t ntoh16(uint16_t v)	noexcept { return ntoh<uint16_t>(v);	}
 
 	// Inline wrappers for 32-bit
-	inline uint32_t bs32(uint32_t v)	noexcept { return byteswap<uint32_t>(v);}
-	inline uint32_t hton32(uint32_t v)	noexcept { return hton<uint32_t>(v);	}
-	inline uint32_t ntoh32(uint32_t v)	noexcept { return ntoh<uint32_t>(v);	}
+	constexpr uint32_t bs32(uint32_t v)	noexcept { return byteswap<uint32_t>(v);}
+	constexpr uint32_t hton32(uint32_t v)	noexcept { return hton<uint32_t>(v);	}
+	constexpr uint32_t ntoh32(uint32_t v)	noexcept { return ntoh<uint32_t>(v);	}
 
 	// Inline wrappers for 64-bit
-	inline uint64_t bs64(uint64_t v)	noexcept { return byteswap<uint64_t>(v);}
-	inline uint64_t hton64(uint64_t v)	noexcept { return hton<uint64_t>(v);	}
-	inline uint64_t ntoh64(uint64_t v)	noexcept { return ntoh<uint64_t>(v);	}
+	constexpr uint64_t bs64(uint64_t v)	noexcept { return byteswap<uint64_t>(v);}
+	constexpr uint64_t hton64(uint64_t v)	noexcept { return hton<uint64_t>(v);	}
+	constexpr uint64_t ntoh64(uint64_t v)	noexcept { return ntoh<uint64_t>(v);	}
 	// clang-format on
 } // namespace ur::net
 

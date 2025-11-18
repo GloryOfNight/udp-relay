@@ -8,6 +8,7 @@
 
 #if UR_PLATFORM_WINDOWS
 #include <WinSock2.h>
+#include <ws2ipdef.h>
 #elif UR_PLATFORM_LINUX
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -28,10 +29,10 @@ using buffer_t = void;
 const socket_t socketInvalid = -1;
 #endif
 
-udpsocket::udpsocket() noexcept
-	: m_socket{socketInvalid}
+udpsocket::udpsocket(bool ipv6) noexcept
 {
-	m_socket = ::socket(AF_INET, SOCK_DGRAM, 0);
+	const int af = ipv6 ? AF_INET6 : AF_INET;
+	m_socket = ::socket(af, SOCK_DGRAM, 0);
 	if (!isValid()) [[unlikely]]
 	{
 		LOG(Error, UdpSocket, "Failed to create socket. Error code: {0}", errno);
@@ -48,33 +49,44 @@ udpsocket::~udpsocket() noexcept
 #endif
 }
 
-bool udpsocket::bind(uint16_t port) const
+bool udpsocket::isIpv6() const noexcept
 {
-	sockaddr_in address{};
-	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = INADDR_ANY;
-	address.sin_port = ur::net::hton16(port);
+	sockaddr_storage addr{};
+	socklen_t len = sizeof(addr);
 
-	if (::bind(m_socket, (struct sockaddr*)&address, sizeof(address)) == -1)
+	if (getsockname(m_socket, (sockaddr*)&addr, &len) == -1)
+		return false;
+
+	return addr.ss_family == AF_INET6;
+}
+
+bool udpsocket::bind(const internetaddr& addr) const
+{
+	sockaddr_storage saddr{};
+	addr.copyToNative(saddr);
+
+	if (::bind(m_socket, (sockaddr*)&saddr, sizeof(saddr)) == -1)
 	{
-		LOG(Error, UdpSocket, "Failed to bind socket to port {0}", port);
 		return false;
 	}
-
 	return true;
 }
 
 uint16_t udpsocket::getPort() const
 {
-	sockaddr_storage addr{};
-	socklen_t socklen = sizeof(sockaddr_storage);
-	const int res = getsockname(m_socket, (sockaddr*)&addr, &socklen) == 0;
+	sockaddr_storage saddr{};
+	socklen_t slen = sizeof(saddr);
+
+	const int res = getsockname(m_socket, (sockaddr*)&saddr, &slen) == 0;
 	if (res == 0) [[unlikely]]
 	{
 		LOG(Error, UdpSocket, "Failed to get port. Error code: {0}", errno);
 		return 0;
 	}
-	return ur::net::ntoh16(((sockaddr_in&)addr).sin_port);
+
+	internetaddr addr{};
+	addr.copyFromNative(saddr);
+	return addr.getPort();
 }
 
 socket_t udpsocket::getNativeSocket() const noexcept
@@ -84,13 +96,31 @@ socket_t udpsocket::getNativeSocket() const noexcept
 
 int32_t udpsocket::sendTo(void* buffer, size_t bufferSize, const internetaddr* addr) const noexcept
 {
-	return ::sendto(m_socket, (const buffer_t*)buffer, bufferSize, 0, (struct sockaddr*)&addr->getAddr(), sizeof(sockaddr_in));
+	sockaddr_storage saddr{};
+	const socklen_t slen = sizeof(saddr);
+
+	addr->copyToNative(saddr);
+	return ::sendto(m_socket, (const buffer_t*)buffer, bufferSize, 0, (struct sockaddr*)&saddr, slen);
 }
 
 int32_t udpsocket::recvFrom(void* buffer, size_t bufferSize, internetaddr* addr) const noexcept
 {
-	socklen_t socklen = sizeof(sockaddr_in);
-	return ::recvfrom(m_socket, (buffer_t*)buffer, bufferSize, 0, (struct sockaddr*)&addr->getAddr(), &socklen);
+	sockaddr_storage saddr{};
+	socklen_t slen = sizeof(saddr);
+
+	const int32_t res = ::recvfrom(m_socket, (buffer_t*)buffer, bufferSize, 0, (struct sockaddr*)&saddr, &slen);
+	addr->copyFromNative(saddr);
+	return res;
+}
+
+bool udpsocket::setOnlyIpv6(bool value) const noexcept
+{
+#if UR_PLATFORM_WINDOWS
+	const bool opt = value;
+#elif UR_PLATFORM_LINUX
+	const int opt = value ? 1 : 0;
+#endif
+	return setsockopt(m_socket, IPPROTO_IPV6, IPV6_V6ONLY, (const buffer_t*)&opt, sizeof(opt)) == 0;
 }
 
 bool udpsocket::setReuseAddr(bool bAllowReuse) const noexcept
@@ -100,7 +130,7 @@ bool udpsocket::setReuseAddr(bool bAllowReuse) const noexcept
 #elif UR_PLATFORM_LINUX
 	const int opt = bAllowReuse;
 #endif
-	const bool bOk = setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, (buffer_t*)&opt, sizeof(opt)) == 0;
+	const bool bOk = setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, (const buffer_t*)&opt, sizeof(opt)) == 0;
 	return bOk;
 }
 

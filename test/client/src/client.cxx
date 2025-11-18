@@ -84,9 +84,7 @@ void relay_client::run(const relay_client_params& params)
 
 	internetaddr recvAddr{};
 
-	internetaddr relayAddr{};
-	relayAddr.setIp(m_params.m_server_ip);
-	relayAddr.setPort(htons(m_params.m_server_port));
+	internetaddr relayAddr = internetaddr::make_ipv4(m_params.m_server_ip, m_params.m_server_port);
 
 	auto lastSendTime = std::chrono::steady_clock::now();
 
@@ -201,7 +199,7 @@ bool relay_client::init()
 {
 	m_latenciesMs.reserve(2048);
 
-	m_socket = udpsocketFactory::createUdpSocket();
+	m_socket = udpsocketFactory::createUdpSocket(false);
 	if (!m_socket || !m_socket->isValid())
 	{
 		return false;
@@ -212,7 +210,13 @@ bool relay_client::init()
 		return false;
 	}
 
-	if (!m_socket->bind(0))
+	auto bindAddr = m_params.useIpv6 ? internetaddr::make_ipv6(ur::net::anyIpv6(), 0) : internetaddr::make_ipv4(ur::net::anyIpv4(), 0);
+	if (!m_socket->bind(bindAddr))
+	{
+		return false;
+	}
+
+	if (m_params.useIpv6 && !m_socket->setOnlyIpv6(false))
 	{
 		return false;
 	}

@@ -2,62 +2,86 @@
 
 #pragma once
 
-#if UR_PLATFORM_WINDOWS
-#include <WinSock2.h>
-#elif UR_PLATFORM_LINUX
-#include <netinet/in.h>
-#endif
-
+#include <array>
+#include <bit>
+#include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <string>
+
+struct sockaddr_storage;
+
+namespace ur::net
+{
+	extern uint32_t anyIpv4();
+	extern uint32_t localhostIpv4();
+
+	extern std::array<std::byte, 16> anyIpv6();
+	extern std::array<std::byte, 16> localhostIpv6();
+} // namespace ur::net
 
 // address class for sockets to handle ip & ports
 struct internetaddr final
 {
-	internetaddr() noexcept;
-	internetaddr(const sockaddr_in& addr) noexcept;
+	// make ipv4 address
+	static internetaddr make_ipv4(uint32_t ip, uint16_t port) noexcept;
 
-	// raw ip. Network byte order
-	int32_t getIp() const noexcept;
+	// make ipv6 address
+	static internetaddr make_ipv6(std::array<std::byte, 16> ip, uint16_t port) noexcept;
 
-	// set raw ip. Network byte order
-	void setIp(const int32_t ip) noexcept;
+	// convert address to address string
+	std::string toString(bool withPort = true) const;
 
-	// get port. Network byte order
+	// copy address from native address structure
+	void copyToNative(sockaddr_storage& saddr) const noexcept;
+
+	// copy address to native address structure
+	void copyFromNative(const sockaddr_storage& saddr) noexcept;
+
+	// check is initialized
+	bool isNull() const noexcept;
+
+	// get raw ip array
+	const std::array<std::byte, 16>& getRawIp() const noexcept;
+
+	// get host ordered port
 	uint16_t getPort() const noexcept;
 
-	// set port. Network byte order
-	void setPort(const uint16_t port) noexcept;
+	// true if initialized as ipv4
+	bool isIpv4() const noexcept;
 
-	// get current address as a address string
-	std::string toString() const;
+	// true if initialized as ipv6
+	bool isIpv6() const noexcept;
 
-	// get native addr structure
-	const sockaddr_in& getAddr() const noexcept { return m_addr; };
-
-	bool operator==(const internetaddr& other) const noexcept { return getIp() == other.getIp() && getPort() == other.getPort(); }
-	bool operator!=(const internetaddr& other) const noexcept { return getIp() != other.getIp() || getPort() != other.getPort(); }
-
-	// check if is default constructed
-	bool isValid() const noexcept { return *this != internetaddr(); };
+	bool operator==(const internetaddr& other) const noexcept;
+	bool operator!=(const internetaddr& other) const noexcept;
 
 private:
-	sockaddr_in m_addr{};
+	uint16_t m_family{};						 // AF_INET or AF_INET6
+	uint16_t m_port{};							 // host order
+	alignas(2) std::array<std::byte, 16> m_ip{}; // ip bytes
 };
-
-using uniqueInternetaddr = std::unique_ptr<internetaddr>;
-using sharedInternetaddr = std::shared_ptr<internetaddr>;
 
 namespace std
 {
 	template <>
 	struct hash<internetaddr>
 	{
-		std::size_t operator()(const internetaddr& g) const noexcept
+		std::size_t operator()(const internetaddr& val) const noexcept
 		{
-			const uint64_t value = (static_cast<uint64_t>(g.getIp()) << 32) | static_cast<uint64_t>(g.getPort());
-			return std::hash<uint64_t>{}(value);
+			const auto& rawIp = val.getRawIp();
+			const uint32_t* a = std::bit_cast<const uint32_t*>(rawIp.data());
+			const uint32_t* b = std::bit_cast<const uint32_t*>(rawIp.data() + 4);
+			const uint32_t* c = std::bit_cast<const uint32_t*>(rawIp.data() + 8);
+			const uint32_t* d = std::bit_cast<const uint32_t*>(rawIp.data() + 12);
+			const uint16_t port = val.getPort();
+
+			size_t h = std::hash<uint32_t>{}(*a);
+			h = h * 31 + std::hash<uint32_t>{}(*b);
+			h = h * 31 + std::hash<uint32_t>{}(*c);
+			h = h * 31 + std::hash<uint32_t>{}(*d);
+			h = h * 31 + std::hash<uint16_t>{}(port);
+
+			return h;
 		}
 	};
 
@@ -75,8 +99,9 @@ namespace std
 	{
 		bool operator()(const internetaddr& left, const internetaddr& right) const noexcept
 		{
-			if (left.getIp() != right.getIp())
-				return left.getIp() < right.getIp();
+			const int ipCmp = std::memcmp(left.getRawIp().data(), right.getRawIp().data(), left.getRawIp().size());
+			if (ipCmp != 0)
+				return ipCmp < 0;
 			return left.getPort() < right.getPort();
 		}
 	};

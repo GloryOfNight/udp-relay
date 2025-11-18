@@ -58,6 +58,7 @@ struct relay_params
 	int32_t m_cleanupTimeMs{1800};
 	int32_t m_cleanupInactiveChannelAfterMs{30000};
 	int32_t m_expirePacketAfterMs{5};
+	bool ipv6{};
 };
 
 const uint32_t handshake_header_magic_number = 0x4B28000;

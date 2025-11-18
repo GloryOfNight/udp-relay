@@ -37,16 +37,21 @@ bool relay::init(const relay_params& params)
 {
 	LOG(Verbose, Relay, "Begin initialization");
 
-	uniqueUdpsocket newSocket = udpsocketFactory::createUdpSocket();
+	uniqueUdpsocket newSocket = udpsocketFactory::createUdpSocket(params.ipv6);
 	if (newSocket == nullptr || !newSocket->isValid())
 	{
 		LOG(Error, Relay, "Failed to create socket!");
 		return false;
 	}
 
-	LOG(Verbose, Relay, "Created primary udp socket");
+	if (params.ipv6 && !newSocket->setOnlyIpv6(false))
+	{
+		LOG(Error, Relay, "Failed set socket ipv6 to dual-stack mode");
+		return false;
+	}
 
-	if (!newSocket->bind(params.m_primaryPort))
+	const auto addr = params.ipv6 ? internetaddr::make_ipv6(ur::net::anyIpv6(), params.m_primaryPort) : internetaddr::make_ipv4(ur::net::anyIpv4(), params.m_primaryPort);
+	if (!newSocket->bind(addr))
 	{
 		LOG(Error, Relay, "Failed bind to {0} port", params.m_primaryPort);
 		return false;
@@ -72,8 +77,8 @@ bool relay::init(const relay_params& params)
 		LOG(Info, Relay, "Socket set recv buffer size {} requested", params.m_socketRecvBufferSize);
 	}
 
-	LOG(Info, Relay, "Relay initialized on port {}. SndBuf={}, RcvBuf={}. Version: {}.{}.{}",
-		newSocket->getPort(), newSocket->getSendBufferSize(), newSocket->getRecvBufferSize(),
+	LOG(Info, Relay, "Relay initialized {}:{}. SndBuf={}, RcvBuf={}. Version: {}.{}.{}",
+		addr.toString(false), newSocket->getPort(), newSocket->getSendBufferSize(), newSocket->getRecvBufferSize(),
 		ur::getVersionMajor(), ur::getVersionMinor(), ur::getVersionPatch());
 
 	m_params = params;
@@ -123,7 +128,7 @@ void relay::processIncoming()
 
 		const auto findRes = m_addressMappedChannels.find(m_recvAddr);
 		// if recvAddr has a channel mapped to it, as well as two valid peers, relay packet to the other peer
-		if (findRes != m_addressMappedChannels.end() && findRes->second.m_peerA.isValid() && findRes->second.m_peerB.isValid())
+		if (findRes != m_addressMappedChannels.end() && !findRes->second.m_peerA.isNull() && !findRes->second.m_peerB.isNull())
 		{
 			auto& currentChannel = findRes->second;
 
@@ -169,7 +174,7 @@ void relay::processIncoming()
 
 				LOG(Verbose, Relay, "Accepted new client with guid: \"{0}\"", newChannel.m_guid.toString());
 			}
-			else if (findChannel->second.m_peerA != m_recvAddr && !findChannel->second.m_peerB.isValid())
+			else if (findChannel->second.m_peerA != m_recvAddr && findChannel->second.m_peerB.isNull())
 			{
 				findChannel->second.m_peerB = m_recvAddr;
 				findChannel->second.m_lastUpdated = m_lastTickTime;
@@ -217,7 +222,7 @@ void relay::conditionalCleanup(bool force)
 			{
 				const auto channelGuidStr = it->second.m_guid.toString();
 				const auto stats = it->second.m_stats;
-				LOG(Info, Relay, "Channel \"{0}\" inactive and removed. Relayed: {1} packets ({2} bytes); Dropped: {3} ({4}); Delayed {5}", channelGuidStr, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsReceived - stats.m_packetsSent, stats.m_bytesReceived - stats.m_bytesSent, stats.m_sendPacketDelays);
+				LOG(Info, Relay, "Channel \"{0}\" inactive and removed. Relayed: {1} packets ({2} bytes); Dropped: {3} ({4}); Delayed {5};", channelGuidStr, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsReceived - stats.m_packetsSent, stats.m_bytesReceived - stats.m_bytesSent, stats.m_sendPacketDelays);
 
 				m_addressMappedChannels.erase(it->second.m_peerA);
 				m_addressMappedChannels.erase(it->second.m_peerB);

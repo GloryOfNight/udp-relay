@@ -5,52 +5,149 @@
 #include "udp-relay/net/network_utils.hxx"
 
 #if UR_PLATFORM_WINDOWS
+#include <WinSock2.h>
+#include <ws2ipdef.h>
 #include <ws2tcpip.h>
 #elif UR_PLATFORM_LINUX
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #endif
 
 #include <format>
 
-internetaddr::internetaddr() noexcept
+uint32_t ur::net::anyIpv4()
 {
-	m_addr.sin_family = AF_INET;
-	m_addr.sin_addr.s_addr = INADDR_ANY;
-	m_addr.sin_port = 0;
+	return INADDR_ANY;
 }
 
-internetaddr::internetaddr(const sockaddr_in& addr) noexcept
-	: m_addr{addr}
+uint32_t ur::net::localhostIpv4()
 {
+	return ur::net::hton32(INADDR_LOOPBACK);
 }
 
-int32_t internetaddr::getIp() const noexcept
+std::array<std::byte, 16> ur::net::anyIpv6()
 {
-	return m_addr.sin_addr.s_addr;
+	std::array<std::byte, 16> result{};
+	return result;
 }
 
-void internetaddr::setIp(const int32_t ip) noexcept
+std::array<std::byte, 16> ur::net::localhostIpv6()
 {
-	m_addr.sin_addr.s_addr = ip;
+	std::array<std::byte, 16> addr{};
+	addr[15] = std::byte{1};
+	return addr;
+}
+
+internetaddr internetaddr::make_ipv4(uint32_t ip, uint16_t port) noexcept
+{
+	internetaddr newAddr{};
+	newAddr.m_family = AF_INET;
+	newAddr.m_port = port;
+	std::memcpy(newAddr.m_ip.data(), &ip, sizeof(uint32_t));
+	return newAddr;
+}
+
+internetaddr internetaddr::make_ipv6(std::array<std::byte, 16> ip, uint16_t port) noexcept
+{
+	internetaddr newAddr{};
+	newAddr.m_family = AF_INET6;
+	newAddr.m_port = port;
+	newAddr.m_ip = std::move(ip);
+	return newAddr;
+}
+
+bool internetaddr::isNull() const noexcept
+{
+	internetaddr zeroAddr{};
+	return std::memcmp(this, &zeroAddr, sizeof(internetaddr)) == 0;
+}
+
+void internetaddr::copyToNative(sockaddr_storage& saddr) const noexcept
+{
+	if (m_family == AF_INET6)
+	{
+		auto v6 = reinterpret_cast<sockaddr_in6*>(&saddr);
+		v6->sin6_family = AF_INET6;
+		v6->sin6_port = ur::net::hton16(m_port);
+
+		static_assert(sizeof(internetaddr::m_ip) == sizeof(v6->sin6_addr));
+		std::memcpy(&v6->sin6_addr, m_ip.data(), sizeof(v6->sin6_addr));
+	}
+	else if (m_family == AF_INET)
+	{
+		auto v4 = reinterpret_cast<sockaddr_in*>(&saddr);
+		v4->sin_family = AF_INET;
+		v4->sin_port = ur::net::hton16(m_port);
+		std::memcpy(&v4->sin_addr.s_addr, m_ip.data(), sizeof(uint32_t));
+	}
+}
+
+void internetaddr::copyFromNative(const sockaddr_storage& saddr) noexcept
+{
+	if (saddr.ss_family == AF_INET6)
+	{
+		auto v6 = reinterpret_cast<const sockaddr_in6*>(&saddr);
+		m_family = v6->sin6_family;
+		m_port = ur::net::ntoh16(v6->sin6_port);
+
+		static_assert(sizeof(internetaddr::m_ip) == sizeof(v6->sin6_addr));
+		std::memcpy(m_ip.data(), &v6->sin6_addr, sizeof(m_ip));
+	}
+	else if (saddr.ss_family == AF_INET)
+	{
+		auto v4 = reinterpret_cast<const sockaddr_in*>(&saddr);
+		m_family = v4->sin_family;
+		m_port = ur::net::ntoh16(v4->sin_port);
+		std::memcpy(m_ip.data(), &v4->sin_addr.s_addr, sizeof(uint32_t));
+	}
+}
+
+std::string internetaddr::toString(bool withPort) const
+{
+	std::array<char, INET6_ADDRSTRLEN> ipStr{};
+	switch (m_family)
+	{
+	case AF_INET:
+	{
+		inet_ntop(AF_INET, m_ip.data(), ipStr.data(), ipStr.size());
+		return withPort ? std::format("{}:{}", ipStr.data(), m_port) : ipStr.data();
+	}
+
+	case AF_INET6:
+	{
+		inet_ntop(AF_INET6, m_ip.data(), ipStr.data(), ipStr.size());
+		return withPort ? std::format("[{}]:{}", ipStr.data(), m_port) : std::format("[{}]", ipStr.data());
+	}
+	}
+	return "<invalid-address-family>";
+}
+
+bool internetaddr::operator==(const internetaddr& other) const noexcept
+{
+	return std::memcmp(this, &other, sizeof(internetaddr)) == 0;
+}
+
+bool internetaddr::operator!=(const internetaddr& other) const noexcept
+{
+	return std::memcmp(this, &other, sizeof(internetaddr)) != 0;
+}
+
+const std::array<std::byte, 16>& internetaddr::getRawIp() const noexcept
+{
+	return m_ip;
 }
 
 uint16_t internetaddr::getPort() const noexcept
 {
-	return m_addr.sin_port;
+	return m_port;
 }
 
-void internetaddr::setPort(const uint16_t port) noexcept
+bool internetaddr::isIpv4() const noexcept
 {
-	m_addr.sin_port = port;
+	return m_family == AF_INET;
 }
 
-std::string internetaddr::toString() const
+bool internetaddr::isIpv6() const noexcept
 {
-#if UR_PLATFORM_WINDOWS
-	char ipBuffer[INET_ADDRSTRLEN];
-	inet_ntop(AF_INET, &(m_addr.sin_addr), ipBuffer, INET_ADDRSTRLEN);
-	return std::format("{0}:{1}", ipBuffer, ur::net::ntoh16(m_addr.sin_port));
-#elif UR_PLATFORM_LINUX
-	return std::format("{0}:{1}", inet_ntoa(m_addr.sin_addr), ur::net::ntoh16(m_addr.sin_port));
-#endif
+	return m_family == AF_INET6;
 }
