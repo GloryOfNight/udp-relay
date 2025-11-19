@@ -59,7 +59,7 @@ struct internetaddr final
 private:
 	uint16_t m_family{};						 // AF_INET or AF_INET6
 	uint16_t m_port{};							 // host order
-	alignas(2) std::array<std::byte, 16> m_ip{}; // ip bytes
+	alignas(4) std::array<std::byte, 16> m_ip{}; // ip bytes
 };
 
 namespace std
@@ -70,10 +70,10 @@ namespace std
 		std::size_t operator()(const internetaddr& val) const noexcept
 		{
 			const auto& rawIp = val.getRawIp();
-			const uint32_t* a = std::bit_cast<const uint32_t*>(rawIp.data());
-			const uint32_t* b = std::bit_cast<const uint32_t*>(rawIp.data() + 4);
-			const uint32_t* c = std::bit_cast<const uint32_t*>(rawIp.data() + 8);
-			const uint32_t* d = std::bit_cast<const uint32_t*>(rawIp.data() + 12);
+			const uint32_t* a = reinterpret_cast<const uint32_t*>(rawIp.data());
+			const uint32_t* b = reinterpret_cast<const uint32_t*>(rawIp.data() + 4);
+			const uint32_t* c = reinterpret_cast<const uint32_t*>(rawIp.data() + 8);
+			const uint32_t* d = reinterpret_cast<const uint32_t*>(rawIp.data() + 12);
 			const uint16_t port = val.getPort();
 
 			size_t h = std::hash<uint32_t>{}(*a);

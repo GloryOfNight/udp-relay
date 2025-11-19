@@ -21,7 +21,7 @@ handshake_header* relay_helpers::tryDeserializeHeader(recvBufferStorage& recvBuf
 
 	static uint32_t handshakeMagicNumberHton = ur::net::hton32(handshake_header_magic_number);
 
-	handshake_header* recvHeader = std::bit_cast<handshake_header*>(recvBuffer.data());
+	handshake_header* recvHeader = reinterpret_cast<handshake_header*>(recvBuffer.data());
 	if (recvHeader->m_magicNumber != handshakeMagicNumberHton || recvHeader->m_guid.isNull())
 		return nullptr;
 
