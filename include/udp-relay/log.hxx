@@ -44,7 +44,7 @@ namespace ur::core::log
 	}
 
 	template <typename... Args>
-	void log(const log_level level, const std::string_view category, const std::string_view format, Args... args)
+	inline void log(const log_level level, const std::string_view category, const std::string_view format, Args... args)
 	{
 		if (level > g_runtimeLogLevel)
 			return;
@@ -59,7 +59,7 @@ namespace ur::core::log
 		ostream << logFinal;
 	}
 
-	static inline void flush()
+	inline void flush()
 	{
 		std::cout.flush();
 	}

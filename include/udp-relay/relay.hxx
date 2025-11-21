@@ -61,15 +61,15 @@ struct relay_params
 	bool ipv6{};
 };
 
-const uint32_t handshake_header_magic_number = 0x4B28000;
-const uint16_t handshake_header_min_size = 24;
-struct alignas(8) handshake_header
+const uint32_t handshake_magic_number = 0x4B28000;
+const uint16_t handshake_min_size = 24;
+struct alignas(4) handshake_header
 {
-	uint32_t m_magicNumber{handshake_header_magic_number};
+	uint32_t m_magicNumber{handshake_magic_number};
 	uint32_t m_reserved{};
 	guid m_guid{};
 };
-static_assert(sizeof(handshake_header) == handshake_header_min_size);
+static_assert(sizeof(handshake_header) == handshake_min_size);
 
 using recvBufferStorage = ur::aligned_storage<alignof(std::max_align_t), 65536>;
 

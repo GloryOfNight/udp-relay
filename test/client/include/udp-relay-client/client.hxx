@@ -29,6 +29,10 @@ public:
 	int32_t getPacketsRecv() const { return m_packetsRecv; };
 	guid getGuid() const { return m_params.m_guid; };
 
+	void processIncoming();
+
+	void trySend();
+
 private:
 	bool init();
 
@@ -36,7 +40,11 @@ private:
 
 	uniqueUdpsocket m_socket{};
 
+	std::vector<uint8_t> m_recvBuffer{};
+
 	std::vector<int32_t> m_latenciesMs{};
+
+	std::chrono::steady_clock::time_point m_lastSendAt{};
 
 	uint32_t m_packetsSent = 0;
 	uint32_t m_packetsRecv = 0;

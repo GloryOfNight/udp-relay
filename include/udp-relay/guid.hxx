@@ -55,9 +55,7 @@ namespace std
 	{
 		std::size_t operator()(const guid& g) const noexcept
 		{
-			const uint64_t high = (static_cast<uint64_t>(g.m_a) << 32) | static_cast<uint64_t>(g.m_b);
-			const uint64_t low = (static_cast<uint64_t>(g.m_c) << 32) | static_cast<uint64_t>(g.m_d);
-			return std::hash<uint64_t>{}(high ^ low);
+			return std::hash<std::string_view>{}(std::string_view(reinterpret_cast<const char*>(&g), sizeof(g)));
 		}
 	};
 

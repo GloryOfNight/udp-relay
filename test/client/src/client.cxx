@@ -79,12 +79,7 @@ void relay_client::run(const relay_client_params& params)
 		return;
 	}
 
-	std::vector<uint8_t> buffer;
-	buffer.resize(2048);
-
-	internetaddr recvAddr{};
-
-	internetaddr relayAddr = internetaddr::make_ipv4(m_params.m_server_ip, m_params.m_server_port);
+	m_recvBuffer.resize(2048);
 
 	auto lastSendTime = std::chrono::steady_clock::now();
 
@@ -95,69 +90,80 @@ void relay_client::run(const relay_client_params& params)
 
 	while (m_running)
 	{
-		if (m_socket->waitForReadUs(500))
+		if (m_socket->waitForReadUs(5000))
+			processIncoming();
+
+		trySend();
+	}
+}
+
+void relay_client::processIncoming()
+{
+	for (int32_t i = 0; i < 32; i++)
+	{
+		internetaddr recvAddr{};
+
+		int32_t bytesRead{};
+		bytesRead = m_socket->recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), &recvAddr);
+
+		if (bytesRead < 0)
+			return;
+
+		const auto [packetOk, packet] = deserializePacket(m_recvBuffer.data(), bytesRead);
+		if (!packetOk)
+			continue;
+
+		++m_packetsRecv;
+
+		if (packet.m_type == 1)
 		{
-			int32_t bytesRead{};
+			auto responsePacket = packet;
+			responsePacket.m_type = 2;
 
-			relayEstablished = true;
-			bytesRead = m_socket->recvFrom(buffer.data(), buffer.size(), &recvAddr);
-
-			if (bytesRead >= 0)
-			{
-				const auto [packetOk, packet] = deserializePacket(buffer.data(), bytesRead);
-				if (!packetOk)
-					continue;
-
-				++m_packetsRecv;
-
-				if (packet.m_type == 1)
-				{
-					auto responsePacket = packet;
-					responsePacket.m_type = 2;
-
-					auto responseBuf = serializePacket(responsePacket);
-
-					m_socket->waitForWriteUs(500);
-					const auto bytesSent = m_socket->sendTo(responseBuf.data(), bytesRead, &relayAddr);
-					if (bytesSent >= 0)
-						++m_packetsSent;
-				}
-				else if (packet.m_type == 2)
-				{
-					const auto recvNs = std::chrono::steady_clock::now().time_since_epoch().count();
-					const auto sentNs = packet.m_time;
-					const auto packetTimeNs = std::chrono::nanoseconds(recvNs - sentNs);
-					const auto packetTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(packetTimeNs);
-					m_latenciesMs.push_back(packetTimeMs.count());
-				}
-				else
-				{
-					LOG(Warning, RelayClient, "Huh? unknown packet type {}", packet.m_type);
-				}
-			}
-		}
-
-		const auto now = std::chrono::steady_clock::now();
-		if (m_allowSend && now - lastSendTime > std::chrono::milliseconds(m_params.m_sendIntervalMs))
-		{
-			lastSendTime = now;
-
-			handshake_packet packet{};
-			packet.m_header.m_guid = m_params.m_guid;
-			packet.m_type = 1;
-			packet.m_time = std::chrono::steady_clock::now().time_since_epoch().count();
-			packet.generateRandomPayload();
-
-			std::vector<uint8_t> requestBuf = serializePacket(packet);
-
-			const uint32_t payloadStripOffset = relayEstablished ? ur::randRange<uint32_t>(0, requestBuf.size() - handshake_packet_data_size) : 0;
+			auto responseBuf = serializePacket(responsePacket);
 
 			m_socket->waitForWriteUs(500);
-			const auto bytesSent = m_socket->sendTo(requestBuf.data(), requestBuf.size() - payloadStripOffset, &relayAddr);
+			const auto bytesSent = m_socket->sendTo(responseBuf.data(), bytesRead, &recvAddr);
 			if (bytesSent >= 0)
 				++m_packetsSent;
-		};
+		}
+		else if (packet.m_type == 2)
+		{
+			const auto recvNs = std::chrono::steady_clock::now().time_since_epoch().count();
+			const auto sentNs = packet.m_time;
+			const auto packetTimeNs = std::chrono::nanoseconds(recvNs - sentNs);
+			const auto packetTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(packetTimeNs);
+			m_latenciesMs.push_back(packetTimeMs.count());
+		}
+		else
+		{
+			LOG(Warning, RelayClient, "Huh? unknown packet type {}", packet.m_type);
+		}
 	}
+}
+
+void relay_client::trySend()
+{
+	const auto now = std::chrono::steady_clock::now();
+	if (m_allowSend && now - m_lastSendAt > std::chrono::milliseconds(m_params.m_sendIntervalMs))
+	{
+		m_lastSendAt = now;
+
+		handshake_packet packet{};
+		packet.m_header.m_guid = m_params.m_guid;
+		packet.m_type = 1;
+		packet.m_time = std::chrono::steady_clock::now().time_since_epoch().count();
+		packet.generateRandomPayload();
+
+		std::vector<uint8_t> requestBuf = serializePacket(packet);
+
+		const uint32_t payloadStripOffset = ur::randRange<uint32_t>(0, requestBuf.size() - handshake_packet_data_size);
+
+		internetaddr relayAddr = internetaddr::make_ipv4(m_params.m_server_ip, m_params.m_server_port);
+		const auto bytesSent = m_socket->sendTo(requestBuf.data(), requestBuf.size() - payloadStripOffset, &relayAddr);
+		if (bytesSent >= 0)
+			++m_packetsSent;
+	};
 }
 
 void relay_client::stopSending()

@@ -19,7 +19,7 @@ handshake_header* relay_helpers::tryDeserializeHeader(recvBufferStorage& recvBuf
 	if (recvBytes < sizeof(handshake_header))
 		return nullptr;
 
-	static uint32_t handshakeMagicNumberHton = ur::net::hton32(handshake_header_magic_number);
+	constexpr uint32_t handshakeMagicNumberHton = ur::net::hton32(handshake_magic_number);
 
 	handshake_header* recvHeader = reinterpret_cast<handshake_header*>(recvBuffer.data());
 	if (recvHeader->m_magicNumber != handshakeMagicNumberHton || recvHeader->m_guid.isNull())
@@ -67,14 +67,14 @@ bool relay::init(const relay_params& params)
 	{
 		if (!newSocket->setSendBufferSize(params.m_socketSendBufferSize))
 			LOG(Warning, Relay, "Failed set send buffer size to {}", params.m_socketSendBufferSize);
-		LOG(Info, Relay, "Socket set send buffer size {} requested", params.m_socketSendBufferSize);
+		LOG(Info, Relay, "Socket requested send buffer size {}", params.m_socketSendBufferSize);
 	}
 
 	if (params.m_socketRecvBufferSize)
 	{
 		if (!newSocket->setRecvBufferSize(params.m_socketRecvBufferSize))
 			LOG(Warning, Relay, "Failed set recv buffer size to {}", params.m_socketRecvBufferSize);
-		LOG(Info, Relay, "Socket set recv buffer size {} requested", params.m_socketRecvBufferSize);
+		LOG(Info, Relay, "Socket requested recv buffer size {}", params.m_socketRecvBufferSize);
 	}
 
 	LOG(Info, Relay, "Relay initialized {}:{}. SndBuf={}, RcvBuf={}. Version: {}.{}.{}",
@@ -126,8 +126,36 @@ void relay::processIncoming()
 		if (bytesRead < 0)
 			return;
 
-		const auto findRes = m_addressMappedChannels.find(m_recvAddr);
+		// check if packet is relay handshake header, and extract guid if possible
+		if (auto recvHeader = relay_helpers::tryDeserializeHeader(m_recvBuffer, bytesRead); recvHeader)
+		{
+			handshake_header& recvHeaderRef = *recvHeader;
+
+			auto findChannel = m_channels.find(recvHeaderRef.m_guid);
+			if (findChannel == m_channels.end())
+			{
+				LOG(Verbose, Relay, "Accepted new client with guid: \"{0}\"", recvHeaderRef.m_guid.toString());
+
+				channel newChannel = channel(recvHeaderRef.m_guid);
+				newChannel.m_peerA = m_recvAddr;
+				newChannel.m_lastUpdated = m_lastTickTime;
+
+				m_channels.emplace(recvHeaderRef.m_guid, std::move(newChannel));
+			}
+			else if (findChannel->second.m_peerA != m_recvAddr && findChannel->second.m_peerB.isNull())
+			{
+				findChannel->second.m_peerB = m_recvAddr;
+				findChannel->second.m_lastUpdated = m_lastTickTime;
+
+				m_addressMappedChannels.emplace(findChannel->second.m_peerA, findChannel->second);
+				m_addressMappedChannels.emplace(findChannel->second.m_peerB, findChannel->second);
+
+				LOG(Info, Relay, "Channel relay established for session: \"{0}\" with peers: {1}, {2}.", recvHeaderRef.m_guid.toString(), findChannel->second.m_peerA.toString(), findChannel->second.m_peerB.toString());
+			}
+		}
+
 		// if recvAddr has a channel mapped to it, as well as two valid peers, relay packet to the other peer
+		const auto findRes = m_addressMappedChannels.find(m_recvAddr);
 		if (findRes != m_addressMappedChannels.end() && !findRes->second.m_peerA.isNull() && !findRes->second.m_peerB.isNull())
 		{
 			auto& currentChannel = findRes->second;
@@ -156,33 +184,6 @@ void relay::processIncoming()
 				std::memcpy(pendingPacket.m_buffer.data(), m_recvBuffer.data(), bytesRead);
 
 				currentChannel.m_stats.m_sendPacketDelays++;
-			}
-		}
-		// check if packet is relay handshake header, and extract guid if possible
-		else if (auto recvHeader = relay_helpers::tryDeserializeHeader(m_recvBuffer, bytesRead); recvHeader)
-		{
-			handshake_header& recvHeaderRef = *recvHeader;
-
-			auto findChannel = m_channels.find(recvHeaderRef.m_guid);
-			if (findChannel == m_channels.end())
-			{
-				channel newChannel = channel(recvHeaderRef.m_guid);
-				newChannel.m_peerA = m_recvAddr;
-				newChannel.m_lastUpdated = m_lastTickTime;
-
-				m_channels.emplace(recvHeaderRef.m_guid, std::move(newChannel));
-
-				LOG(Verbose, Relay, "Accepted new client with guid: \"{0}\"", newChannel.m_guid.toString());
-			}
-			else if (findChannel->second.m_peerA != m_recvAddr && findChannel->second.m_peerB.isNull())
-			{
-				findChannel->second.m_peerB = m_recvAddr;
-				findChannel->second.m_lastUpdated = m_lastTickTime;
-
-				m_addressMappedChannels.emplace(findChannel->second.m_peerA, findChannel->second);
-				m_addressMappedChannels.emplace(findChannel->second.m_peerB, findChannel->second);
-
-				LOG(Info, Relay, "Channel relay established for session: \"{0}\" with peers: {1}, {2}.", recvHeaderRef.m_guid.toString(), findChannel->second.m_peerA.toString(), findChannel->second.m_peerB.toString());
 			}
 		}
 	}

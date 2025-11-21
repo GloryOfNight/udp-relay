@@ -69,20 +69,13 @@ namespace std
 	{
 		std::size_t operator()(const internetaddr& val) const noexcept
 		{
-			const auto& rawIp = val.getRawIp();
-			const uint32_t* a = reinterpret_cast<const uint32_t*>(rawIp.data());
-			const uint32_t* b = reinterpret_cast<const uint32_t*>(rawIp.data() + 4);
-			const uint32_t* c = reinterpret_cast<const uint32_t*>(rawIp.data() + 8);
-			const uint32_t* d = reinterpret_cast<const uint32_t*>(rawIp.data() + 12);
-			const uint16_t port = val.getPort();
+			alignas(4) std::array<std::byte, 16 + 2> ipPort{};
 
-			size_t h = std::hash<uint32_t>{}(*a);
-			h = h * 31 + std::hash<uint32_t>{}(*b);
-			h = h * 31 + std::hash<uint32_t>{}(*c);
-			h = h * 31 + std::hash<uint32_t>{}(*d);
-			h = h * 31 + std::hash<uint16_t>{}(port);
+			std::memcpy(ipPort.data(), val.getRawIp().data(), 16);
+			uint16_t port = val.getPort();
+			std::memcpy(ipPort.data() + 16, &port, sizeof(port));
 
-			return h;
+			return std::hash<std::string_view>{}(std::string_view(reinterpret_cast<const char*>(ipPort.data()), ipPort.size()));
 		}
 	};
 
@@ -101,9 +94,7 @@ namespace std
 		bool operator()(const internetaddr& left, const internetaddr& right) const noexcept
 		{
 			const int ipCmp = std::memcmp(left.getRawIp().data(), right.getRawIp().data(), left.getRawIp().size());
-			if (ipCmp != 0)
-				return ipCmp < 0;
-			return left.getPort() < right.getPort();
+			return ipCmp != 0 ? ipCmp < 0 : left.getPort() < right.getPort();
 		}
 	};
 } // namespace std
