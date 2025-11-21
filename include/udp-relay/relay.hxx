@@ -14,7 +14,7 @@
 #include <cstdlib>
 #include <memory>
 #include <queue>
-#include <unordered_map>
+#include <map>
 
 struct channel_stats
 {
@@ -103,10 +103,10 @@ private:
 	recvBufferStorage m_recvBuffer{};
 
 	// when first client handshake comes, channel is created
-	std::unordered_map<guid, channel> m_channels{};
+	std::map<guid, channel> m_channels{};
 
 	// when second client comes with same guid value, as in m_guidMappedChannels, it maps both addresses here
-	std::unordered_map<internetaddr, channel&> m_addressMappedChannels{};
+	std::map<internetaddr, channel&> m_addressMappedChannels{};
 
 	std::queue<pending_packet> m_sendQueue{};
 
