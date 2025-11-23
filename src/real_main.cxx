@@ -23,12 +23,12 @@ static constexpr auto argList = std::array
 	val_ref{"--help", args::printHelp,																"--help										= print help" },
 	val_ref{"--log-level", args::logLevel,															"--log-level <value>						= 0 - no logs, 1 - errors only, 2 - warnings only, 3 - log (default), 4 - verbose" },
 	val_ref{"--port", args::relayParams.m_primaryPort,												"--port <value>								= main port for accepting requests" },
-	val_ref{"--recvBufferSize", args::relayParams.m_recvBufferSize,									"--recvBufferSize <value>					= receive buffer size, allowing bigger packets to pass thru relay" },
 	val_ref{"--socketRecvBufferSize", args::relayParams.m_socketRecvBufferSize,						"--socketRecvBufferSize <value>             = receive buffer size for internal socket" },
 	val_ref{"--socketSendBufferSize", args::relayParams.m_socketSendBufferSize,						"--socketSendBufferSize <value>             = send buffer size for internal socket" },
 	val_ref{"--cleanupTimeMs", args::relayParams.m_cleanupTimeMs,									"--cleanupTimeMs <value>					= how often relay should perform clean check" },
 	val_ref{"--cleanupInactiveChannelAfterMs", args::relayParams.m_cleanupInactiveChannelAfterMs,	"--cleanupInactiveChannelAfterMs <value>    = inactivity timeout for channel" },
 	val_ref{"--expirePacketAfterMs", args::relayParams.m_expirePacketAfterMs,						"--expirePacketAfterMs <value>				= drop packet if packet not relayed within timeout. 0 or negative - do not reattempt relay" },
+	val_ref{"--ipv6", args::relayParams.ipv6,														"--ipv6 0|1									= should create and bind to ipv6 socket (dual-stack ipv4/6 mode)" },
 };
 // clang-format on
 

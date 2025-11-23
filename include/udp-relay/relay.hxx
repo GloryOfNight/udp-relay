@@ -2,20 +2,19 @@
 
 #pragma once
 
-#include "udp-relay/networking/internetaddr.hxx"
-#include "udp-relay/networking/network_utils.hxx"
-#include "udp-relay/networking/udpsocket.hxx"
-
-#include "types.hxx"
+#include "udp-relay/aligned_storage.hxx"
+#include "udp-relay/guid.hxx"
+#include "udp-relay/net/internetaddr.hxx"
+#include "udp-relay/net/udpsocket.hxx"
 
 #include <array>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <cstdlib>
 #include <memory>
 #include <queue>
-#include <unordered_map>
-#include <vector>
+#include <map>
 
 struct channel_stats
 {
@@ -24,6 +23,8 @@ struct channel_stats
 
 	uint32_t m_packetsReceived{};
 	uint32_t m_packetsSent{};
+
+	uint32_t m_sendPacketDelays{};
 };
 
 struct channel
@@ -52,18 +53,25 @@ struct pending_packet
 struct relay_params
 {
 	uint16_t m_primaryPort{6060};
-	uint32_t m_recvBufferSize{65507};
 	uint32_t m_socketRecvBufferSize{0};
 	uint32_t m_socketSendBufferSize{0};
 	int32_t m_cleanupTimeMs{1800};
 	int32_t m_cleanupInactiveChannelAfterMs{30000};
 	int32_t m_expirePacketAfterMs{5};
+	bool ipv6{};
 };
 
-struct relay_helpers
+const uint32_t handshake_magic_number = 0x4B28000;
+const uint16_t handshake_min_size = 24;
+struct alignas(4) handshake_header
 {
-	static std::pair<bool, handshake_header> deserializePacket(const uint8_t* buffer, const size_t len);
+	uint32_t m_magicNumber{handshake_magic_number};
+	uint32_t m_reserved{};
+	guid m_guid{};
 };
+static_assert(sizeof(handshake_header) == handshake_min_size);
+
+using recvBufferStorage = ur::aligned_storage<alignof(std::max_align_t), 65536>;
 
 class relay
 {
@@ -92,13 +100,13 @@ private:
 
 	internetaddr m_recvAddr{};
 
-	std::vector<uint8_t> m_recvBuffer{};
+	recvBufferStorage m_recvBuffer{};
 
 	// when first client handshake comes, channel is created
-	std::unordered_map<guid, channel> m_channels{};
+	std::map<guid, channel> m_channels{};
 
 	// when second client comes with same guid value, as in m_guidMappedChannels, it maps both addresses here
-	std::unordered_map<internetaddr, channel&> m_addressMappedChannels{};
+	std::map<internetaddr, channel&> m_addressMappedChannels{};
 
 	std::queue<pending_packet> m_sendQueue{};
 

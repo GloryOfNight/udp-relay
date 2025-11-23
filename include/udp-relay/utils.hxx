@@ -108,7 +108,7 @@ void ur::printArgsHelp(const T& argList)
 
 		std::cout << arg.m_noteHelp << std::endl;
 	}
-	std::cout << "Apache License Version 2.0 - Copyright (c) 2024 Sergey Dikiy" << std::endl;
+	std::cout << "Apache License Version 2.0 - Copyright (c) 2025 Sergey Dikiy" << std::endl;
 }
 
 template <typename T>

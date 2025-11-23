@@ -3,6 +3,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <concepts>
 #include <cstring>
@@ -24,46 +25,45 @@ namespace ur::net
 
 	// swap byte order
 	template <std::integral T>
-	T byteswap(T value) noexcept;
+	constexpr T byteswap(T value) noexcept;
 
 	// convert host byte order to network
 	template <std::integral T>
-	T hton(T value) noexcept;
+	constexpr T hton(T value) noexcept;
 
 	// convert network byte order to host
 	template <std::integral T>
-	T ntoh(T value) noexcept;
+	constexpr T ntoh(T value) noexcept;
 
 	// clang-format off
 	// Inline wrappers for 16-bit
-	inline uint16_t bs16(uint16_t v)	noexcept { return byteswap<uint16_t>(v);}
-	inline uint16_t hton16(uint16_t v)	noexcept { return hton<uint16_t>(v);	}
-	inline uint16_t ntoh16(uint16_t v)	noexcept { return ntoh<uint16_t>(v);	}
+	constexpr uint16_t bs16(uint16_t v)	noexcept { return byteswap<uint16_t>(v);}
+	constexpr uint16_t hton16(uint16_t v)	noexcept { return hton<uint16_t>(v);	}
+	constexpr uint16_t ntoh16(uint16_t v)	noexcept { return ntoh<uint16_t>(v);	}
 
 	// Inline wrappers for 32-bit
-	inline uint32_t bs32(uint32_t v)	noexcept { return byteswap<uint32_t>(v);}
-	inline uint32_t hton32(uint32_t v)	noexcept { return hton<uint32_t>(v);	}
-	inline uint32_t ntoh32(uint32_t v)	noexcept { return ntoh<uint32_t>(v);	}
+	constexpr uint32_t bs32(uint32_t v)	noexcept { return byteswap<uint32_t>(v);}
+	constexpr uint32_t hton32(uint32_t v)	noexcept { return hton<uint32_t>(v);	}
+	constexpr uint32_t ntoh32(uint32_t v)	noexcept { return ntoh<uint32_t>(v);	}
 
 	// Inline wrappers for 64-bit
-	inline uint64_t bs64(uint64_t v)	noexcept { return byteswap<uint64_t>(v);}
-	inline uint64_t hton64(uint64_t v)	noexcept { return hton<uint64_t>(v);	}
-	inline uint64_t ntoh64(uint64_t v)	noexcept { return ntoh<uint64_t>(v);	}
+	constexpr uint64_t bs64(uint64_t v)	noexcept { return byteswap<uint64_t>(v);}
+	constexpr uint64_t hton64(uint64_t v)	noexcept { return hton<uint64_t>(v);	}
+	constexpr uint64_t ntoh64(uint64_t v)	noexcept { return ntoh<uint64_t>(v);	}
 	// clang-format on
-} // namespace ur
+} // namespace ur::net
 
 template <std::integral T>
-T ur::net::byteswap(T value) noexcept
+constexpr T ur::net::byteswap(T value) noexcept
 {
 	static_assert(std::has_unique_object_representations_v<T>, "T may not have padding bits");
-	uint8_t value_representation[sizeof(T)];
-	std::memcpy(value_representation, &value, sizeof(T));
+	auto value_representation = std::bit_cast<std::array<std::byte, sizeof(T)>>(value);
 	std::ranges::reverse(value_representation);
 	return std::bit_cast<T>(value_representation);
 }
 
 template <std::integral T>
-T ur::net::hton(T value) noexcept
+constexpr T ur::net::hton(T value) noexcept
 {
 	static_assert(std::has_unique_object_representations_v<T>, "T may not have padding bits");
 	if (ur::net::isLittleEndian())
@@ -72,7 +72,7 @@ T ur::net::hton(T value) noexcept
 }
 
 template <std::integral T>
-T ur::net::ntoh(T value) noexcept
+constexpr T ur::net::ntoh(T value) noexcept
 {
 	static_assert(std::has_unique_object_representations_v<T>, "T may not have padding bits");
 	if (ur::net::isLittleEndian())

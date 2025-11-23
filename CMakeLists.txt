@@ -3,8 +3,8 @@
 cmake_minimum_required(VERSION 3.28.0)
 
 project(udp-relay
-        VERSION 0.5.0
-        DESCRIPTION "Instanly simple and efficient UDP packet relay"
+        VERSION 0.6.0
+        DESCRIPTION "Simple UDP packet relay"
         HOMEPAGE_URL "https://github.com/GloryOfNight/udp-relay"
         LANGUAGES CXX C)
 
@@ -14,9 +14,10 @@ include(cmake/Sanitizers.cmake)
 include(cmake/PreventInSourceBuilds.cmake)
 
 set (UDP_RELAY_SOURCES  src/real_main.cxx
-                        src/relay/relay.cxx
-                        src/networking/udpsocket.cxx
-                        src/networking/internetaddr.cxx)
+                        src/udp-relay/relay.cxx
+                        src/udp-relay/version.cxx
+                        src/udp-relay/net/udpsocket.cxx
+                        src/udp-relay/net/internetaddr.cxx)
 
 set(UDP_RELAY_MAIN      $<$<PLATFORM_ID:Linux>:src/unixmain.cxx>
                         $<$<PLATFORM_ID:Windows>:src/winmain.cxx>)
@@ -27,8 +28,10 @@ target_link_libraries(${PROJECT_NAME}-static PUBLIC $<$<PLATFORM_ID:Windows>:ws2
 target_include_directories(${PROJECT_NAME}-static PUBLIC    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                             $<INSTALL_INTERFACE:include>)
 
-target_compile_definitions(${PROJECT_NAME}-static PRIVATE   $<$<CONFIG:Debug>:UR_BUILD_DEBUG=1> 
-                                                            $<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>,$<CONFIG:MinSizeRel>>:UR_BUILD_RELEASE=1>
+target_compile_definitions(${PROJECT_NAME}-static PUBLIC    UR_BUILD_DEBUG=$<CONFIG:Debug>
+                                                            UR_BUILD_RELEASE=$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>,$<CONFIG:MinSizeRel>>
+                                                            UR_PLATFORM_WINDOWS=$<PLATFORM_ID:Windows>
+                                                            UR_PLATFORM_LINUX=$<PLATFORM_ID:Linux>
                                                             UR_PROJECT_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
                                                             UR_PROJECT_VERSION_MINOR=${PROJECT_VERSION_MINOR}
                                                             UR_PROJECT_VERSION_PATCH=${PROJECT_VERSION_PATCH})

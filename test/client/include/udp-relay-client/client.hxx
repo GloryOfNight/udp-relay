@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "udp-relay/networking/udpsocket.hxx"
-#include "udp-relay/types.hxx"
+#include "udp-relay/guid.hxx"
+#include "udp-relay/net/udpsocket.hxx"
 
 #include <atomic>
 
@@ -13,6 +13,7 @@ struct relay_client_params
 	int32_t m_sendIntervalMs{};
 	int32_t m_server_ip{};
 	uint16_t m_server_port{};
+	bool useIpv6{};
 };
 
 class relay_client
@@ -28,6 +29,10 @@ public:
 	int32_t getPacketsRecv() const { return m_packetsRecv; };
 	guid getGuid() const { return m_params.m_guid; };
 
+	void processIncoming();
+
+	void trySend();
+
 private:
 	bool init();
 
@@ -35,7 +40,11 @@ private:
 
 	uniqueUdpsocket m_socket{};
 
+	std::vector<uint8_t> m_recvBuffer{};
+
 	std::vector<int32_t> m_latenciesMs{};
+
+	std::chrono::steady_clock::time_point m_lastSendAt{};
 
 	uint32_t m_packetsSent = 0;
 	uint32_t m_packetsRecv = 0;
