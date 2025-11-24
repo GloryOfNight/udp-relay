@@ -80,14 +80,3 @@ private:
 };
 
 using uniqueUdpsocket = std::unique_ptr<udpsocket>;
-
-class udpsocketFactory
-{
-public:
-	// creates unique udp socket handle
-	template <typename... T>
-	static uniqueUdpsocket createUdpSocket(T&&... t)
-	{
-		return uniqueUdpsocket(new udpsocket(std::forward<T>(t)...));
-	}
-};

@@ -37,7 +37,7 @@ bool relay::init(const relay_params& params)
 {
 	LOG(Verbose, Relay, "Begin initialization");
 
-	uniqueUdpsocket newSocket = udpsocketFactory::createUdpSocket(params.ipv6);
+	uniqueUdpsocket newSocket = std::make_unique<udpsocket>(params.ipv6);
 	if (newSocket == nullptr || !newSocket->isValid())
 	{
 		LOG(Error, Relay, "Failed to create socket!");

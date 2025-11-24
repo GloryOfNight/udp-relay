@@ -205,7 +205,7 @@ bool relay_client::init()
 {
 	m_latenciesMs.reserve(2048);
 
-	m_socket = udpsocketFactory::createUdpSocket(false);
+	m_socket = std::make_unique<udpsocket>(false);
 	if (!m_socket || !m_socket->isValid())
 	{
 		return false;
