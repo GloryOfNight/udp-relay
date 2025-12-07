@@ -5,10 +5,10 @@
 #include "udp-relay/utils.hxx"
 #include "udp-relay/val_ref.hxx"
 
-#include <algorithm>
-#include <array>
-#include <csignal>
-#include <memory>
+import <algorithm>;
+import <array>;
+import <csignal>;
+import <memory>;
 
 namespace args
 {

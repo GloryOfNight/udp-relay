@@ -4,8 +4,8 @@
 
 #include "utils.hxx"
 
-#include <cstdint>
-#include <string>
+import <cstdint>;
+import <string>;
 
 struct guid
 {

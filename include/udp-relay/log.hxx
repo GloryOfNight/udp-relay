@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <chrono>
-#include <cstdarg>
-#include <format>
-#include <iostream>
+import <chrono>;
+import <cstdarg>;
+import <format>;
+import <iostream>;
 
 enum class log_level : uint8_t
 {

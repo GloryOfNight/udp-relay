@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <cstdint>
-#include <memory>
-#include <stddef.h>
+import <cstdint>;
+import <memory>;
+import <cstddef>;
 
 // handle for native sockets descriptors
 #if UR_PLATFORM_WINDOWS

@@ -5,8 +5,8 @@
 #include "udp-relay/log.hxx"
 #include "udp-relay/val_ref.hxx"
 
-#include <random>
-#include <stdint.h>
+import <random>;
+import <cstdint>;
 
 namespace ur
 {

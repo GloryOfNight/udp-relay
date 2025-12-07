@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <new>
+import <new>;
 
 namespace ur
 {

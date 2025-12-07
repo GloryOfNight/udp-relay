@@ -7,7 +7,7 @@
 #include "udp-relay/net/udpsocket.hxx"
 #include "udp-relay/version.hxx"
 
-#include <thread>
+import <thread>;
 
 struct relay_helpers
 {

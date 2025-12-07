@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <algorithm>
-#include <array>
-#include <bit>
-#include <concepts>
-#include <cstring>
-#include <stdint.h>
+import <algorithm>;
+import <array>;
+import <bit>;
+import <concepts>;
+import <cstring>;
+import <stdint.h>;
 
 namespace ur::net
 {

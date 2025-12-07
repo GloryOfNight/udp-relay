@@ -7,14 +7,14 @@
 #include "udp-relay/net/internetaddr.hxx"
 #include "udp-relay/net/udpsocket.hxx"
 
-#include <array>
-#include <atomic>
-#include <chrono>
-#include <cstdint>
-#include <cstdlib>
-#include <memory>
-#include <queue>
-#include <map>
+import <array>;
+import <atomic>;
+import <chrono>;
+import <cstdint>;
+import <cstdlib>;
+import <memory>;
+import <queue>;
+import <map>;
 
 struct channel_stats
 {

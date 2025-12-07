@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <array>
-#include <bit>
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <string>
+import <array>;
+import <bit>;
+import <cstddef>;
+import <cstdint>;
+import <cstring>;
+import <string>;
 
 struct sockaddr_storage;
 

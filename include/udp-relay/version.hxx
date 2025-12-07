@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <cstdint>
+import <cstdint>;
 
 namespace ur
 {

@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <string_view>
-#include <typeinfo>
+import <string_view>;
+import <typeinfo>;
 
 struct val_ref
 {

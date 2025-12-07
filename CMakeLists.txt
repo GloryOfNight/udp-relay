@@ -15,7 +15,7 @@ include(cmake/PreventInSourceBuilds.cmake)
 
 add_library(${PROJECT_NAME}-static)
 
-target_sources(${PROJECT_NAME}-static PRIVATE
+target_sources(${PROJECT_NAME}-static PRIVATE FILE_SET all_my_modules TYPE CXX_MODULES FILES
                     src/real_main.cxx
                     src/udp-relay/relay.cxx
                     src/udp-relay/version.cxx
@@ -42,7 +42,7 @@ install(DIRECTORY include DESTINATION include)
 
 if (ENABLE_BUILD_EXEC)
     add_executable(${PROJECT_NAME})
-    target_sources(${PROJECT_NAME} PRIVATE
+    target_sources(${PROJECT_NAME} PRIVATE FILE_SET all_my_modules TYPE CXX_MODULES FILES
                         $<$<PLATFORM_ID:Linux>:src/unixmain.cxx>
                         $<$<PLATFORM_ID:Windows>:src/winmain.cxx>)
 
