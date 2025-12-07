@@ -13,16 +13,15 @@ include(cmake/ProjectOptions.cmake)
 include(cmake/Sanitizers.cmake)
 include(cmake/PreventInSourceBuilds.cmake)
 
-set (UDP_RELAY_SOURCES  src/real_main.cxx
-                        src/udp-relay/relay.cxx
-                        src/udp-relay/version.cxx
-                        src/udp-relay/net/udpsocket.cxx
-                        src/udp-relay/net/internetaddr.cxx)
+add_library(${PROJECT_NAME}-static)
 
-set(UDP_RELAY_MAIN      $<$<PLATFORM_ID:Linux>:src/unixmain.cxx>
-                        $<$<PLATFORM_ID:Windows>:src/winmain.cxx>)
+target_sources(${PROJECT_NAME}-static PRIVATE
+                    src/real_main.cxx
+                    src/udp-relay/relay.cxx
+                    src/udp-relay/version.cxx
+                    src/udp-relay/net/udpsocket.cxx
+                    src/udp-relay/net/internetaddr.cxx)
 
-add_library(${PROJECT_NAME}-static STATIC ${UDP_RELAY_SOURCES})
 target_link_libraries(${PROJECT_NAME}-static PUBLIC $<$<PLATFORM_ID:Windows>:ws2_32.dll>)
 
 target_include_directories(${PROJECT_NAME}-static PUBLIC    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -42,7 +41,11 @@ install(DIRECTORY include DESTINATION include)
 
 
 if (ENABLE_BUILD_EXEC)
-    add_executable(${PROJECT_NAME} ${UDP_RELAY_MAIN})
+    add_executable(${PROJECT_NAME})
+    target_sources(${PROJECT_NAME} PRIVATE
+                        $<$<PLATFORM_ID:Linux>:src/unixmain.cxx>
+                        $<$<PLATFORM_ID:Windows>:src/winmain.cxx>)
+
     target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}-static)
     install(TARGETS ${PROJECT_NAME})
 endif()
