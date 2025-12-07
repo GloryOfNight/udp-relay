@@ -3,11 +3,11 @@
 #include "udp-relay/relay.hxx"
 
 #include "udp-relay/log.hxx"
-#include "udp-relay/net/network_utils.hxx"
 #include "udp-relay/net/udpsocket.hxx"
 #include "udp-relay/version.hxx"
 
 import <thread>;
+import ur.net.utils;
 
 struct relay_helpers
 {

@@ -4,7 +4,8 @@
 
 #include "udp-relay/log.hxx"
 #include "udp-relay/net/internetaddr.hxx"
-#include "udp-relay/net/network_utils.hxx"
+
+import ur.net.utils;
 
 #if UR_PLATFORM_WINDOWS
 #include <WinSock2.h>

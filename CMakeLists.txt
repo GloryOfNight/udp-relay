@@ -20,7 +20,8 @@ target_sources(${PROJECT_NAME}-static PRIVATE FILE_SET all_my_modules TYPE CXX_M
                     src/udp-relay/relay.cxx
                     src/udp-relay/version.cxx
                     src/udp-relay/net/udpsocket.cxx
-                    src/udp-relay/net/internetaddr.cxx)
+                    src/udp-relay/net/internetaddr.cxx
+                    src/udp-relay/net/network_utils.cxx)
 
 target_link_libraries(${PROJECT_NAME}-static PUBLIC $<$<PLATFORM_ID:Windows>:ws2_32.dll>)
 

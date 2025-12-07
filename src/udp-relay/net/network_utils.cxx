@@ -1,6 +1,6 @@
 // Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
 
-#pragma once
+export module ur.net.utils;
 
 import <algorithm>;
 import <array>;
@@ -9,7 +9,7 @@ import <concepts>;
 import <cstring>;
 import <stdint.h>;
 
-namespace ur::net
+export namespace ur::net
 {
 	// true if current platform little endian
 	constexpr bool isLittleEndian() noexcept

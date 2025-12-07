@@ -2,8 +2,6 @@
 
 #include "udp-relay/net/internetaddr.hxx"
 
-#include "udp-relay/net/network_utils.hxx"
-
 #if UR_PLATFORM_WINDOWS
 #include <WinSock2.h>
 #include <ws2ipdef.h>
@@ -14,6 +12,7 @@
 #endif
 
 import <format>;
+import ur.net.utils;
 
 uint32_t ur::net::anyIpv4()
 {
