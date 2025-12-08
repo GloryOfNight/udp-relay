@@ -43,8 +43,6 @@ static constexpr auto envList = std::array
 static relay g_relay{};
 static int g_exitCode{};
 
-log_level g_runtimeLogLevel{log_level::Info};
-
 static void handleAbort(int sig); // handle abort signal from terminal or system
 static void handleCrash(int sig); // handle crash
 

@@ -3,32 +3,33 @@
 cmake_minimum_required(VERSION 3.28.0)
 
 project(udp-relay
-        VERSION 0.6.0
+        VERSION 0.6.1
         DESCRIPTION "Simple UDP packet relay"
         HOMEPAGE_URL "https://github.com/GloryOfNight/udp-relay"
         LANGUAGES CXX C)
+
+set(UDP_RELAY_LIB_NAME ${PROJECT_NAME}-static)
+set(UDP_RELAY_EXE_NAME ${PROJECT_NAME}) 
 
 include(cmake/ProjectDefaults.cmake)
 include(cmake/ProjectOptions.cmake)
 include(cmake/Sanitizers.cmake)
 include(cmake/PreventInSourceBuilds.cmake)
 
-set (UDP_RELAY_SOURCES  src/real_main.cxx
-                        src/udp-relay/relay.cxx
-                        src/udp-relay/version.cxx
-                        src/udp-relay/net/udpsocket.cxx
-                        src/udp-relay/net/internetaddr.cxx)
+add_library(${UDP_RELAY_LIB_NAME} STATIC)
 
-set(UDP_RELAY_MAIN      $<$<PLATFORM_ID:Linux>:src/unixmain.cxx>
-                        $<$<PLATFORM_ID:Windows>:src/winmain.cxx>)
+target_sources(${UDP_RELAY_LIB_NAME} PRIVATE
+                    src/udp-relay/relay.cxx
+                    src/udp-relay/version.cxx
+                    src/udp-relay/net/udpsocket.cxx
+                    src/udp-relay/net/internetaddr.cxx)
 
-add_library(${PROJECT_NAME}-static STATIC ${UDP_RELAY_SOURCES})
-target_link_libraries(${PROJECT_NAME}-static PUBLIC $<$<PLATFORM_ID:Windows>:ws2_32.dll>)
+target_link_libraries(${UDP_RELAY_LIB_NAME} PUBLIC $<$<PLATFORM_ID:Windows>:ws2_32.dll>)
 
-target_include_directories(${PROJECT_NAME}-static PUBLIC    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+target_include_directories(${UDP_RELAY_LIB_NAME} PUBLIC    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                             $<INSTALL_INTERFACE:include>)
 
-target_compile_definitions(${PROJECT_NAME}-static PUBLIC    UR_BUILD_DEBUG=$<CONFIG:Debug>
+target_compile_definitions(${UDP_RELAY_LIB_NAME} PUBLIC    UR_BUILD_DEBUG=$<CONFIG:Debug>
                                                             UR_BUILD_RELEASE=$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>,$<CONFIG:MinSizeRel>>
                                                             UR_PLATFORM_WINDOWS=$<PLATFORM_ID:Windows>
                                                             UR_PLATFORM_LINUX=$<PLATFORM_ID:Linux>
@@ -36,15 +37,18 @@ target_compile_definitions(${PROJECT_NAME}-static PUBLIC    UR_BUILD_DEBUG=$<CON
                                                             UR_PROJECT_VERSION_MINOR=${PROJECT_VERSION_MINOR}
                                                             UR_PROJECT_VERSION_PATCH=${PROJECT_VERSION_PATCH})
 
-install(TARGETS ${PROJECT_NAME}-static EXPORT ${PROJECT_NAME}Targets)
+install(TARGETS ${UDP_RELAY_LIB_NAME} EXPORT ${PROJECT_NAME}Targets)
 install(EXPORT ${PROJECT_NAME}Targets DESTINATION cmake)
 install(DIRECTORY include DESTINATION include)
 
-
 if (ENABLE_BUILD_EXEC)
-    add_executable(${PROJECT_NAME} ${UDP_RELAY_MAIN})
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}-static)
-    install(TARGETS ${PROJECT_NAME})
+    add_executable(${UDP_RELAY_EXE_NAME})
+    target_sources(${UDP_RELAY_EXE_NAME} PRIVATE 
+                        src/real_main.cxx
+                        $<$<PLATFORM_ID:Linux>:src/unixmain.cxx>
+                        $<$<PLATFORM_ID:Windows>:src/winmain.cxx>)
+    target_link_libraries(${UDP_RELAY_EXE_NAME} PRIVATE ${UDP_RELAY_LIB_NAME})
+    install(TARGETS ${UDP_RELAY_EXE_NAME})
 endif()
 
 if (ENABLE_BUILD_TEST)
