@@ -2,12 +2,12 @@
 
 #pragma once
 
-import <cstdint>;
+import std.compat;
 
 namespace ur
 {
-	extern uint32_t getVersion();
-	extern uint32_t getVersionMajor();
-	extern uint32_t getVersionMinor();
-	extern uint32_t getVersionPatch();
+	extern std::uint32_t getVersion();
+	extern std::uint32_t getVersionMajor();
+	extern std::uint32_t getVersionMinor();
+	extern std::uint32_t getVersionPatch();
 } // namespace ur

@@ -5,10 +5,8 @@
 #include "udp-relay/utils.hxx"
 #include "udp-relay/val_ref.hxx"
 
-import <algorithm>;
-import <array>;
-import <csignal>;
-import <memory>;
+import std.compat;
+
 
 namespace args
 {
@@ -50,13 +48,13 @@ static void handleCrash(int sig); // handle crash
 
 int relay_main(int argc, char* argv[], char* envp[])
 {
-	std::signal(SIGABRT, handleAbort);
-	std::signal(SIGINT, handleAbort);
-	std::signal(SIGTERM, handleAbort);
+	//std::signal(SIGABRT, handleAbort);
+	//std::signal(SIGINT, handleAbort);
+	//std::signal(SIGTERM, handleAbort);
 
-	std::signal(SIGSEGV, handleCrash);
-	std::signal(SIGILL, handleCrash);
-	std::signal(SIGFPE, handleCrash);
+	//std::signal(SIGSEGV, handleCrash);
+	//std::signal(SIGILL, handleCrash);
+	//std::signal(SIGFPE, handleCrash);
 
 	ur::parseArgs(argList, argc, argv);
 	ur::parseEnvp(envList, envp);

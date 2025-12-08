@@ -2,7 +2,7 @@
 
 #pragma once
 
-import <new>;
+import std.compat;
 
 namespace ur
 {

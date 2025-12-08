@@ -2,12 +2,7 @@
 
 export module ur.net.utils;
 
-import <algorithm>;
-import <array>;
-import <bit>;
-import <concepts>;
-import <cstring>;
-import <stdint.h>;
+import std.compat;
 
 export namespace ur::net
 {

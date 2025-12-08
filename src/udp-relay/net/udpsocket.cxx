@@ -5,6 +5,7 @@
 #include "udp-relay/log.hxx"
 #include "udp-relay/net/internetaddr.hxx"
 
+import std.compat;
 import ur.net.utils;
 
 #if UR_PLATFORM_WINDOWS

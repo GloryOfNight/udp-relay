@@ -11,7 +11,7 @@
 #include <netinet/in.h>
 #endif
 
-import <format>;
+import std.compat;
 import ur.net.utils;
 
 uint32_t ur::net::anyIpv4()

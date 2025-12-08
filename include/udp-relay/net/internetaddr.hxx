@@ -2,12 +2,7 @@
 
 #pragma once
 
-import <array>;
-import <bit>;
-import <cstddef>;
-import <cstdint>;
-import <cstring>;
-import <string>;
+import std.compat;
 
 struct sockaddr_storage;
 

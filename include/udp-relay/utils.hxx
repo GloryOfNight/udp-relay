@@ -5,8 +5,7 @@
 #include "udp-relay/log.hxx"
 #include "udp-relay/val_ref.hxx"
 
-import <random>;
-import <cstdint>;
+import std.compat;
 
 namespace ur
 {
@@ -116,7 +115,7 @@ void ur::parseEnvp(const T& envList, char* envp[])
 {
 	static_assert(std::is_same<typename T::value_type, val_ref>::value, "T must be an array of val_ref");
 
-	for (int i = 0; envp[i] != NULL; ++i)
+	for (int i = 0; envp[i] != 0; ++i)
 	{
 		const std::string_view env = envp[i];
 		const std::string_view env_name = env.substr(0, env.find_first_of('='));

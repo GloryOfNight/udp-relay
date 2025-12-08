@@ -4,8 +4,7 @@
 
 #include "utils.hxx"
 
-import <cstdint>;
-import <string>;
+import std.compat;
 
 struct guid
 {
@@ -20,10 +19,10 @@ struct guid
 
 	static guid newGuid()
 	{
-		const uint32_t a = ur::randRange<uint32_t>(0, UINT32_MAX);
-		const uint32_t b = ur::randRange<uint32_t>(0, UINT32_MAX);
-		const uint32_t c = ur::randRange<uint32_t>(0, UINT32_MAX);
-		const uint32_t d = ur::randRange<uint32_t>(0, UINT32_MAX);
+		const uint32_t a = ur::randRange<uint32_t>(0, std::numeric_limits<uint32_t>::max());
+		const uint32_t b = ur::randRange<uint32_t>(0, std::numeric_limits<uint32_t>::max());
+		const uint32_t c = ur::randRange<uint32_t>(0, std::numeric_limits<uint32_t>::max());
+		const uint32_t d = ur::randRange<uint32_t>(0, std::numeric_limits<uint32_t>::max());
 		return guid(a, b, c, d);
 	}
 

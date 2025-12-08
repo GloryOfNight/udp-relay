@@ -2,9 +2,7 @@
 
 #pragma once
 
-import <cstdint>;
-import <memory>;
-import <cstddef>;
+import std.compat;
 
 // handle for native sockets descriptors
 #if UR_PLATFORM_WINDOWS

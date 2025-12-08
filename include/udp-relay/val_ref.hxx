@@ -2,8 +2,7 @@
 
 #pragma once
 
-import <string_view>;
-import <typeinfo>;
+import std.compat;
 
 struct val_ref
 {

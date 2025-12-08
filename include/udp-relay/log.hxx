@@ -2,10 +2,7 @@
 
 #pragma once
 
-import <chrono>;
-import <cstdarg>;
-import <format>;
-import <iostream>;
+import std.compat;
 
 enum class log_level : uint8_t
 {
