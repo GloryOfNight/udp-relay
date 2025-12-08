@@ -1,6 +1,19 @@
 // Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
+module;
 
-#include "udp-relay/version.hxx"
+#include <cstdint>
+
+export module ur.version;
+
+export namespace ur
+{
+	uint32_t getVersion();
+	uint32_t getVersionMajor();
+	uint32_t getVersionMinor();
+	uint32_t getVersionPatch();
+} // namespace ur
+
+module :private;
 
 uint32_t ur::getVersion()
 {

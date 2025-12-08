@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "udp-relay/aligned_storage.hxx"
 #include "udp-relay/guid.hxx"
 #include "udp-relay/net/internetaddr.hxx"
 #include "udp-relay/net/udpsocket.hxx"
@@ -12,9 +11,11 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
+#include <map>
 #include <memory>
 #include <queue>
-#include <map>
+
+import ur.aligned_storage;
 
 struct channel_stats
 {

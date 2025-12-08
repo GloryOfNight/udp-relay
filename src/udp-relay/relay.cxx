@@ -5,9 +5,10 @@
 #include "udp-relay/log.hxx"
 #include "udp-relay/net/network_utils.hxx"
 #include "udp-relay/net/udpsocket.hxx"
-#include "udp-relay/version.hxx"
 
 #include <thread>
+
+import ur.version;
 
 log_level g_runtimeLogLevel{log_level::Info};
 
