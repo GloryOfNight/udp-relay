@@ -9,6 +9,8 @@
 
 #include <thread>
 
+log_level g_runtimeLogLevel{log_level::Info};
+
 struct relay_helpers
 {
 	static handshake_header* tryDeserializeHeader(recvBufferStorage& recvBuffer, size_t recvBytes);
