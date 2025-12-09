@@ -6,6 +6,7 @@
 #include <cstdarg>
 #include <format>
 #include <iostream>
+#include <print>
 
 enum class log_level : uint8_t
 {
@@ -24,7 +25,7 @@ static constexpr log_level g_compileLogLevel{log_level::Info};
 static constexpr log_level g_compileLogLevel{log_level::Verbose};
 #endif
 
-namespace ur::core::log
+namespace ur
 {
 	static const char* log_level_to_string(const log_level level)
 	{
@@ -44,30 +45,17 @@ namespace ur::core::log
 	}
 
 	template <typename... Args>
-	inline void log(const log_level level, const std::string_view category, const std::string_view format, Args... args)
+	static void log(const log_level level, const std::string_view category, const std::string_view format, const Args... args)
 	{
 		if (level > g_runtimeLogLevel)
 			return;
 
 		const auto now = std::chrono::utc_clock::now();
 		const char* logLevelStr = log_level_to_string(level);
-		const std::string logBase = std::vformat("[{0:%F}T{0:%T}] {1}: {2}:", std::make_format_args(now, category, logLevelStr));
-		const std::string logMessage = std::vformat(format, std::make_format_args(args...));
-		const std::string logFinal = std::vformat("{0} {1}\n", std::make_format_args(logBase, logMessage));
-
-		std::ostream& ostream = level == log_level::Error ? std::cerr : std::cout;
-		ostream << logFinal;
+		std::println("{0} {1}", std::vformat("[{0:%F}T{0:%T}] {1}: {2}:", std::make_format_args(now, category, logLevelStr)), std::vformat(format, std::make_format_args(args...)));
 	}
-
-	inline void flush()
-	{
-		std::cout.flush();
-	}
-} // namespace ur::core::log
+} // namespace ur
 
 #define LOG(level, category, format, ...)                \
 	if constexpr (log_level::level <= g_compileLogLevel) \
-		ur::core::log::log(log_level::level, #category, format, ##__VA_ARGS__);
-
-#define LOG_FLUSH() \
-	ur::core::log::flush();
+		ur::log(log_level::level, #category, format, ##__VA_ARGS__);

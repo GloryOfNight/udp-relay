@@ -9,8 +9,6 @@
 
 #include <thread>
 
-log_level g_runtimeLogLevel{log_level::Info};
-
 struct relay_helpers
 {
 	static handshake_header* tryDeserializeHeader(recvBufferStorage& recvBuffer, size_t recvBytes);
@@ -237,8 +235,6 @@ void relay::conditionalCleanup(bool force)
 				++it;
 			}
 		}
-
-		LOG_FLUSH();
 
 		m_nextCleanupTime = m_lastTickTime + std::chrono::milliseconds(m_params.m_cleanupTimeMs);
 	}

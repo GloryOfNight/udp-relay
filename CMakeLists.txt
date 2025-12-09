@@ -18,18 +18,39 @@ include(cmake/PreventInSourceBuilds.cmake)
 
 add_library(${UDP_RELAY_LIB_NAME} STATIC)
 
-target_sources(${UDP_RELAY_LIB_NAME} PRIVATE
+target_sources(${UDP_RELAY_LIB_NAME} 
+                PRIVATE
+                    src/udp-relay/log.cxx
                     src/udp-relay/relay.cxx
                     src/udp-relay/version.cxx
                     src/udp-relay/net/udpsocket.cxx
-                    src/udp-relay/net/internetaddr.cxx)
+                    src/udp-relay/net/internetaddr.cxx
+                PUBLIC
+                    FILE_SET HEADERS
+                    FILES
+                    include/udp-relay/net/internetaddr.hxx
+                    include/udp-relay/net/network_utils.hxx
+                    include/udp-relay/net/udpsocket.hxx
+                    include/udp-relay/aligned_storage.hxx
+                    include/udp-relay/guid.hxx
+                    include/udp-relay/log.hxx
+                    include/udp-relay/relay.hxx
+                    include/udp-relay/utils.hxx
+                    include/udp-relay/val_ref.hxx
+                    include/udp-relay/version.hxx
+                PUBLIC
+                    FILE_SET CXX_MODULES
+                    FILES
+                    # modules; later
+                )
+
 
 target_link_libraries(${UDP_RELAY_LIB_NAME} PUBLIC $<$<PLATFORM_ID:Windows>:ws2_32.dll>)
 
-target_include_directories(${UDP_RELAY_LIB_NAME} PUBLIC    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+target_include_directories(${UDP_RELAY_LIB_NAME} PUBLIC     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                             $<INSTALL_INTERFACE:include>)
 
-target_compile_definitions(${UDP_RELAY_LIB_NAME} PUBLIC    UR_BUILD_DEBUG=$<CONFIG:Debug>
+target_compile_definitions(${UDP_RELAY_LIB_NAME} PUBLIC     UR_BUILD_DEBUG=$<CONFIG:Debug>
                                                             UR_BUILD_RELEASE=$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>,$<CONFIG:MinSizeRel>>
                                                             UR_PLATFORM_WINDOWS=$<PLATFORM_ID:Windows>
                                                             UR_PLATFORM_LINUX=$<PLATFORM_ID:Linux>
@@ -37,9 +58,10 @@ target_compile_definitions(${UDP_RELAY_LIB_NAME} PUBLIC    UR_BUILD_DEBUG=$<CONF
                                                             UR_PROJECT_VERSION_MINOR=${PROJECT_VERSION_MINOR}
                                                             UR_PROJECT_VERSION_PATCH=${PROJECT_VERSION_PATCH})
 
-install(TARGETS ${UDP_RELAY_LIB_NAME} EXPORT ${PROJECT_NAME}Targets)
+install(TARGETS ${UDP_RELAY_LIB_NAME} EXPORT ${PROJECT_NAME}Targets 
+        FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_PREFIX}
+        FILE_SET CXX_MODULES DESTINATION ${CMAKE_INSTALL_PREFIX})
 install(EXPORT ${PROJECT_NAME}Targets DESTINATION cmake)
-install(DIRECTORY include DESTINATION include)
 
 if (ENABLE_BUILD_EXEC)
     add_executable(${UDP_RELAY_EXE_NAME})
