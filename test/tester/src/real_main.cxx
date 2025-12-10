@@ -1,14 +1,17 @@
 // Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
 
 #include "udp-relay-client/client.hxx"
-#include "udp-relay/utils.hxx"
-#include "udp-relay/val_ref.hxx"
+#include "udp-relay/log.hxx"
 
 #include <array>
 #include <chrono>
 #include <csignal>
 #include <functional>
 #include <thread>
+
+import ur.utils;
+import ur.val_ref;
+import ur.log;
 
 namespace args
 {
