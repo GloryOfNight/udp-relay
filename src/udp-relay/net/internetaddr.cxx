@@ -14,6 +14,7 @@ module;
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <format>
 
 export module ur.net.internetaddr;
