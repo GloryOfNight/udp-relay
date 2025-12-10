@@ -1,11 +1,12 @@
 // Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
-
-#pragma once
+module;
 
 #include <string_view>
 #include <typeinfo>
 
-struct val_ref
+export module ur.val_ref;
+
+export struct val_ref
 {
 	template <typename T>
 	constexpr val_ref(const std::string_view& name, T& value, const std::string_view& noteHelp)

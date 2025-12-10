@@ -20,28 +20,23 @@ add_library(${UDP_RELAY_LIB_NAME} STATIC)
 
 target_sources(${UDP_RELAY_LIB_NAME} 
                 PRIVATE
-                    src/udp-relay/log.cxx
-                    src/udp-relay/relay.cxx
-                    src/udp-relay/version.cxx
-                    src/udp-relay/net/udpsocket.cxx
-                    src/udp-relay/net/internetaddr.cxx
                 PUBLIC
                     FILE_SET HEADERS
                     FILES
-                    include/udp-relay/net/internetaddr.hxx
-                    include/udp-relay/net/network_utils.hxx
-                    include/udp-relay/net/udpsocket.hxx
-                    include/udp-relay/aligned_storage.hxx
-                    include/udp-relay/guid.hxx
                     include/udp-relay/log.hxx
-                    include/udp-relay/relay.hxx
-                    include/udp-relay/utils.hxx
-                    include/udp-relay/val_ref.hxx
-                    include/udp-relay/version.hxx
                 PUBLIC
                     FILE_SET CXX_MODULES
                     FILES
-                    # modules; later
+                    src/udp-relay/net/udpsocket.cxx
+                    src/udp-relay/net/network_utils.cxx
+                    src/udp-relay/net/internetaddr.cxx
+                    src/udp-relay/aligned_storage.cxx
+                    src/udp-relay/guid.cxx
+                    src/udp-relay/log.cxx
+                    src/udp-relay/relay.cxx
+                    src/udp-relay/utils.cxx
+                    src/udp-relay/val_ref.cxx
+                    src/udp-relay/version.cxx
                 )
 
 

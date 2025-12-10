@@ -1,10 +1,11 @@
 // Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
-
-#pragma once
+module;
 
 #include <new>
 
-namespace ur
+export module ur.aligned_storage;
+
+export namespace ur
 {
 	template <std::size_t _alignment, std::size_t _size>
 	struct aligned_storage

@@ -1,10 +1,7 @@
 // Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
-
-#include "udp-relay/net/udpsocket.hxx"
+module;
 
 #include "udp-relay/log.hxx"
-#include "udp-relay/net/internetaddr.hxx"
-#include "udp-relay/net/network_utils.hxx"
 
 #if UR_PLATFORM_WINDOWS
 #include <WinSock2.h>
@@ -19,15 +16,98 @@
 #include <unistd.h>
 #endif
 
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+
+export module ur.net.udpsocket;
+
+import ur.net.internetaddr;
+import ur.net.utils;
+import ur.log;
+
 #if UR_PLATFORM_WINDOWS
+using socket_t = uint64_t;
 using suseconds_t = long;
 using socklen_t = int;
 using buffer_t = char;
 const socket_t socketInvalid = INVALID_SOCKET;
 #elif UR_PLATFORM_LINUX
+using socket_t = int;
 using buffer_t = void;
 const socket_t socketInvalid = -1;
 #endif
+
+// socket for UDP messaging
+export class udpsocket final
+{
+public:
+	udpsocket(bool ipv6) noexcept;
+	udpsocket(const udpsocket&) = delete;
+	udpsocket(udpsocket&&) = delete;
+	~udpsocket() noexcept;
+
+	// bind on socket on specific port in host byte order
+	bool bind(const internetaddr& addr) const;
+
+	// get socket port in host byte order
+	uint16_t getPort() const;
+
+	// get raw socket handle
+	socket_t getNativeSocket() const noexcept;
+
+	// true if socket handle is valid and class ready to use
+	bool isValid() const noexcept;
+
+	bool isIpv6() const noexcept;
+
+	// sends data to addr. Return bytes sent or -1 on error
+	int32_t sendTo(void* buffer, size_t bufferSize, const internetaddr* addr) const noexcept;
+
+	//  receives data. Return bytes received or -1 on error
+	int32_t recvFrom(void* buffer, size_t bufferSize, internetaddr* addr) const noexcept;
+
+	// for ipv6 socket, set if socket should be ipv6 only or dual-stack
+	bool setOnlyIpv6(bool value) const noexcept;
+
+	// allow socket to reuse addr
+	bool setReuseAddr(bool bAllowReuse = true) const noexcept;
+
+	// set socket non-blocking behavior
+	bool setNonBlocking(bool bNonBlocking = true) const noexcept;
+
+	// sets send buffer size. Returns true on success and sets newSize to actual buffer size applied.
+	bool setSendBufferSize(int32_t size) const noexcept;
+
+	// return send buffer size
+	int32_t getSendBufferSize() const noexcept;
+
+	// sets recv buffer size. Returns true on success and sets newSize to actual buffer size applied.
+	bool setRecvBufferSize(int32_t size) const noexcept;
+
+	// return recv buffer size
+	int32_t getRecvBufferSize() const noexcept;
+
+	// set send operation timeout, used in blocking sockets. Return true on success.
+	bool setSendTimeoutUs(int64_t timeoutUs) const noexcept;
+
+	// set receive operation timeout, used in blocking sockets. Return true on success.
+	bool setRecvTimeoutUs(int64_t timeoutUs) const noexcept;
+
+	// wait for incoming data. Return true if data available.
+	bool waitForReadUs(int64_t timeoutUs) const noexcept;
+
+	// wait socket ready to write state. Return true if ready.
+	bool waitForWriteUs(int64_t timeoutUs) const noexcept;
+
+private:
+	socket_t m_socket;
+};
+
+export using uniqueUdpsocket = std::unique_ptr<udpsocket>;
+
+module :private;
 
 udpsocket::udpsocket(bool ipv6) noexcept
 {

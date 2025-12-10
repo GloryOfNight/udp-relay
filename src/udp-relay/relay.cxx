@@ -1,18 +1,138 @@
 // Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
-
-#include "udp-relay/relay.hxx"
+module;
 
 #include "udp-relay/log.hxx"
-#include "udp-relay/net/network_utils.hxx"
-#include "udp-relay/net/udpsocket.hxx"
-#include "udp-relay/version.hxx"
 
+#include <array>
+#include <atomic>
+#include <chrono>
+#include <cstdint>
+#include <cstdlib>
+#include <map>
+#include <memory>
+#include <queue>
 #include <thread>
+
+export module ur.relay;
+
+import ur.version;
+import ur.log;
+import ur.net.utils;
+import ur.aligned_storage;
+import ur.guid;
+import ur.net.internetaddr;
+import ur.net.udpsocket;
+
+struct channel_stats
+{
+	uint64_t m_bytesReceived{};
+	uint64_t m_bytesSent{};
+
+	uint32_t m_packetsReceived{};
+	uint32_t m_packetsSent{};
+
+	uint32_t m_sendPacketDelays{};
+};
+
+struct channel
+{
+	channel() = default;
+	channel(const guid& inGuid)
+		: m_guid{inGuid}
+	{
+	}
+
+	const guid m_guid{};
+	internetaddr m_peerA{};
+	internetaddr m_peerB{};
+	std::chrono::time_point<std::chrono::steady_clock> m_lastUpdated{};
+	channel_stats m_stats{};
+};
+
+struct pending_packet
+{
+	guid m_channelGuid{};
+	internetaddr m_target{};
+	std::chrono::time_point<std::chrono::steady_clock> m_expireAt{};
+	std::vector<uint8_t> m_buffer{};
+};
+
+export struct relay_params
+{
+	uint16_t m_primaryPort{6060};
+	uint32_t m_socketRecvBufferSize{0};
+	uint32_t m_socketSendBufferSize{0};
+	int32_t m_cleanupTimeMs{1800};
+	int32_t m_cleanupInactiveChannelAfterMs{30000};
+	int32_t m_expirePacketAfterMs{5};
+	bool ipv6{};
+};
+
+export const uint32_t handshake_magic_number = 0x4B28000;
+export const uint16_t handshake_min_size = 24;
+export struct alignas(4) handshake_header
+{
+	uint32_t m_magicNumber{handshake_magic_number};
+	uint32_t m_reserved{};
+	guid m_guid{};
+};
+static_assert(sizeof(handshake_header) == handshake_min_size);
+
+using recvBufferStorage = ur::aligned_storage<alignof(std::max_align_t), 65536>;
+
+export class relay
+{
+public:
+	relay() = default;
+	relay(const relay&) = delete;
+	relay(relay&&) = delete;
+	~relay() = default;
+
+	bool init(const relay_params& params);
+
+	void run();
+
+	void stop();
+
+private:
+	void processIncoming();
+
+	void processOutcoming();
+
+	channel& createChannel(const guid& inGuid);
+
+	void conditionalCleanup(bool force = false);
+
+	relay_params m_params;
+
+	internetaddr m_recvAddr{};
+
+	recvBufferStorage m_recvBuffer{};
+
+	// when first client handshake comes, channel is created
+	std::map<guid, channel> m_channels{};
+
+	// when second client comes with same guid value, as in m_guidMappedChannels, it maps both addresses here
+	std::map<internetaddr, channel&> m_addressMappedChannels{};
+
+	std::queue<pending_packet> m_sendQueue{};
+
+	uniqueUdpsocket m_socket{};
+
+	// lastTickTime used instead of now()
+	std::chrono::time_point<std::chrono::steady_clock> m_lastTickTime{};
+
+	std::chrono::time_point<std::chrono::steady_clock> m_nextCleanupTime{};
+
+	std::atomic_bool m_running{false};
+};
 
 struct relay_helpers
 {
 	static handshake_header* tryDeserializeHeader(recvBufferStorage& recvBuffer, size_t recvBytes);
 };
+
+module :private;
 
 handshake_header* relay_helpers::tryDeserializeHeader(recvBufferStorage& recvBuffer, size_t recvBytes)
 {

@@ -1,14 +1,24 @@
 // Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
 
-#pragma once
+module;
 
 #include "udp-relay/log.hxx"
-#include "udp-relay/val_ref.hxx"
 
+#include <chrono>
+#include <cstdarg>
+#include <cstdint>
+#include <format>
+#include <iostream>
+#include <print>
 #include <random>
-#include <stdint.h>
+#include <string>
 
-namespace ur
+export module ur.utils;
+
+import ur.val_ref;
+import ur.log;
+
+export namespace ur
 {
 	// generate random value in range
 	template <typename T>

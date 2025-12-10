@@ -3,15 +3,17 @@
 #include "udp-relay-client/client.hxx"
 
 #include "udp-relay/log.hxx"
-#include "udp-relay/net/network_utils.hxx"
-#include "udp-relay/net/udpsocket.hxx"
-#include "udp-relay/relay.hxx"
-#include "udp-relay/utils.hxx"
 
 #include <algorithm>
 #include <array>
 #include <chrono>
 #include <thread>
+
+import ur.relay;
+import ur.log;
+import ur.utils;
+import ur.net.udpsocket;
+import ur.net.utils;
 
 struct handshake_packet
 {

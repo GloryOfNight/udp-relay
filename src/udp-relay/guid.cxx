@@ -1,13 +1,14 @@
 // Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
-
-#pragma once
-
-#include "utils.hxx"
+module;
 
 #include <cstdint>
 #include <string>
 
-struct guid
+export module ur.guid;
+
+import ur.utils;
+
+export struct guid
 {
 	guid() noexcept = default;
 	guid(uint32_t a, uint32_t b, uint32_t c, uint32_t d) noexcept
