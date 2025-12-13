@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 
@@ -48,10 +49,10 @@ public:
 	bool isIpv6() const noexcept;
 
 	// sends data to addr. Return bytes sent or -1 on error
-	int32_t sendTo(void* buffer, size_t bufferSize, const struct internetaddr* addr) const noexcept;
+	int32_t sendTo(void* buffer, size_t bufferSize, const struct internetaddr& addr) const noexcept;
 
 	// receives data. Return bytes received or -1 on error
-	int32_t recvFrom(void* buffer, size_t bufferSize, struct internetaddr* addr) const noexcept;
+	int32_t recvFrom(void* buffer, size_t bufferSize, struct internetaddr& addr) const noexcept;
 
 	// for ipv6 socket, set if socket should be ipv6 only or dual-stack
 	bool setOnlyIpv6(bool value) const noexcept;
@@ -75,16 +76,16 @@ public:
 	int32_t getRecvBufferSize() const noexcept;
 
 	// set send operation timeout, used in blocking sockets. Return true on success.
-	bool setSendTimeoutUs(int64_t timeoutUs) const noexcept;
+	bool setSendTimeoutUs(std::chrono::microseconds timeout) const noexcept;
 
 	// set receive operation timeout, used in blocking sockets. Return true on success.
-	bool setRecvTimeoutUs(int64_t timeoutUs) const noexcept;
+	bool setRecvTimeoutUs(std::chrono::microseconds timeout) const noexcept;
 
 	// wait for incoming data. Return true if data available.
-	bool waitForReadUs(int64_t timeoutUs) const noexcept;
+	bool waitForReadUs(std::chrono::microseconds timeout) const noexcept;
 
 	// wait socket ready to write state. Return true if ready.
-	bool waitForWriteUs(int64_t timeoutUs) const noexcept;
+	bool waitForWriteUs(std::chrono::microseconds timeout) const noexcept;
 
 private:
 	socket_t m_socket;

@@ -3,7 +3,7 @@
 cmake_minimum_required(VERSION 3.28.0)
 
 project(udp-relay
-        VERSION 0.6.1
+        VERSION 0.6.2
         DESCRIPTION "Simple UDP packet relay"
         HOMEPAGE_URL "https://github.com/GloryOfNight/udp-relay"
         LANGUAGES CXX C)
@@ -36,7 +36,6 @@ target_sources(${UDP_RELAY_LIB_NAME}
                     include/udp-relay/log.hxx
                     include/udp-relay/relay.hxx
                     include/udp-relay/utils.hxx
-                    include/udp-relay/val_ref.hxx
                     include/udp-relay/version.hxx
                 PUBLIC
                     FILE_SET CXX_MODULES
@@ -68,7 +67,7 @@ install(EXPORT ${PROJECT_NAME}Targets DESTINATION cmake)
 if (ENABLE_BUILD_EXEC)
     add_executable(${UDP_RELAY_EXE_NAME})
     target_sources(${UDP_RELAY_EXE_NAME} PRIVATE 
-                        src/real_main.cxx
+                        src/relay_main.cxx
                         $<$<PLATFORM_ID:Linux>:src/unixmain.cxx>
                         $<$<PLATFORM_ID:Windows>:src/winmain.cxx>)
     target_link_libraries(${UDP_RELAY_EXE_NAME} PRIVATE ${UDP_RELAY_LIB_NAME})

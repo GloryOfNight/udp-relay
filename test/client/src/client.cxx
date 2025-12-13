@@ -13,6 +13,8 @@
 #include <chrono>
 #include <thread>
 
+using namespace std::chrono_literals;
+
 struct handshake_packet
 {
 	handshake_header m_header{};
@@ -90,7 +92,7 @@ void relay_client::run(const relay_client_params& params)
 
 	while (m_running)
 	{
-		if (m_socket.waitForReadUs(5000))
+		if (m_socket.waitForReadUs(5000us))
 			processIncoming();
 
 		trySend();
@@ -104,7 +106,7 @@ void relay_client::processIncoming()
 		internetaddr recvAddr{};
 
 		int32_t bytesRead{};
-		bytesRead = m_socket.recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), &recvAddr);
+		bytesRead = m_socket.recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), recvAddr);
 
 		if (bytesRead < 0)
 			return;
@@ -122,8 +124,8 @@ void relay_client::processIncoming()
 
 			auto responseBuf = serializePacket(responsePacket);
 
-			m_socket.waitForWriteUs(500);
-			const auto bytesSent = m_socket.sendTo(responseBuf.data(), bytesRead, &recvAddr);
+			m_socket.waitForWriteUs(500us);
+			const auto bytesSent = m_socket.sendTo(responseBuf.data(), bytesRead, recvAddr);
 			if (bytesSent >= 0)
 				++m_packetsSent;
 		}
@@ -160,7 +162,7 @@ void relay_client::trySend()
 		const uint32_t payloadStripOffset = ur::randRange<uint32_t>(0, requestBuf.size() - handshake_packet_data_size);
 
 		internetaddr relayAddr = internetaddr::make_ipv4(m_params.m_server_ip, m_params.m_server_port);
-		const auto bytesSent = m_socket.sendTo(requestBuf.data(), requestBuf.size() - payloadStripOffset, &relayAddr);
+		const auto bytesSent = m_socket.sendTo(requestBuf.data(), requestBuf.size() - payloadStripOffset, relayAddr);
 		if (bytesSent >= 0)
 			++m_packetsSent;
 	};

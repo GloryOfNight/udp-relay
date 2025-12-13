@@ -54,6 +54,11 @@ namespace ur
 		const char* logLevelStr = log_level_to_string(level);
 		std::println("{0} {1}", std::vformat("[{0:%F}T{0:%T}] {1}: {2}:", std::make_format_args(now, category, logLevelStr)), std::vformat(format, std::make_format_args(args...)));
 	}
+
+	static void log_flush()
+	{
+		std::cout.flush();
+	}
 } // namespace ur
 
 #define LOG(level, category, format, ...)                \

@@ -20,7 +20,6 @@
 #endif
 
 #if UR_PLATFORM_WINDOWS
-using suseconds_t = long;
 using socklen_t = int;
 using buffer_t = char;
 const udpsocket::socket_t socketInvalid = INVALID_SOCKET;
@@ -83,7 +82,7 @@ bool udpsocket::bind(const internetaddr& addr) const
 	sockaddr_storage saddr{};
 	addr.copyToNative(saddr);
 
-	if (::bind(m_socket, (sockaddr*)&saddr, sizeof(saddr)) == -1)
+	if (::bind(m_socket, (sockaddr*)&saddr, sizeof(saddr)) == -1) [[unlikely]]
 	{
 		return false;
 	}
@@ -122,28 +121,28 @@ bool udpsocket::isIpv6() const noexcept
 	sockaddr_storage addr{};
 	socklen_t len = sizeof(addr);
 
-	if (getsockname(m_socket, (sockaddr*)&addr, &len) == -1)
+	if (getsockname(m_socket, (sockaddr*)&addr, &len) == -1) [[unlikely]]
 		return false;
 
 	return addr.ss_family == AF_INET6;
 }
 
-int32_t udpsocket::sendTo(void* buffer, size_t bufferSize, const internetaddr* addr) const noexcept
+int32_t udpsocket::sendTo(void* buffer, size_t bufferSize, const internetaddr& addr) const noexcept
 {
 	sockaddr_storage saddr{};
 	const socklen_t slen = sizeof(saddr);
 
-	addr->copyToNative(saddr);
+	addr.copyToNative(saddr);
 	return ::sendto(m_socket, (const buffer_t*)buffer, bufferSize, 0, (struct sockaddr*)&saddr, slen);
 }
 
-int32_t udpsocket::recvFrom(void* buffer, size_t bufferSize, internetaddr* addr) const noexcept
+int32_t udpsocket::recvFrom(void* buffer, size_t bufferSize, internetaddr& addr) const noexcept
 {
 	sockaddr_storage saddr{};
 	socklen_t slen = sizeof(saddr);
 
 	const int32_t res = ::recvfrom(m_socket, (buffer_t*)buffer, bufferSize, 0, (struct sockaddr*)&saddr, &slen);
-	addr->copyFromNative(saddr);
+	addr.copyFromNative(saddr);
 	return res;
 }
 
@@ -208,37 +207,37 @@ int32_t udpsocket::getRecvBufferSize() const noexcept
 	return size;
 }
 
-bool udpsocket::setRecvTimeoutUs(int64_t timeoutUs) const noexcept
+bool udpsocket::setRecvTimeoutUs(std::chrono::microseconds timeout) const noexcept
 {
 #if UR_PLATFORM_WINDOWS
-	DWORD time = (timeoutUs + 999) / 1000;
+	DWORD time = (timeout.count() + 999) / 1000;
 #elif UR_PLATFORM_LINUX
 	timeval time;
-	time.tv_sec = timeoutUs / 1000000;
-	time.tv_usec = timeoutUs % 1000000;
+	time.tv_sec = timeout.count() / 1000000;
+	time.tv_usec = timeout.count() % 1000000;
 #endif
 	const bool bOk = setsockopt(m_socket, SOL_SOCKET, SO_RCVTIMEO, (buffer_t*)&time, sizeof(time)) == 0;
 	return bOk;
 }
 
-bool udpsocket::setSendTimeoutUs(int64_t timeoutUs) const noexcept
+bool udpsocket::setSendTimeoutUs(std::chrono::microseconds timeout) const noexcept
 {
 #if UR_PLATFORM_WINDOWS
-	DWORD time = (timeoutUs + 999) / 1000;
+	DWORD time = (timeout.count() + 999) / 1000;
 #elif UR_PLATFORM_LINUX
 	timeval time;
-	time.tv_sec = timeoutUs / 1000000;
-	time.tv_usec = timeoutUs % 1000000;
+	time.tv_sec = timeout.count() / 1000000;
+	time.tv_usec = timeout.count() % 1000000;
 #endif
 	const bool bOk = setsockopt(m_socket, SOL_SOCKET, SO_SNDTIMEO, (buffer_t*)&time, sizeof(time)) == 0;
 	return bOk;
 }
 
-bool udpsocket::waitForReadUs(int64_t timeoutUs) const noexcept
+bool udpsocket::waitForReadUs(std::chrono::microseconds timeout) const noexcept
 {
 	timeval time;
-	time.tv_sec = timeoutUs / 1000000;
-	time.tv_usec = timeoutUs % 1000000;
+	time.tv_sec = timeout.count() / 1000000;
+	time.tv_usec = timeout.count() % 1000000;
 
 	fd_set socketSet;
 	FD_ZERO(&socketSet);
@@ -248,11 +247,11 @@ bool udpsocket::waitForReadUs(int64_t timeoutUs) const noexcept
 	return selectRes > 0;
 }
 
-bool udpsocket::waitForWriteUs(int64_t timeoutUs) const noexcept
+bool udpsocket::waitForWriteUs(std::chrono::microseconds timeout) const noexcept
 {
 	timeval time;
-	time.tv_sec = timeoutUs / 1000000;
-	time.tv_usec = timeoutUs % 1000000;
+	time.tv_sec = timeout.count() / 1000000;
+	time.tv_usec = timeout.count() % 1000000;
 
 	fd_set socketSet;
 	FD_ZERO(&socketSet);

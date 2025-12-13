@@ -55,9 +55,9 @@ struct relay_params
 	uint16_t m_primaryPort{6060};
 	uint32_t m_socketRecvBufferSize{0};
 	uint32_t m_socketSendBufferSize{0};
-	int32_t m_cleanupTimeMs{1800};
-	int32_t m_cleanupInactiveChannelAfterMs{30000};
-	int32_t m_expirePacketAfterMs{5};
+	uint32_t m_cleanupTimeMs{1800};
+	uint32_t m_cleanupInactiveChannelAfterMs{30000};
+	uint32_t m_expirePacketAfterMs{5};
 	bool ipv6{};
 };
 
@@ -71,7 +71,7 @@ struct alignas(4) handshake_header
 };
 static_assert(sizeof(handshake_header) == handshake_min_size);
 
-using recvBufferStorage = ur::aligned_storage<alignof(std::max_align_t), 65536>;
+using recv_buffer = ur::aligned_storage<alignof(std::max_align_t), 65536>;
 
 class relay
 {
@@ -82,7 +82,7 @@ public:
 	~relay() = default;
 
 	// Initialize relay with params
-	bool init(const relay_params& params);
+	bool init(relay_params params);
 
 	// Begin running loop
 	void run();
@@ -100,13 +100,13 @@ private:
 
 	channel& createChannel(const guid& inGuid);
 
-	void conditionalCleanup(bool force = false);
+	void conditionalCleanup();
 
 	relay_params m_params;
 
 	internetaddr m_recvAddr{};
 
-	recvBufferStorage m_recvBuffer{};
+	recv_buffer m_recvBuffer{};
 
 	udpsocket m_socket{};
 
