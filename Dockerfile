@@ -1,5 +1,5 @@
 # ===== Build stage =====
-FROM ubuntu:24.04 AS build
+FROM ubuntu:25.10 AS build
 
 # Set noninteractive frontend
 ENV DEBIAN_FRONTEND=noninteractive
@@ -11,6 +11,7 @@ ARG GIT_BRANCH=main
 # Install build dependencies in one RUN to reduce layers
 RUN apt-get update && \
     apt-get install -y \
+        build-essential \
         clang \
         clang-tools \
         cmake \
@@ -21,11 +22,11 @@ RUN apt-get update && \
 RUN cd /opt && \
     git clone --branch $GIT_BRANCH --depth 1 $GIT_REPOSITORY udp-relay && \
     cd udp-relay && \
-    cmake --preset ninja-multi -DENABLE_BUILD_STATIC_LIB=OFF && \
+    cmake --preset ninja-multi -DENABLE_BUILD_TEST=OFF && \
     cmake --build --preset ninja-release
 
 # ===== Runtime stage =====
-FROM ubuntu:24.04
+FROM ubuntu:25.10
 
 # Expose UDP port
 EXPOSE 6060/udp
