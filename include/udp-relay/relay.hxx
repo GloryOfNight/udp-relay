@@ -55,9 +55,9 @@ struct relay_params
 	uint16_t m_primaryPort{6060};
 	uint32_t m_socketRecvBufferSize{0};
 	uint32_t m_socketSendBufferSize{0};
-	int32_t m_cleanupTimeMs{1800};
-	int32_t m_cleanupInactiveChannelAfterMs{30000};
-	int32_t m_expirePacketAfterMs{5};
+	uint32_t m_cleanupTimeMs{1800};
+	uint32_t m_cleanupInactiveChannelAfterMs{30000};
+	uint32_t m_expirePacketAfterMs{5};
 	bool ipv6{};
 };
 

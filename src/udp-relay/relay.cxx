@@ -19,17 +19,17 @@ handshake_header* relay_helpers::tryDeserializeHeader(const recv_buffer& recvBuf
 	if (recvBytes < sizeof(handshake_header))
 		return nullptr;
 
-	static const uint32_t handshakeMagicNumberHton = ur::net::hton32(handshake_magic_number);
+	constexpr uint32_t handshakeMagicNumberHton = ur::net::hton32(handshake_magic_number);
 
 	handshake_header* recvHeader = reinterpret_cast<handshake_header*>(recvBuffer.data());
 	if (recvHeader->m_magicNumber != handshakeMagicNumberHton || recvHeader->m_guid.isNull())
 		return nullptr;
 
 	recvHeader->m_magicNumber = ur::net::ntoh32(recvHeader->m_magicNumber);
+	recvHeader->m_guid.m_a = ur::net::ntoh32(recvHeader->m_guid.m_a);
+	recvHeader->m_guid.m_b = ur::net::ntoh32(recvHeader->m_guid.m_b);
 	recvHeader->m_guid.m_c = ur::net::ntoh32(recvHeader->m_guid.m_c);
 	recvHeader->m_guid.m_d = ur::net::ntoh32(recvHeader->m_guid.m_d);
-	recvHeader->m_guid.m_b = ur::net::ntoh32(recvHeader->m_guid.m_b);
-	recvHeader->m_guid.m_a = ur::net::ntoh32(recvHeader->m_guid.m_a);
 	return recvHeader;
 }
 

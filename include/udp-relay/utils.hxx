@@ -3,10 +3,36 @@
 #pragma once
 
 #include "udp-relay/log.hxx"
-#include "udp-relay/val_ref.hxx"
 
-#include <random>
 #include <cstdint>
+#include <print>
+#include <random>
+#include <typeinfo>
+
+struct cl_arg_ref
+{
+	template <typename T>
+	constexpr cl_arg_ref(std::string_view name, T& value, std::string_view noteHelp)
+		: m_name{name}
+		, m_noteHelp{noteHelp}
+		, m_value{&value}
+		, m_type{typeid(T)}
+	{
+	}
+
+	std::string_view m_name;
+	std::string_view m_noteHelp;
+	void* m_value;
+	const std::type_info& m_type;
+
+	template <typename T>
+	T* to() const
+	{
+		return m_type == typeid(T) ? reinterpret_cast<T*>(m_value) : nullptr;
+	}
+};
+
+using env_var_ref = cl_arg_ref;
 
 namespace ur
 {
@@ -18,7 +44,7 @@ namespace ur
 	template <typename T>
 	void parseArgs(const T& argList, int argc, char* argv[]);
 
-	// print arguments helo list
+	// print arguments help list
 	template <typename T>
 	void printArgsHelp(const T& argList);
 
@@ -39,15 +65,15 @@ T ur::randRange(const T min, const T max)
 template <typename T>
 void ur::parseArgs(const T& argList, int argc, char* argv[])
 {
-	static_assert(std::is_same<typename T::value_type, val_ref>::value, "T must be an array of val_ref");
+	static_assert(std::is_same<typename T::value_type, cl_arg_ref>::value, "T must be an array of val_ref");
 
-	val_ref const* prev_arg = nullptr;
+	cl_arg_ref const* prev_arg = nullptr;
 	for (int i = 0; i < argc; ++i)
 	{
 		const std::string_view arg = argv[i];
 
 		// find if argument listed in args
-		const auto found_arg = std::find_if(std::begin(argList), std::end(argList), [&arg](const val_ref& val)
+		const auto found_arg = std::find_if(std::begin(argList), std::end(argList), [&arg](const cl_arg_ref& val)
 			{ return arg == val.m_name; });
 
 		// some arguments doesn't need options and some does
@@ -68,9 +94,34 @@ void ur::parseArgs(const T& argList, int argc, char* argv[])
 		}
 		else if (prev_arg)
 		{
-			if (auto val = prev_arg->to<int32_t>())
+			if (auto val = prev_arg->to<int16_t>())
 			{
-				*val = std::stoi(arg.data());
+				*val = std::stol(arg.data());
+				prev_arg = nullptr;
+			}
+			else if (auto val = prev_arg->to<int32_t>())
+			{
+				*val = std::stol(arg.data());
+				prev_arg = nullptr;
+			}
+			else if (auto val = prev_arg->to<int64_t>())
+			{
+				*val = std::stoll(arg.data());
+				prev_arg = nullptr;
+			}
+			else if (auto val = prev_arg->to<uint16_t>())
+			{
+				*val = std::stoul(arg.data());
+				prev_arg = nullptr;
+			}
+			else if (auto val = prev_arg->to<uint32_t>())
+			{
+				*val = std::stoul(arg.data());
+				prev_arg = nullptr;
+			}
+			else if (auto val = prev_arg->to<uint64_t>())
+			{
+				*val = std::stoull(arg.data());
 				prev_arg = nullptr;
 			}
 			else if (auto val = prev_arg->to<std::string>())
@@ -84,7 +135,7 @@ void ur::parseArgs(const T& argList, int argc, char* argv[])
 			}
 			else
 			{
-				LOG(Error, "Failed parse argument: {0}. Type not supported: {1}", prev_arg->m_name, prev_arg->m_type.name());
+				LOG(Error, Args, "Failed parse argument: {0}. Type not supported: {1}", prev_arg->m_name, prev_arg->m_type.name());
 			}
 		}
 		else
@@ -92,7 +143,7 @@ void ur::parseArgs(const T& argList, int argc, char* argv[])
 			if (arg.ends_with("udp-relay") || arg.ends_with("udp-relay.exe"))
 				continue;
 
-			LOG(Verbose, "Unknown argument: {0}", arg.data());
+			LOG(Verbose, Args, "Unknown argument: {0}", arg.data());
 		}
 	}
 }
@@ -100,21 +151,20 @@ void ur::parseArgs(const T& argList, int argc, char* argv[])
 template <typename T>
 void ur::printArgsHelp(const T& argList)
 {
-	std::cout << "Available arguments list:" << std::endl;
+	std::println("Available arguments list:");
 	for (auto& arg : argList)
 	{
 		if (arg.m_noteHelp.size() == 0)
 			continue;
-
-		std::cout << arg.m_noteHelp << std::endl;
+		std::println("{}", arg.m_noteHelp);
 	}
-	std::cout << "Apache License Version 2.0 - Copyright (c) 2025 Sergey Dikiy" << std::endl;
+	std::println("Apache License Version 2.0 - Copyright (c) 2025 Sergey Dikiy");
 }
 
 template <typename T>
 void ur::parseEnvp(const T& envList, char* envp[])
 {
-	static_assert(std::is_same<typename T::value_type, val_ref>::value, "T must be an array of val_ref");
+	static_assert(std::is_same<typename T::value_type, env_var_ref>::value, "T must be an array of env_var_ref");
 
 	for (int i = 0; envp[i] != NULL; ++i)
 	{
@@ -122,7 +172,7 @@ void ur::parseEnvp(const T& envList, char* envp[])
 		const std::string_view env_name = env.substr(0, env.find_first_of('='));
 
 		// find environment variables that we might need
-		const auto found_env = std::find_if(std::begin(envList), std::end(envList), [&env_name](const val_ref& val)
+		const auto found_env = std::find_if(std::begin(envList), std::end(envList), [&env_name](const env_var_ref& val)
 			{ return val.m_name == env_name; });
 
 		// if found_env variable found
@@ -139,7 +189,7 @@ void ur::parseEnvp(const T& envList, char* envp[])
 			}
 			else
 			{
-				LOG(Error, "Failed parse environment variable: {0}. Type not supported: {1}", found_env->m_name, found_env->m_type.name());
+				LOG(Error, Envp, "Failed parse environment variable: {0}. Type not supported: {1}", found_env->m_name, found_env->m_type.name());
 			}
 		}
 	}
