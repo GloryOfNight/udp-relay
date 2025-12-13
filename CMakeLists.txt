@@ -45,7 +45,7 @@ target_sources(${UDP_RELAY_LIB_NAME}
                 )
 
 
-target_link_libraries(${UDP_RELAY_LIB_NAME} PUBLIC $<$<PLATFORM_ID:Windows>:ws2_32.dll> $<$<PLATFORM_ID:Linux>:stdc++_libbacktrace>)
+target_link_libraries(${UDP_RELAY_LIB_NAME} PUBLIC $<$<PLATFORM_ID:Windows>:ws2_32.dll> $<$<PLATFORM_ID:Linux>:stdc++exp>)
 
 target_compile_options(${UDP_RELAY_LIB_NAME} PUBLIC $<$<PLATFORM_ID:Linux>:-fsized-deallocation>)
 
