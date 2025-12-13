@@ -92,5 +92,6 @@ void handleAbort(int sig)
 void handleCrash(int sig)
 {
 	std::println("- - - Caught crash signal {} - - -\nStacktrace:\n{}", sig, std::stacktrace::current());
+
 	g_exitCode = 128 + sig;
 }

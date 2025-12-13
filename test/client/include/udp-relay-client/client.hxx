@@ -38,7 +38,7 @@ private:
 
 	relay_client_params m_params{};
 
-	uniqueUdpsocket m_socket{};
+	udpsocket m_socket{};
 
 	std::vector<uint8_t> m_recvBuffer{};
 

@@ -108,17 +108,17 @@ private:
 
 	recvBufferStorage m_recvBuffer{};
 
+	udpsocket m_socket{};
+
 	// when first client handshake comes, channel is created
 	std::map<guid, channel> m_channels{};
 
 	// when second client comes with same guid value, as in m_guidMappedChannels, it maps both addresses here
 	std::map<internetaddr, channel&> m_addressMappedChannels{};
 
+	// optionally used to send packets later when socket busy, if m_expirePacketAfterMs > 0
 	std::queue<pending_packet> m_sendQueue{};
 
-	uniqueUdpsocket m_socket{};
-
-	// lastTickTime used instead of now()
 	std::chrono::time_point<std::chrono::steady_clock> m_lastTickTime{};
 
 	std::chrono::time_point<std::chrono::steady_clock> m_nextCleanupTime{};

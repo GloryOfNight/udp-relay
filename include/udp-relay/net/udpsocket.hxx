@@ -2,9 +2,8 @@
 
 #pragma once
 
-#include <cstdint>
-#include <memory>
 #include <cstddef>
+#include <cstdint>
 
 // socket for UDP messaging
 class udpsocket final
@@ -17,10 +16,21 @@ public:
 	using socket_t = int;
 #endif
 
-	udpsocket(bool ipv6) noexcept;
+	udpsocket() noexcept;
+
 	udpsocket(const udpsocket&) = delete;
-	udpsocket(udpsocket&&) = delete;
+	udpsocket& operator=(const udpsocket&) = delete;
+
+	udpsocket(udpsocket&&) noexcept;
+	udpsocket& operator=(udpsocket&&) noexcept;
+
 	~udpsocket() noexcept;
+
+	// create new socket, result must be checked if valid
+	static udpsocket make(bool makeIpv6) noexcept;
+
+	// closes and invalidates current socket object
+	void close() noexcept;
 
 	// bind on socket on specific port in host byte order
 	bool bind(const struct internetaddr& addr) const;
@@ -79,5 +89,3 @@ public:
 private:
 	socket_t m_socket;
 };
-
-using uniqueUdpsocket = std::unique_ptr<udpsocket>;
