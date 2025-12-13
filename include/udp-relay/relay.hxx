@@ -12,9 +12,9 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
+#include <map>
 #include <memory>
 #include <queue>
-#include <map>
 
 struct channel_stats
 {
@@ -90,7 +90,7 @@ public:
 	// Immidiate stop
 	void stop();
 
-	// Wait until all existing connections closed and then stop
+	// Wait until all existing connections closed and then stop. Also prevents new connections being created.
 	void stopGracefully();
 
 private:
