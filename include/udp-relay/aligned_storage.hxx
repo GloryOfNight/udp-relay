@@ -12,7 +12,7 @@ namespace ur
 		aligned_storage()
 		{
 			static_assert(_size % _alignment == 0, "Invalid size");
-			static_assert(_alignment % 2 == 0, "Invalid size");
+			static_assert(_alignment % 2 == 0, "Invalid alignment");
 			m_data = ::operator new(_size, std::align_val_t(_alignment));
 		}
 

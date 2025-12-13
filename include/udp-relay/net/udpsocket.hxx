@@ -4,19 +4,19 @@
 
 #include <cstdint>
 #include <memory>
-#include <stddef.h>
-
-// handle for native sockets descriptors
-#if UR_PLATFORM_WINDOWS
-using socket_t = uint64_t;
-#elif UR_PLATFORM_LINUX
-using socket_t = int;
-#endif
+#include <cstddef>
 
 // socket for UDP messaging
 class udpsocket final
 {
 public:
+	// handle for native sockets descriptors
+#if UR_PLATFORM_WINDOWS
+	using socket_t = uint64_t;
+#elif UR_PLATFORM_LINUX
+	using socket_t = int;
+#endif
+
 	udpsocket(bool ipv6) noexcept;
 	udpsocket(const udpsocket&) = delete;
 	udpsocket(udpsocket&&) = delete;
@@ -31,15 +31,16 @@ public:
 	// get raw socket handle
 	socket_t getNativeSocket() const noexcept;
 
-	// true if socket handle is valid and class ready to use
+	// true if socket handle is valid and ready to use
 	bool isValid() const noexcept;
 
+	// return true if ipv6 enabled
 	bool isIpv6() const noexcept;
 
 	// sends data to addr. Return bytes sent or -1 on error
 	int32_t sendTo(void* buffer, size_t bufferSize, const struct internetaddr* addr) const noexcept;
 
-	//  receives data. Return bytes received or -1 on error
+	// receives data. Return bytes received or -1 on error
 	int32_t recvFrom(void* buffer, size_t bufferSize, struct internetaddr* addr) const noexcept;
 
 	// for ipv6 socket, set if socket should be ipv6 only or dual-stack

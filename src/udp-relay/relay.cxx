@@ -35,6 +35,12 @@ handshake_header* relay_helpers::tryDeserializeHeader(recvBufferStorage& recvBuf
 
 bool relay::init(const relay_params& params)
 {
+	if (m_running)
+	{
+		LOG(Warning, Relay, "Cannon initialize while running");
+		return false;
+	}
+
 	LOG(Verbose, Relay, "Begin initialization");
 
 	uniqueUdpsocket newSocket = std::make_unique<udpsocket>(params.ipv6);
@@ -108,17 +114,31 @@ void relay::run()
 			processIncoming();
 
 		conditionalCleanup();
+
+		if (m_gracefulStopRequested && m_addressMappedChannels.size() == 0)
+		{
+			stop();
+		}
 	}
+
+	LOG(Info, Relay, "Exited run loop");
 }
 
 void relay::stop()
 {
+	LOG(Info, Relay, "Stop");
 	m_running = false;
+}
+
+void relay::stopGracefully()
+{
+	LOG(Info, Relay, "Graceful stop requested");
+	m_gracefulStopRequested = true;
 }
 
 void relay::processIncoming()
 {
-	const int32_t maxRecvCycles = 32;
+	const int32_t maxRecvCycles = 8;
 	for (int32_t currentCycle = 0; currentCycle < maxRecvCycles; ++currentCycle)
 	{
 		int32_t bytesRead{};
@@ -127,7 +147,7 @@ void relay::processIncoming()
 			return;
 
 		// check if packet is relay handshake header, and extract guid if possible
-		if (auto recvHeader = relay_helpers::tryDeserializeHeader(m_recvBuffer, bytesRead); recvHeader)
+		if (auto recvHeader = relay_helpers::tryDeserializeHeader(m_recvBuffer, bytesRead); !m_gracefulStopRequested && recvHeader)
 		{
 			handshake_header& recvHeaderRef = *recvHeader;
 
@@ -191,7 +211,8 @@ void relay::processIncoming()
 
 void relay::processOutcoming()
 {
-	while (m_sendQueue.size())
+	const int32_t maxSendCycles = 8;
+	for (int32_t currentCycle = 0; m_sendQueue.size() && currentCycle < maxSendCycles; ++currentCycle)
 	{
 		auto& pendingPacket = m_sendQueue.front();
 		const bool packetWithinExpireLimit = pendingPacket.m_expireAt > m_lastTickTime;

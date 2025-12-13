@@ -12,9 +12,9 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
+#include <map>
 #include <memory>
 #include <queue>
-#include <map>
 
 struct channel_stats
 {
@@ -81,11 +81,17 @@ public:
 	relay(relay&&) = delete;
 	~relay() = default;
 
+	// Initialize relay with params
 	bool init(const relay_params& params);
 
+	// Begin running loop
 	void run();
 
+	// Immidiate stop
 	void stop();
+
+	// Wait until all existing connections closed and then stop. Also prevents new connections being created.
+	void stopGracefully();
 
 private:
 	void processIncoming();
@@ -118,4 +124,6 @@ private:
 	std::chrono::time_point<std::chrono::steady_clock> m_nextCleanupTime{};
 
 	std::atomic_bool m_running{false};
+
+	std::atomic_bool m_gracefulStopRequested{false};
 };
