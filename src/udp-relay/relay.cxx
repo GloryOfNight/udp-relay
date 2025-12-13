@@ -43,27 +43,27 @@ bool relay::init(const relay_params& params)
 
 	LOG(Verbose, Relay, "Begin initialization");
 
-	uniqueUdpsocket newSocket = std::make_unique<udpsocket>(params.ipv6);
-	if (newSocket == nullptr || !newSocket->isValid())
+	udpsocket newSocket = udpsocket::make(params.ipv6);
+	if (!newSocket.isValid())
 	{
 		LOG(Error, Relay, "Failed to create socket!");
 		return false;
 	}
 
-	if (params.ipv6 && !newSocket->setOnlyIpv6(false))
+	if (params.ipv6 && !newSocket.setOnlyIpv6(false))
 	{
 		LOG(Error, Relay, "Failed set socket ipv6 to dual-stack mode");
 		return false;
 	}
 
 	const auto addr = params.ipv6 ? internetaddr::make_ipv6(ur::net::anyIpv6(), params.m_primaryPort) : internetaddr::make_ipv4(ur::net::anyIpv4(), params.m_primaryPort);
-	if (!newSocket->bind(addr))
+	if (!newSocket.bind(addr))
 	{
 		LOG(Error, Relay, "Failed bind to {0} port", params.m_primaryPort);
 		return false;
 	}
 
-	if (!newSocket->setNonBlocking(true))
+	if (!newSocket.setNonBlocking(true))
 	{
 		LOG(Error, Relay, "Failed set socket to non-blocking mode");
 		return false;
@@ -71,20 +71,20 @@ bool relay::init(const relay_params& params)
 
 	if (params.m_socketSendBufferSize)
 	{
-		if (!newSocket->setSendBufferSize(params.m_socketSendBufferSize))
+		if (!newSocket.setSendBufferSize(params.m_socketSendBufferSize))
 			LOG(Warning, Relay, "Failed set send buffer size to {}", params.m_socketSendBufferSize);
 		LOG(Info, Relay, "Socket requested send buffer size {}", params.m_socketSendBufferSize);
 	}
 
 	if (params.m_socketRecvBufferSize)
 	{
-		if (!newSocket->setRecvBufferSize(params.m_socketRecvBufferSize))
+		if (!newSocket.setRecvBufferSize(params.m_socketRecvBufferSize))
 			LOG(Warning, Relay, "Failed set recv buffer size to {}", params.m_socketRecvBufferSize);
 		LOG(Info, Relay, "Socket requested recv buffer size {}", params.m_socketRecvBufferSize);
 	}
 
 	LOG(Info, Relay, "Relay initialized {}:{}. SndBuf={}, RcvBuf={}. Version: {}.{}.{}",
-		addr.toString(false), newSocket->getPort(), newSocket->getSendBufferSize(), newSocket->getRecvBufferSize(),
+		addr.toString(false), newSocket.getPort(), newSocket.getSendBufferSize(), newSocket.getRecvBufferSize(),
 		ur::getVersionMajor(), ur::getVersionMinor(), ur::getVersionPatch());
 
 	m_params = params;
@@ -95,9 +95,9 @@ bool relay::init(const relay_params& params)
 
 void relay::run()
 {
-	if (!m_socket)
+	if (!m_socket.isValid())
 	{
-		LOG(Warning, Relay, "Cannot run while not initialized");
+		LOG(Error, Relay, "Cannot run while not initialized");
 		return;
 	}
 
@@ -107,10 +107,10 @@ void relay::run()
 	{
 		m_lastTickTime = std::chrono::steady_clock::now();
 
-		if (m_sendQueue.size() && m_socket->waitForWriteUs(1000))
+		if (m_sendQueue.size() && m_socket.waitForWriteUs(1000))
 			processOutcoming();
 
-		if (m_socket->waitForReadUs(15000))
+		if (m_socket.waitForReadUs(15000))
 			processIncoming();
 
 		conditionalCleanup();
@@ -142,7 +142,7 @@ void relay::processIncoming()
 	for (int32_t currentCycle = 0; currentCycle < maxRecvCycles; ++currentCycle)
 	{
 		int32_t bytesRead{};
-		bytesRead = m_socket->recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), &m_recvAddr);
+		bytesRead = m_socket.recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), &m_recvAddr);
 		if (bytesRead < 0)
 			return;
 
@@ -188,7 +188,7 @@ void relay::processIncoming()
 			const auto& sendAddr = findRes->second.m_peerA != m_recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
 
 			// try relay packet immediately and if failed, add to send queue
-			const auto bytesSend = m_socket->sendTo(m_recvBuffer.data(), bytesRead, &sendAddr);
+			const auto bytesSend = m_socket.sendTo(m_recvBuffer.data(), bytesRead, &sendAddr);
 			if (bytesSend >= 0)
 			{
 				currentChannel.m_stats.m_packetsSent++;
@@ -221,7 +221,7 @@ void relay::processOutcoming()
 		if (packetWithinExpireLimit && findChannel != m_channels.end())
 		{
 			auto& currentChannel = findChannel->second;
-			const auto bytesSend = m_socket->sendTo(pendingPacket.m_buffer.data(), pendingPacket.m_buffer.size(), &pendingPacket.m_target);
+			const auto bytesSend = m_socket.sendTo(pendingPacket.m_buffer.data(), pendingPacket.m_buffer.size(), &pendingPacket.m_target);
 			if (bytesSend < 0)
 				return;
 

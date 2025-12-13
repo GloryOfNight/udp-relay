@@ -29,35 +29,53 @@ using buffer_t = void;
 const udpsocket::socket_t socketInvalid = -1;
 #endif
 
-udpsocket::udpsocket(bool ipv6) noexcept
+udpsocket::udpsocket() noexcept
+	: m_socket{socketInvalid}
 {
-	const int af = ipv6 ? AF_INET6 : AF_INET;
-	m_socket = ::socket(af, SOCK_DGRAM, 0);
-	if (!isValid()) [[unlikely]]
-	{
-		LOG(Error, UdpSocket, "Failed to create socket. Error code: {0}", errno);
-	}
+}
+
+udpsocket::udpsocket(udpsocket&& from) noexcept
+{
+	m_socket = from.m_socket;
+	from.m_socket = socketInvalid;
+}
+
+udpsocket& udpsocket::operator=(udpsocket&& from) noexcept
+{
+	m_socket = from.m_socket;
+	from.m_socket = socketInvalid;
+	return *this;
 }
 
 udpsocket::~udpsocket() noexcept
 {
+	close();
+}
+
+udpsocket udpsocket::make(bool makeIpv6) noexcept
+{
+	udpsocket newSocket{};
+	const int af = makeIpv6 ? AF_INET6 : AF_INET;
+	newSocket.m_socket = ::socket(af, SOCK_DGRAM, 0);
+	if (!newSocket.isValid()) [[unlikely]]
+	{
+		LOG(Error, UdpSocket, "Failed to create socket. Error code: {0}", errno);
+		return udpsocket();
+	}
+	return newSocket;
+}
+
+void udpsocket::close() noexcept
+{
 	if (isValid())
+	{
 #if UR_PLATFORM_WINDOWS
 		closesocket(m_socket);
 #elif UR_PLATFORM_LINUX
 		::close(m_socket);
 #endif
-}
-
-bool udpsocket::isIpv6() const noexcept
-{
-	sockaddr_storage addr{};
-	socklen_t len = sizeof(addr);
-
-	if (getsockname(m_socket, (sockaddr*)&addr, &len) == -1)
-		return false;
-
-	return addr.ss_family == AF_INET6;
+		m_socket = socketInvalid;
+	}
 }
 
 bool udpsocket::bind(const internetaddr& addr) const
@@ -92,6 +110,22 @@ uint16_t udpsocket::getPort() const
 udpsocket::socket_t udpsocket::getNativeSocket() const noexcept
 {
 	return m_socket;
+}
+
+bool udpsocket::isValid() const noexcept
+{
+	return m_socket != socketInvalid;
+}
+
+bool udpsocket::isIpv6() const noexcept
+{
+	sockaddr_storage addr{};
+	socklen_t len = sizeof(addr);
+
+	if (getsockname(m_socket, (sockaddr*)&addr, &len) == -1)
+		return false;
+
+	return addr.ss_family == AF_INET6;
 }
 
 int32_t udpsocket::sendTo(void* buffer, size_t bufferSize, const internetaddr* addr) const noexcept
@@ -226,9 +260,4 @@ bool udpsocket::waitForWriteUs(int64_t timeoutUs) const noexcept
 
 	const auto selectRes = ::select(static_cast<int>(m_socket + 1), NULL, &socketSet, NULL, &time);
 	return selectRes > 0;
-}
-
-bool udpsocket::isValid() const noexcept
-{
-	return m_socket != socketInvalid;
 }
