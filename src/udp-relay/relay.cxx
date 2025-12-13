@@ -11,10 +11,10 @@
 
 struct relay_helpers
 {
-	static handshake_header* tryDeserializeHeader(recvBufferStorage& recvBuffer, size_t recvBytes);
+	static handshake_header* tryDeserializeHeader(const recv_buffer& recvBuffer, size_t recvBytes);
 };
 
-handshake_header* relay_helpers::tryDeserializeHeader(recvBufferStorage& recvBuffer, size_t recvBytes)
+handshake_header* relay_helpers::tryDeserializeHeader(const recv_buffer& recvBuffer, size_t recvBytes)
 {
 	if (recvBytes < sizeof(handshake_header))
 		return nullptr;
@@ -33,7 +33,7 @@ handshake_header* relay_helpers::tryDeserializeHeader(recvBufferStorage& recvBuf
 	return recvHeader;
 }
 
-bool relay::init(const relay_params& params)
+bool relay::init(relay_params params)
 {
 	if (m_running)
 	{
@@ -107,10 +107,11 @@ void relay::run()
 	{
 		m_lastTickTime = std::chrono::steady_clock::now();
 
-		if (m_sendQueue.size() && m_socket.waitForWriteUs(1000))
+		using namespace std::chrono_literals;
+		if (m_sendQueue.size() && m_socket.waitForWriteUs(1000us))
 			processOutcoming();
 
-		if (m_socket.waitForReadUs(15000))
+		if (m_socket.waitForReadUs(15000us))
 			processIncoming();
 
 		conditionalCleanup();
@@ -142,7 +143,7 @@ void relay::processIncoming()
 	for (int32_t currentCycle = 0; currentCycle < maxRecvCycles; ++currentCycle)
 	{
 		int32_t bytesRead{};
-		bytesRead = m_socket.recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), &m_recvAddr);
+		bytesRead = m_socket.recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), m_recvAddr);
 		if (bytesRead < 0)
 			return;
 
@@ -188,7 +189,7 @@ void relay::processIncoming()
 			const auto& sendAddr = findRes->second.m_peerA != m_recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
 
 			// try relay packet immediately and if failed, add to send queue
-			const auto bytesSend = m_socket.sendTo(m_recvBuffer.data(), bytesRead, &sendAddr);
+			const auto bytesSend = m_socket.sendTo(m_recvBuffer.data(), bytesRead, sendAddr);
 			if (bytesSend >= 0)
 			{
 				currentChannel.m_stats.m_packetsSent++;
@@ -221,7 +222,7 @@ void relay::processOutcoming()
 		if (packetWithinExpireLimit && findChannel != m_channels.end())
 		{
 			auto& currentChannel = findChannel->second;
-			const auto bytesSend = m_socket.sendTo(pendingPacket.m_buffer.data(), pendingPacket.m_buffer.size(), &pendingPacket.m_target);
+			const auto bytesSend = m_socket.sendTo(pendingPacket.m_buffer.data(), pendingPacket.m_buffer.size(), pendingPacket.m_target);
 			if (bytesSend < 0)
 				return;
 
@@ -233,30 +234,32 @@ void relay::processOutcoming()
 	}
 }
 
-void relay::conditionalCleanup(bool force)
+void relay::conditionalCleanup()
 {
-	if (m_lastTickTime >= m_nextCleanupTime || force)
+	if (m_lastTickTime < m_nextCleanupTime)
+		return;
+
+	for (auto it = m_channels.begin(); it != m_channels.end();)
 	{
-		for (auto it = m_channels.begin(); it != m_channels.end();)
+		const auto timeSinceInactive = m_lastTickTime - it->second.m_lastUpdated;
+		if (timeSinceInactive > std::chrono::milliseconds(m_params.m_cleanupInactiveChannelAfterMs))
 		{
-			const auto timeSinceInactiveMs = std::chrono::duration_cast<std::chrono::milliseconds>(m_lastTickTime - it->second.m_lastUpdated).count();
-			if (timeSinceInactiveMs > m_params.m_cleanupInactiveChannelAfterMs)
-			{
-				const auto channelGuidStr = it->second.m_guid.toString();
-				const auto stats = it->second.m_stats;
-				LOG(Info, Relay, "Channel \"{0}\" inactive and removed. Relayed: {1} packets ({2} bytes); Dropped: {3} ({4}); Delayed {5};", channelGuidStr, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsReceived - stats.m_packetsSent, stats.m_bytesReceived - stats.m_bytesSent, stats.m_sendPacketDelays);
+			const auto channelGuidStr = it->second.m_guid.toString();
+			const auto stats = it->second.m_stats;
+			LOG(Info, Relay, "Channel \"{0}\" closed. Relayed: {1} packets ({2} bytes); Dropped: {3} ({4}); Delayed {5};", channelGuidStr, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsReceived - stats.m_packetsSent, stats.m_bytesReceived - stats.m_bytesSent, stats.m_sendPacketDelays);
 
-				m_addressMappedChannels.erase(it->second.m_peerA);
-				m_addressMappedChannels.erase(it->second.m_peerB);
+			m_addressMappedChannels.erase(it->second.m_peerA);
+			m_addressMappedChannels.erase(it->second.m_peerB);
 
-				it = m_channels.erase(it);
-			}
-			else
-			{
-				++it;
-			}
+			it = m_channels.erase(it);
 		}
-
-		m_nextCleanupTime = m_lastTickTime + std::chrono::milliseconds(m_params.m_cleanupTimeMs);
+		else
+		{
+			++it;
+		}
 	}
+
+	m_nextCleanupTime = m_lastTickTime + std::chrono::milliseconds(m_params.m_cleanupTimeMs);
+
+	ur::log_flush();
 }

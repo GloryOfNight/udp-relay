@@ -45,18 +45,16 @@ static constexpr auto envList = std::array
 static relay g_relay{};
 static int g_exitCode{};
 
-static void handleAbort(int sig); // handle abort signal from terminal or system
-static void handleCrash(int sig); // handle crash
+static void signal_handler(int sig);
 
 int relay_main(int argc, char* argv[], char* envp[])
 {
-	std::signal(SIGABRT, handleAbort);
-	std::signal(SIGINT, handleAbort);
-	std::signal(SIGTERM, handleAbort);
-
-	std::signal(SIGSEGV, handleCrash);
-	std::signal(SIGILL, handleCrash);
-	std::signal(SIGFPE, handleCrash);
+	std::signal(SIGINT, signal_handler);
+	std::signal(SIGTERM, signal_handler);
+	std::signal(SIGABRT, signal_handler);
+	std::signal(SIGSEGV, signal_handler);
+	std::signal(SIGILL, signal_handler);
+	std::signal(SIGFPE, signal_handler);
 
 	ur::parseArgs(argList, argc, argv);
 	ur::parseEnvp(envList, envp);
@@ -77,21 +75,27 @@ int relay_main(int argc, char* argv[], char* envp[])
 	return g_exitCode;
 }
 
-void handleAbort(int sig)
+void signal_handler(int sig)
 {
-	LOG(Info, Main, "CAUGHT SIGNAL - {0}", sig);
+	std::println("- - - Caught signal {} - - -", sig);
 
-	if (sig == SIGINT || sig == SIGTERM)
-		g_relay.stopGracefully();
-	else
+	switch (sig)
+	{
+	case SIGINT:
 		g_relay.stop();
-
-	g_exitCode = 128 + sig;
-}
-
-void handleCrash(int sig)
-{
-	std::println("- - - Caught crash signal {} - - -\nStacktrace:\n{}", sig, std::stacktrace::current());
+		break;
+	case SIGTERM:
+		g_relay.stopGracefully();
+		break;
+	case SIGILL:
+	case SIGFPE:
+	case SIGSEGV:
+	case SIGABRT:
+		std::println("Stacktrace:\n{}", sig, std::stacktrace::current());
+		break;
+	default:
+		break;
+	}
 
 	g_exitCode = 128 + sig;
 }
