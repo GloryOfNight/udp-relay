@@ -91,10 +91,6 @@ void handleAbort(int sig)
 
 void handleCrash(int sig)
 {
-#if __cpp_lib_stacktrace
 	std::println("- - - Caught crash signal {} - - -\nStacktrace:\n{}", sig, std::stacktrace::current());
-#else
-	std::println("- - - Caught crash signal {} - - -\nStacktrace:\n <compiler doesn't support feature __cpp_lib_stacktrace>", sig);
-#endif
 	g_exitCode = 128 + sig;
 }
