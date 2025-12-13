@@ -9,6 +9,8 @@
 #include <array>
 #include <csignal>
 #include <memory>
+#include <print>
+#include <stacktrace>
 
 namespace args
 {
@@ -79,16 +81,17 @@ void handleAbort(int sig)
 {
 	LOG(Info, Main, "CAUGHT SIGNAL - {0}", sig);
 
-	g_relay.stop();
+	if (sig == SIGINT || sig == SIGTERM)
+		g_relay.stopGracefully();
+	else
+		g_relay.stop();
 
 	g_exitCode = 128 + sig;
 }
 
 void handleCrash(int sig)
 {
-	LOG(Error, Main, "CRASHED - {0}", sig);
-
-	g_relay.stop();
+	std::println("- - - Caught crash signal {} - - -\nStacktrace:\n{}", sig, std::stacktrace::current());
 
 	g_exitCode = 128 + sig;
 }

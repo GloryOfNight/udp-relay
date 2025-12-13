@@ -35,6 +35,12 @@ handshake_header* relay_helpers::tryDeserializeHeader(recvBufferStorage& recvBuf
 
 bool relay::init(const relay_params& params)
 {
+	if (m_running)
+	{
+		LOG(Warning, Relay, "Cannon initialize while running");
+		return false;
+	}
+
 	LOG(Verbose, Relay, "Begin initialization");
 
 	uniqueUdpsocket newSocket = std::make_unique<udpsocket>(params.ipv6);
@@ -108,12 +114,26 @@ void relay::run()
 			processIncoming();
 
 		conditionalCleanup();
+
+		if (m_gracefulStopRequested && m_addressMappedChannels.size() == 0)
+		{
+			stop();
+		}
 	}
+
+	LOG(Info, Relay, "Exited run loop");
 }
 
 void relay::stop()
 {
+	LOG(Info, Relay, "Stop");
 	m_running = false;
+}
+
+void relay::stopGracefully()
+{
+	LOG(Info, Relay, "Graceful stop requested");
+	m_gracefulStopRequested = true;
 }
 
 void relay::processIncoming()

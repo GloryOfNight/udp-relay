@@ -23,10 +23,10 @@
 using suseconds_t = long;
 using socklen_t = int;
 using buffer_t = char;
-const socket_t socketInvalid = INVALID_SOCKET;
+const udpsocket::socket_t socketInvalid = INVALID_SOCKET;
 #elif UR_PLATFORM_LINUX
 using buffer_t = void;
-const socket_t socketInvalid = -1;
+const udpsocket::socket_t socketInvalid = -1;
 #endif
 
 udpsocket::udpsocket(bool ipv6) noexcept
@@ -89,7 +89,7 @@ uint16_t udpsocket::getPort() const
 	return addr.getPort();
 }
 
-socket_t udpsocket::getNativeSocket() const noexcept
+udpsocket::socket_t udpsocket::getNativeSocket() const noexcept
 {
 	return m_socket;
 }
