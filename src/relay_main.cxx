@@ -28,7 +28,6 @@ static constexpr auto argList = std::array
 	cl_arg_ref{"--socketSendBufferSize", args::relayParams.m_socketSendBufferSize,						"--socketSendBufferSize <value>             = send buffer size for internal socket" },
 	cl_arg_ref{"--cleanupTimeMs", args::relayParams.m_cleanupTimeMs,									"--cleanupTimeMs <value>					= how often relay should perform clean check" },
 	cl_arg_ref{"--cleanupInactiveChannelAfterMs", args::relayParams.m_cleanupInactiveChannelAfterMs,	"--cleanupInactiveChannelAfterMs <value>    = inactivity timeout for channel" },
-	cl_arg_ref{"--expirePacketAfterMs", args::relayParams.m_expirePacketAfterMs,						"--expirePacketAfterMs <value>				= drop packet if packet not relayed within timeout. 0 or negative - do not reattempt relay" },
 	cl_arg_ref{"--ipv6", args::relayParams.ipv6,														"--ipv6 0|1									= should create and bind to ipv6 socket (dual-stack ipv4/6 mode)" },
 };
 // clang-format on

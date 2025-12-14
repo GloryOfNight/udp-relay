@@ -233,7 +233,7 @@ bool udpsocket::setSendTimeoutUs(std::chrono::microseconds timeout) const noexce
 	return bOk;
 }
 
-bool udpsocket::waitForReadUs(std::chrono::microseconds timeout) const noexcept
+bool udpsocket::waitForRead(std::chrono::microseconds timeout) const noexcept
 {
 	timeval time;
 	time.tv_sec = timeout.count() / 1000000;
@@ -247,7 +247,7 @@ bool udpsocket::waitForReadUs(std::chrono::microseconds timeout) const noexcept
 	return selectRes > 0;
 }
 
-bool udpsocket::waitForWriteUs(std::chrono::microseconds timeout) const noexcept
+bool udpsocket::waitForWrite(std::chrono::microseconds timeout) const noexcept
 {
 	timeval time;
 	time.tv_sec = timeout.count() / 1000000;

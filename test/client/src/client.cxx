@@ -92,7 +92,7 @@ void relay_client::run(const relay_client_params& params)
 
 	while (m_running)
 	{
-		if (m_socket.waitForReadUs(5000us))
+		if (m_socket.waitForRead(5000us))
 			processIncoming();
 
 		trySend();
@@ -124,7 +124,7 @@ void relay_client::processIncoming()
 
 			auto responseBuf = serializePacket(responsePacket);
 
-			m_socket.waitForWriteUs(500us);
+			m_socket.waitForWrite(500us);
 			const auto bytesSent = m_socket.sendTo(responseBuf.data(), bytesRead, recvAddr);
 			if (bytesSent >= 0)
 				++m_packetsSent;

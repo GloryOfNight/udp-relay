@@ -82,10 +82,10 @@ public:
 	bool setRecvTimeoutUs(std::chrono::microseconds timeout) const noexcept;
 
 	// wait for incoming data. Return true if data available.
-	bool waitForReadUs(std::chrono::microseconds timeout) const noexcept;
+	bool waitForRead(std::chrono::microseconds timeout) const noexcept;
 
 	// wait socket ready to write state. Return true if ready.
-	bool waitForWriteUs(std::chrono::microseconds timeout) const noexcept;
+	bool waitForWrite(std::chrono::microseconds timeout) const noexcept;
 
 private:
 	socket_t m_socket;

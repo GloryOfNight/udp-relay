@@ -9,6 +9,8 @@
 
 #include <thread>
 
+using namespace std::chrono_literals;
+
 struct relay_helpers
 {
 	static handshake_header* tryDeserializeHeader(const recv_buffer& recvBuffer, size_t recvBytes);
@@ -107,11 +109,7 @@ void relay::run()
 	{
 		m_lastTickTime = std::chrono::steady_clock::now();
 
-		using namespace std::chrono_literals;
-		if (m_sendQueue.size() && m_socket.waitForWriteUs(1000us))
-			processOutcoming();
-
-		if (m_socket.waitForReadUs(15000us))
+		if (m_socket.waitForWrite(1000us) && m_socket.waitForRead(15000us))
 			processIncoming();
 
 		conditionalCleanup();
@@ -139,7 +137,7 @@ void relay::stopGracefully()
 
 void relay::processIncoming()
 {
-	const int32_t maxRecvCycles = 8;
+	const int32_t maxRecvCycles = 32;
 	for (int32_t currentCycle = 0; currentCycle < maxRecvCycles; ++currentCycle)
 	{
 		int32_t bytesRead{};
@@ -188,49 +186,14 @@ void relay::processIncoming()
 
 			const auto& sendAddr = findRes->second.m_peerA != m_recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
 
-			// try relay packet immediately and if failed, add to send queue
+			// try relay packet immediately
 			const auto bytesSend = m_socket.sendTo(m_recvBuffer.data(), bytesRead, sendAddr);
 			if (bytesSend >= 0)
 			{
 				currentChannel.m_stats.m_packetsSent++;
 				currentChannel.m_stats.m_bytesSent += bytesSend;
 			}
-			else if (m_params.m_expirePacketAfterMs)
-			{
-				auto& pendingPacket = m_sendQueue.emplace();
-				pendingPacket.m_channelGuid = currentChannel.m_guid;
-				pendingPacket.m_target = sendAddr;
-				pendingPacket.m_expireAt = m_lastTickTime + std::chrono::milliseconds(m_params.m_expirePacketAfterMs);
-				pendingPacket.m_buffer.resize(bytesRead);
-				std::memcpy(pendingPacket.m_buffer.data(), m_recvBuffer.data(), bytesRead);
-
-				currentChannel.m_stats.m_sendPacketDelays++;
-			}
 		}
-	}
-}
-
-void relay::processOutcoming()
-{
-	const int32_t maxSendCycles = 8;
-	for (int32_t currentCycle = 0; m_sendQueue.size() && currentCycle < maxSendCycles; ++currentCycle)
-	{
-		auto& pendingPacket = m_sendQueue.front();
-		const bool packetWithinExpireLimit = pendingPacket.m_expireAt > m_lastTickTime;
-
-		auto findChannel = m_channels.find(pendingPacket.m_channelGuid);
-		if (packetWithinExpireLimit && findChannel != m_channels.end())
-		{
-			auto& currentChannel = findChannel->second;
-			const auto bytesSend = m_socket.sendTo(pendingPacket.m_buffer.data(), pendingPacket.m_buffer.size(), pendingPacket.m_target);
-			if (bytesSend < 0)
-				return;
-
-			currentChannel.m_stats.m_packetsSent++;
-			currentChannel.m_stats.m_bytesSent += bytesSend;
-		}
-
-		m_sendQueue.pop();
 	}
 }
 
@@ -246,7 +209,8 @@ void relay::conditionalCleanup()
 		{
 			const auto channelGuidStr = it->second.m_guid.toString();
 			const auto stats = it->second.m_stats;
-			LOG(Info, Relay, "Channel \"{0}\" closed. Relayed: {1} packets ({2} bytes); Dropped: {3} ({4}); Delayed {5};", channelGuidStr, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsReceived - stats.m_packetsSent, stats.m_bytesReceived - stats.m_bytesSent, stats.m_sendPacketDelays);
+			LOG(Info, Relay, "Channel \"{0}\" closed. Received: {1} packets ({2} bytes); Dropped: {3} ({4});",
+				channelGuidStr, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsReceived - stats.m_packetsSent, stats.m_bytesReceived - stats.m_bytesSent);
 
 			m_addressMappedChannels.erase(it->second.m_peerA);
 			m_addressMappedChannels.erase(it->second.m_peerB);
