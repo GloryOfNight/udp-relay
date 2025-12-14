@@ -5,6 +5,7 @@
 #include "utils.hxx"
 
 #include <cstdint>
+#include <format>
 #include <string>
 
 struct guid
@@ -36,9 +37,7 @@ struct guid
 
 	std::string toString() const
 	{
-		char buffer[38]{};
-		std::snprintf(buffer, sizeof(buffer), "%08x-%04x-%04x-%04x-%04x%08x", m_a, m_b >> 16, m_b & 0xFFFF, m_c >> 16, m_c & 0xFFFF, m_d);
-		return std::string(buffer);
+		return std::format("{:08x}-{:04x}-{:04x}-{:04x}-{:04x}{:08x}", m_a, m_b >> 16, m_b & 0xFFFF, m_c >> 16, m_c & 0xFFFF, m_d);
 	}
 
 	bool isNull() const noexcept
@@ -68,5 +67,19 @@ namespace std
 				   std::tie(b.m_a, b.m_b, b.m_c, b.m_d);
 		}
 	};
-
 } // namespace std
+
+template <>
+struct std::formatter<guid>
+{
+	constexpr auto parse(std::format_parse_context& ctx)
+	{
+		return ctx.begin();
+	}
+
+	template <typename FormatContext>
+	auto format(const guid& value, FormatContext& ctx) const
+	{
+		return std::format_to(ctx.out(), "{}", value.toString());
+	}
+};

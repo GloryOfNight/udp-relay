@@ -23,8 +23,6 @@ struct channel_stats
 
 	uint32_t m_packetsReceived{};
 	uint32_t m_packetsSent{};
-
-	uint32_t m_sendPacketDelays{};
 };
 
 struct channel
@@ -57,7 +55,6 @@ struct relay_params
 	uint32_t m_socketSendBufferSize{0};
 	uint32_t m_cleanupTimeMs{1800};
 	uint32_t m_cleanupInactiveChannelAfterMs{30000};
-	uint32_t m_expirePacketAfterMs{5};
 	bool ipv6{};
 };
 
@@ -96,8 +93,6 @@ public:
 private:
 	void processIncoming();
 
-	void processOutcoming();
-
 	channel& createChannel(const guid& inGuid);
 
 	void conditionalCleanup();
@@ -114,10 +109,7 @@ private:
 	std::map<guid, channel> m_channels{};
 
 	// when second client comes with same guid value, as in m_guidMappedChannels, it maps both addresses here
-	std::map<internetaddr, channel&> m_addressMappedChannels{};
-
-	// optionally used to send packets later when socket busy, if m_expirePacketAfterMs > 0
-	std::queue<pending_packet> m_sendQueue{};
+	std::map<internetaddr, guid> m_addressChannels{};
 
 	std::chrono::time_point<std::chrono::steady_clock> m_lastTickTime{};
 
