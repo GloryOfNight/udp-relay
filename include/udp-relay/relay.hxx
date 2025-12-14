@@ -87,7 +87,7 @@ public:
 	// Begin running loop
 	void run();
 
-	// Immidiate stop
+	// Immediate stop
 	void stop();
 
 	// Wait until all existing connections closed and then stop. Also prevents new connections being created.
