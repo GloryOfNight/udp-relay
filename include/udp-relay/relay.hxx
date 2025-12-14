@@ -53,8 +53,8 @@ struct relay_params
 	uint16_t m_primaryPort{6060};
 	uint32_t m_socketRecvBufferSize{0};
 	uint32_t m_socketSendBufferSize{0};
-	uint32_t m_cleanupTimeMs{1800};
-	uint32_t m_cleanupInactiveChannelAfterMs{30000};
+	std::chrono::milliseconds m_cleanupTime{1800};
+	std::chrono::milliseconds m_cleanupInactiveChannelAfterTime{30000};
 	bool ipv6{};
 };
 
@@ -93,8 +93,6 @@ public:
 private:
 	void processIncoming();
 
-	channel& createChannel(const guid& inGuid);
-
 	void conditionalCleanup();
 
 	relay_params m_params;
@@ -111,9 +109,9 @@ private:
 	// when second client comes with same guid value, as in m_guidMappedChannels, it maps both addresses here
 	std::map<internetaddr, guid> m_addressChannels{};
 
-	std::chrono::time_point<std::chrono::steady_clock> m_lastTickTime{};
+	std::chrono::steady_clock::time_point m_lastTickTime{};
 
-	std::chrono::time_point<std::chrono::steady_clock> m_nextCleanupTime{};
+	std::chrono::steady_clock::time_point m_nextCleanupTime{};
 
 	std::atomic_bool m_running{false};
 

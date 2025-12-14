@@ -210,7 +210,7 @@ void relay::conditionalCleanup()
 	for (auto it = m_channels.begin(); it != m_channels.end();)
 	{
 		const auto timeSinceInactive = m_lastTickTime - it->second.m_lastUpdated;
-		if (timeSinceInactive > std::chrono::milliseconds(m_params.m_cleanupInactiveChannelAfterMs))
+		if (timeSinceInactive > m_params.m_cleanupInactiveChannelAfterTime)
 		{
 			const auto stats = it->second.m_stats;
 			LOG(Info, Relay, "Channel closed: \"{0}\". Received: {1} packets ({2} bytes); Dropped: {3} ({4});",
@@ -232,7 +232,7 @@ void relay::conditionalCleanup()
 			++it;
 	}
 
-	m_nextCleanupTime = m_lastTickTime + std::chrono::milliseconds(m_params.m_cleanupTimeMs);
+	m_nextCleanupTime = m_lastTickTime + m_params.m_cleanupTime;
 
 	ur::log_flush();
 }
