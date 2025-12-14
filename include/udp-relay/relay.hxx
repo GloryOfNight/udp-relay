@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "udp-relay/aligned_storage.hxx"
 #include "udp-relay/guid.hxx"
 #include "udp-relay/net/internetaddr.hxx"
 #include "udp-relay/net/udpsocket.hxx"
@@ -68,11 +67,11 @@ struct alignas(4) handshake_header
 };
 static_assert(sizeof(handshake_header) == handshake_min_size);
 
-using recv_buffer = ur::aligned_storage<alignof(std::max_align_t), 65536>;
-
 class relay
 {
 public:
+	using recv_buffer = std::array<std::max_align_t, 65536 / alignof(std::max_align_t)>;
+
 	relay() = default;
 	relay(const relay&) = delete;
 	relay(relay&&) = delete;
@@ -81,7 +80,7 @@ public:
 	// Initialize relay with params
 	bool init(relay_params params);
 
-	// Begin running loop
+	// Begin spin loop
 	void run();
 
 	// Immediate stop
@@ -103,10 +102,8 @@ private:
 
 	udpsocket m_socket{};
 
-	// when first client handshake comes, channel is created
 	std::map<guid, channel> m_channels{};
 
-	// when second client comes with same guid value, as in m_guidMappedChannels, it maps both addresses here
 	std::map<internetaddr, guid> m_addressChannels{};
 
 	std::chrono::steady_clock::time_point m_lastTickTime{};

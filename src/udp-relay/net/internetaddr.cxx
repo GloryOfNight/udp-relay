@@ -119,7 +119,7 @@ std::string internetaddr::toString(bool withPort) const
 		return withPort ? std::format("[{}]:{}", ipStr.data(), m_port) : std::format("[{}]", ipStr.data());
 	}
 	}
-	return "<invalid-address-family>";
+	return "invaddr";
 }
 
 bool internetaddr::operator==(const internetaddr& other) const noexcept

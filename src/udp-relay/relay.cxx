@@ -13,10 +13,10 @@ using namespace std::chrono_literals;
 
 struct relay_helpers
 {
-	static handshake_header* tryDeserializeHeader(const recv_buffer& recvBuffer, size_t recvBytes);
+	static handshake_header* tryDeserializeHeader(relay::recv_buffer& recvBuffer, size_t recvBytes);
 };
 
-handshake_header* relay_helpers::tryDeserializeHeader(const recv_buffer& recvBuffer, size_t recvBytes)
+handshake_header* relay_helpers::tryDeserializeHeader(relay::recv_buffer& recvBuffer, size_t recvBytes)
 {
 	if (recvBytes < sizeof(handshake_header))
 		return nullptr;
@@ -85,8 +85,8 @@ bool relay::init(relay_params params)
 		LOG(Info, Relay, "Socket requested recv buffer size {}", params.m_socketRecvBufferSize);
 	}
 
-	LOG(Info, Relay, "Relay initialized {}:{}. SndBuf={}, RcvBuf={}. Version: {}.{}.{}",
-		addr.toString(false), newSocket.getPort(), newSocket.getSendBufferSize(), newSocket.getRecvBufferSize(),
+	LOG(Info, Relay, "Relay initialized {:A}:{}. SndBuf={}, RcvBuf={}. Version: {}.{}.{}",
+		addr, newSocket.getPort(), newSocket.getSendBufferSize(), newSocket.getRecvBufferSize(),
 		ur::getVersionMajor(), ur::getVersionMinor(), ur::getVersionPatch());
 
 	m_params = params;
@@ -154,7 +154,7 @@ void relay::processIncoming()
 			auto findChannel = m_channels.find(recvHeaderRef.m_guid);
 			if (findChannel == m_channels.end())
 			{
-				LOG(Verbose, Relay, "Accepted new client with guid: \"{0}\"", recvHeaderRef.m_guid.toString());
+				LOG(Verbose, Relay, "Accepted new client with guid: \"{}\"", recvHeaderRef.m_guid);
 
 				channel newChannel = channel(recvHeaderRef.m_guid);
 				newChannel.m_peerA = m_recvAddr;
@@ -170,7 +170,7 @@ void relay::processIncoming()
 				m_addressChannels.emplace(findChannel->second.m_peerA, findChannel->second.m_guid);
 				m_addressChannels.emplace(findChannel->second.m_peerB, findChannel->second.m_guid);
 
-				LOG(Info, Relay, "Channel established: \"{0}\". PeerA: {1}, PeerB: {2}", recvHeaderRef.m_guid.toString(), findChannel->second.m_peerA.toString(), findChannel->second.m_peerB.toString());
+				LOG(Info, Relay, "Channel established: \"{}\". PeerA: {}, PeerB: {}", recvHeaderRef.m_guid, findChannel->second.m_peerA, findChannel->second.m_peerB);
 			}
 		}
 
