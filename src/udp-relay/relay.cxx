@@ -109,12 +109,13 @@ void relay::run()
 	{
 		m_lastTickTime = std::chrono::steady_clock::now();
 
-		if (m_socket.waitForWrite(1000us) && m_socket.waitForRead(15000us))
+		m_socket.waitForWrite(1000us);
+		if (m_socket.waitForRead(15000us))
 			processIncoming();
 
 		conditionalCleanup();
 
-		if (m_gracefulStopRequested && m_addressMappedChannels.size() == 0)
+		if (m_gracefulStopRequested && m_channels.size() == 0)
 		{
 			stop();
 		}
@@ -166,25 +167,29 @@ void relay::processIncoming()
 				findChannel->second.m_peerB = m_recvAddr;
 				findChannel->second.m_lastUpdated = m_lastTickTime;
 
-				m_addressMappedChannels.emplace(findChannel->second.m_peerA, findChannel->second);
-				m_addressMappedChannels.emplace(findChannel->second.m_peerB, findChannel->second);
+				m_addressChannels.emplace(findChannel->second.m_peerA, findChannel->second.m_guid);
+				m_addressChannels.emplace(findChannel->second.m_peerB, findChannel->second.m_guid);
 
-				LOG(Info, Relay, "Channel relay established for session: \"{0}\" with peers: {1}, {2}.", recvHeaderRef.m_guid.toString(), findChannel->second.m_peerA.toString(), findChannel->second.m_peerB.toString());
+				LOG(Info, Relay, "Channel established: \"{0}\". PeerA: {1}, PeerB: {2}", recvHeaderRef.m_guid.toString(), findChannel->second.m_peerA.toString(), findChannel->second.m_peerB.toString());
 			}
 		}
 
 		// if recvAddr has a channel mapped to it, as well as two valid peers, relay packet to the other peer
-		const auto findRes = m_addressMappedChannels.find(m_recvAddr);
-		if (findRes != m_addressMappedChannels.end() && !findRes->second.m_peerA.isNull() && !findRes->second.m_peerB.isNull())
+		const auto findAddressChannel = m_addressChannels.find(m_recvAddr);
+		if (findAddressChannel != m_addressChannels.end())
 		{
-			auto& currentChannel = findRes->second;
+			const auto& findChannel = m_channels.find(findAddressChannel->second);
+			if (findChannel == m_channels.end()) [[unlikely]]
+				continue;
+
+			auto& currentChannel = findChannel->second;
 
 			currentChannel.m_lastUpdated = m_lastTickTime;
 
 			currentChannel.m_stats.m_packetsReceived++;
 			currentChannel.m_stats.m_bytesReceived += bytesRead;
 
-			const auto& sendAddr = findRes->second.m_peerA != m_recvAddr ? findRes->second.m_peerA : findRes->second.m_peerB;
+			const auto& sendAddr = currentChannel.m_peerA != m_recvAddr ? currentChannel.m_peerA : currentChannel.m_peerB;
 
 			// try relay packet immediately
 			const auto bytesSend = m_socket.sendTo(m_recvBuffer.data(), bytesRead, sendAddr);
@@ -207,13 +212,9 @@ void relay::conditionalCleanup()
 		const auto timeSinceInactive = m_lastTickTime - it->second.m_lastUpdated;
 		if (timeSinceInactive > std::chrono::milliseconds(m_params.m_cleanupInactiveChannelAfterMs))
 		{
-			const auto channelGuidStr = it->second.m_guid.toString();
 			const auto stats = it->second.m_stats;
-			LOG(Info, Relay, "Channel \"{0}\" closed. Received: {1} packets ({2} bytes); Dropped: {3} ({4});",
-				channelGuidStr, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsReceived - stats.m_packetsSent, stats.m_bytesReceived - stats.m_bytesSent);
-
-			m_addressMappedChannels.erase(it->second.m_peerA);
-			m_addressMappedChannels.erase(it->second.m_peerB);
+			LOG(Info, Relay, "Channel closed: \"{0}\". Received: {1} packets ({2} bytes); Dropped: {3} ({4});",
+				it->second.m_guid, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsReceived - stats.m_packetsSent, stats.m_bytesReceived - stats.m_bytesSent);
 
 			it = m_channels.erase(it);
 		}
@@ -221,6 +222,14 @@ void relay::conditionalCleanup()
 		{
 			++it;
 		}
+	}
+
+	for (auto it = m_addressChannels.begin(); it != m_addressChannels.end();)
+	{
+		if (m_channels.find(it->second) == m_channels.end())
+			it = m_addressChannels.erase(it);
+		else
+			++it;
 	}
 
 	m_nextCleanupTime = m_lastTickTime + std::chrono::milliseconds(m_params.m_cleanupTimeMs);

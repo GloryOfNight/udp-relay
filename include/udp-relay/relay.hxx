@@ -109,7 +109,7 @@ private:
 	std::map<guid, channel> m_channels{};
 
 	// when second client comes with same guid value, as in m_guidMappedChannels, it maps both addresses here
-	std::map<internetaddr, channel&> m_addressMappedChannels{};
+	std::map<internetaddr, guid> m_addressChannels{};
 
 	std::chrono::time_point<std::chrono::steady_clock> m_lastTickTime{};
 
