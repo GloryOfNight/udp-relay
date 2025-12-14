@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <format>
 #include <string>
 
 struct sockaddr_storage;
@@ -98,3 +99,42 @@ namespace std
 		}
 	};
 } // namespace std
+
+template <>
+struct std::formatter<internetaddr>
+{
+private:
+	char m_formatMode = 'D';
+
+public:
+	constexpr auto parse(std::format_parse_context& ctx)
+	{
+		auto it = ctx.begin();
+
+		if (it != ctx.end())
+		{
+			char c = *it;
+			if (c == 'D' || c == 'A' || c == 'P')
+			{
+				m_formatMode = c;
+				++it;
+			}
+		}
+
+		return it;
+	}
+
+	template <typename FormatContext>
+	auto format(const internetaddr& value, FormatContext& ctx) const
+	{
+		switch (m_formatMode)
+		{
+		case 'A': // address only
+			return std::format_to(ctx.out(), "{}", value.toString(false));
+		case 'P': // port only
+			return std::format_to(ctx.out(), "{}", value.getPort());
+		default: // address:port
+			return std::format_to(ctx.out(), "{}", value.toString());
+		}
+	}
+};

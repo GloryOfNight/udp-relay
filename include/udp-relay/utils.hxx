@@ -133,6 +133,11 @@ void ur::parseArgs(const T& argList, int argc, char* argv[])
 			{
 				val->push_back(std::atoi(arg.data()));
 			}
+			else if (auto val = prev_arg->to<std::chrono::milliseconds>())
+			{
+				*val = std::chrono::milliseconds(std::stoul(arg.data()));
+				prev_arg = nullptr;
+			}
 			else
 			{
 				LOG(Error, Args, "Failed parse argument: {0}. Type not supported: {1}", prev_arg->m_name, prev_arg->m_type.name());
