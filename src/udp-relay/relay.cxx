@@ -13,26 +13,32 @@ using namespace std::chrono_literals;
 
 struct relay_helpers
 {
-	static handshake_header* tryDeserializeHeader(relay::recv_buffer& recvBuffer, size_t recvBytes);
+	static std::pair<bool, handshake_header> tryDeserializeHeader(relay::recv_buffer& recvBuffer, size_t recvBytes);
 };
 
-handshake_header* relay_helpers::tryDeserializeHeader(relay::recv_buffer& recvBuffer, size_t recvBytes)
+std::pair<bool, handshake_header> relay_helpers::tryDeserializeHeader(relay::recv_buffer& recvBuffer, size_t recvBytes)
 {
 	if (recvBytes < sizeof(handshake_header))
-		return nullptr;
+		return std::pair<bool, handshake_header>();
 
 	constexpr uint32_t handshakeMagicNumberHton = ur::net::hton32(handshake_magic_number);
+	if (std::memcmp(&handshakeMagicNumberHton, (std::byte*)recvBuffer.data() + offsetof(handshake_header, m_magicNumber), sizeof(uint32_t)) != 0)
+		return std::pair<bool, handshake_header>();
 
-	handshake_header* recvHeader = reinterpret_cast<handshake_header*>(recvBuffer.data());
-	if (recvHeader->m_magicNumber != handshakeMagicNumberHton || recvHeader->m_guid.isNull())
-		return nullptr;
+	constexpr guid zeroGuid{};
+	if (std::memcmp(&zeroGuid, (std::byte*)recvBuffer.data() + offsetof(handshake_header, m_guid), sizeof(guid)) == 0)
+		return std::pair<bool, handshake_header>();
 
-	recvHeader->m_magicNumber = ur::net::ntoh32(recvHeader->m_magicNumber);
-	recvHeader->m_guid.m_a = ur::net::ntoh32(recvHeader->m_guid.m_a);
-	recvHeader->m_guid.m_b = ur::net::ntoh32(recvHeader->m_guid.m_b);
-	recvHeader->m_guid.m_c = ur::net::ntoh32(recvHeader->m_guid.m_c);
-	recvHeader->m_guid.m_d = ur::net::ntoh32(recvHeader->m_guid.m_d);
-	return recvHeader;
+	handshake_header recvHeader;
+	std::memcpy(&recvHeader, recvBuffer.data(), sizeof(handshake_header));
+
+	recvHeader.m_magicNumber = ur::net::ntoh32(recvHeader.m_magicNumber);
+	recvHeader.m_guid.m_a = ur::net::ntoh32(recvHeader.m_guid.m_a);
+	recvHeader.m_guid.m_b = ur::net::ntoh32(recvHeader.m_guid.m_b);
+	recvHeader.m_guid.m_c = ur::net::ntoh32(recvHeader.m_guid.m_c);
+	recvHeader.m_guid.m_d = ur::net::ntoh32(recvHeader.m_guid.m_d);
+
+	return std::pair<bool, handshake_header>{true, recvHeader};
 }
 
 bool relay::init(relay_params params)
@@ -147,20 +153,18 @@ void relay::processIncoming()
 			return;
 
 		// check if packet is relay handshake header, and extract guid if possible
-		if (auto recvHeader = relay_helpers::tryDeserializeHeader(m_recvBuffer, bytesRead); !m_gracefulStopRequested && recvHeader)
+		if (const auto [isHeader, header] = relay_helpers::tryDeserializeHeader(m_recvBuffer, bytesRead); !m_gracefulStopRequested && isHeader)
 		{
-			handshake_header& recvHeaderRef = *recvHeader;
-
-			auto findChannel = m_channels.find(recvHeaderRef.m_guid);
+			auto findChannel = m_channels.find(header.m_guid);
 			if (findChannel == m_channels.end())
 			{
-				LOG(Verbose, Relay, "Accepted new client with guid: \"{}\"", recvHeaderRef.m_guid);
+				LOG(Verbose, Relay, "Accepted new client with guid: \"{}\"", header.m_guid);
 
-				channel newChannel = channel(recvHeaderRef.m_guid);
+				channel newChannel = channel(header.m_guid);
 				newChannel.m_peerA = m_recvAddr;
 				newChannel.m_lastUpdated = m_lastTickTime;
 
-				m_channels.emplace(recvHeaderRef.m_guid, std::move(newChannel));
+				m_channels.emplace(header.m_guid, std::move(newChannel));
 			}
 			else if (findChannel->second.m_peerA != m_recvAddr && findChannel->second.m_peerB.isNull())
 			{
@@ -170,7 +174,7 @@ void relay::processIncoming()
 				m_addressChannels.emplace(findChannel->second.m_peerA, findChannel->second.m_guid);
 				m_addressChannels.emplace(findChannel->second.m_peerB, findChannel->second.m_guid);
 
-				LOG(Info, Relay, "Channel established: \"{}\". PeerA: {}, PeerB: {}", recvHeaderRef.m_guid, findChannel->second.m_peerA, findChannel->second.m_peerB);
+				LOG(Info, Relay, "Channel established: \"{}\". PeerA: {}, PeerB: {}", header.m_guid, findChannel->second.m_peerA, findChannel->second.m_peerB);
 			}
 		}
 
