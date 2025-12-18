@@ -7,8 +7,6 @@
 #include "udp-relay/net/udpsocket.hxx"
 #include "udp-relay/version.hxx"
 
-#include <thread>
-
 using namespace std::chrono_literals;
 
 struct relay_helpers
