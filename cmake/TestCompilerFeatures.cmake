@@ -11,17 +11,18 @@ int main() {}
 " HAS_CPP_LIB_BYTESWAP)
 
 check_cxx_source_compiles("
+#include <iostream>
 #include <format>
 #ifndef __cpp_lib_format
 #error feature not available
 #endif
-int main() {}
+int main() {std::cout << std::format(\"{}, {}!\", \"Hello\", \"World\") << std::endl;}
 " HAS_CPP_LIB_FORMAT)
 
 check_cxx_source_compiles("
 #include <print>
 int main() {std::println(\"{}, {}!\", \"Hello\", \"World\");}
-" HAS_CPP_LIB_FORMAT)
+" HAS_CPP_LIB_PRINT)
 
 check_cxx_source_compiles("
 #include <stacktrace>
