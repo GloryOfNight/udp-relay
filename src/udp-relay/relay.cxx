@@ -153,18 +153,23 @@ void relay::processIncoming()
 			return;
 
 		// check if packet is relay handshake header, and extract guid if possible
+		// always check for handshake first, to allow creating new connections from same socket without waiting prev. session to close
 		if (const auto [isHeader, header] = relay_helpers::tryDeserializeHeader(m_recvBuffer, bytesRead); !m_gracefulStopRequested && isHeader)
 		{
 			auto findChannel = m_channels.find(header.m_guid);
 			if (findChannel == m_channels.end())
 			{
-				LOG(Verbose, Relay, "Accepted new client with guid: \"{}\"", header.m_guid);
+				// clang-format off
+				const channel newChannel = channel
+				{
+					.m_guid = header.m_guid,
+					.m_peerA = m_recvAddr,
+					.m_lastUpdated = m_lastTickTime
+				};
+				// clang-format on
+				m_channels.emplace(header.m_guid, newChannel);
 
-				channel newChannel = channel(header.m_guid);
-				newChannel.m_peerA = m_recvAddr;
-				newChannel.m_lastUpdated = m_lastTickTime;
-
-				m_channels.emplace(header.m_guid, std::move(newChannel));
+				LOG(Info, Relay, "Channel allocated: \"{}\". Peer: {}", header.m_guid, m_recvAddr);
 			}
 			else if (findChannel->second.m_peerA != m_recvAddr && findChannel->second.m_peerB.isNull())
 			{
