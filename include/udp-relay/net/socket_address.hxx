@@ -10,7 +10,7 @@
 #include <format>
 #include <string>
 
-struct sockaddr_storage;
+using native_socket_address = struct sockaddr_storage;
 
 namespace ur::net
 {
@@ -22,22 +22,22 @@ namespace ur::net
 } // namespace ur::net
 
 // address class for sockets to handle ip & ports
-struct internetaddr final
+struct socket_address final
 {
 	// make ipv4 address
-	static internetaddr make_ipv4(uint32_t ip, uint16_t port) noexcept;
+	static socket_address make_ipv4(uint32_t ip, uint16_t port) noexcept;
 
 	// make ipv6 address
-	static internetaddr make_ipv6(std::array<std::byte, 16> ip, uint16_t port) noexcept;
+	static socket_address make_ipv6(std::array<std::byte, 16> ip, uint16_t port) noexcept;
 
 	// convert address to address string
 	std::string toString(bool withPort = true) const;
 
 	// copy address from native address structure
-	void copyToNative(sockaddr_storage& saddr) const noexcept;
+	void copyToNative(native_socket_address& saddr) const noexcept;
 
 	// copy address to native address structure
-	void copyFromNative(const sockaddr_storage& saddr) noexcept;
+	void copyFromNative(const native_socket_address& saddr) noexcept;
 
 	// check is initialized
 	bool isNull() const noexcept;
@@ -54,8 +54,8 @@ struct internetaddr final
 	// true if initialized as ipv6
 	bool isIpv6() const noexcept;
 
-	bool operator==(const internetaddr& other) const noexcept;
-	bool operator!=(const internetaddr& other) const noexcept;
+	bool operator==(const socket_address& other) const noexcept;
+	bool operator!=(const socket_address& other) const noexcept;
 
 private:
 	uint16_t m_family{};						 // AF_INET or AF_INET6
@@ -66,9 +66,9 @@ private:
 namespace std
 {
 	template <>
-	struct hash<internetaddr>
+	struct hash<socket_address>
 	{
-		std::size_t operator()(const internetaddr& val) const noexcept
+		std::size_t operator()(const socket_address& val) const noexcept
 		{
 			alignas(4) std::array<std::byte, 16 + 2> ipPort{};
 
@@ -81,18 +81,18 @@ namespace std
 	};
 
 	template <>
-	struct equal_to<internetaddr>
+	struct equal_to<socket_address>
 	{
-		bool operator()(const internetaddr& left, const internetaddr& right) const noexcept
+		bool operator()(const socket_address& left, const socket_address& right) const noexcept
 		{
 			return left == right;
 		}
 	};
 
 	template <>
-	struct less<internetaddr>
+	struct less<socket_address>
 	{
-		bool operator()(const internetaddr& left, const internetaddr& right) const noexcept
+		bool operator()(const socket_address& left, const socket_address& right) const noexcept
 		{
 			const int ipCmp = std::memcmp(left.getRawIp().data(), right.getRawIp().data(), left.getRawIp().size());
 			return ipCmp != 0 ? ipCmp < 0 : left.getPort() < right.getPort();
@@ -101,7 +101,7 @@ namespace std
 } // namespace std
 
 template <>
-struct std::formatter<internetaddr>
+struct std::formatter<socket_address>
 {
 private:
 	char m_formatMode = 'D';
@@ -125,7 +125,7 @@ public:
 	}
 
 	template <typename FormatContext>
-	auto format(const internetaddr& value, FormatContext& ctx) const
+	auto format(const socket_address& value, FormatContext& ctx) const
 	{
 		switch (m_formatMode)
 		{

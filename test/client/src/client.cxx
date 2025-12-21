@@ -99,7 +99,7 @@ void relay_client::processIncoming()
 {
 	for (int32_t i = 0; i < 32; i++)
 	{
-		internetaddr recvAddr{};
+		socket_address recvAddr{};
 
 		int32_t bytesRead{};
 		bytesRead = m_socket.recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), recvAddr);
@@ -157,7 +157,7 @@ void relay_client::trySend()
 
 		const uint32_t payloadStripOffset = ur::randRange<uint32_t>(0, requestBuf.size() - handshake_packet_data_size);
 
-		internetaddr relayAddr = internetaddr::make_ipv4(m_params.m_server_ip, m_params.m_server_port);
+		socket_address relayAddr = socket_address::make_ipv4(m_params.m_server_ip, m_params.m_server_port);
 		const auto bytesSent = m_socket.sendTo(requestBuf.data(), requestBuf.size() - payloadStripOffset, relayAddr);
 		if (bytesSent >= 0)
 			++m_packetsSent;
@@ -214,7 +214,7 @@ bool relay_client::init()
 		return false;
 	}
 
-	auto bindAddr = m_params.useIpv6 ? internetaddr::make_ipv6(ur::net::anyIpv6(), 0) : internetaddr::make_ipv4(ur::net::anyIpv4(), 0);
+	auto bindAddr = m_params.useIpv6 ? socket_address::make_ipv6(ur::net::anyIpv6(), 0) : socket_address::make_ipv4(ur::net::anyIpv4(), 0);
 	if (!m_socket.bind(bindAddr))
 	{
 		return false;

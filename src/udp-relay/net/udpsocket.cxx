@@ -3,8 +3,8 @@
 #include "udp-relay/net/udpsocket.hxx"
 
 #include "udp-relay/log.hxx"
-#include "udp-relay/net/internetaddr.hxx"
 #include "udp-relay/net/network_utils.hxx"
+#include "udp-relay/net/socket_address.hxx"
 
 #if UR_PLATFORM_WINDOWS
 #include <WinSock2.h>
@@ -77,7 +77,7 @@ void udpsocket::close() noexcept
 	}
 }
 
-bool udpsocket::bind(const internetaddr& addr) const
+bool udpsocket::bind(const socket_address& addr) const
 {
 	sockaddr_storage saddr{};
 	addr.copyToNative(saddr);
@@ -101,7 +101,7 @@ uint16_t udpsocket::getPort() const
 		return 0;
 	}
 
-	internetaddr addr{};
+	socket_address addr{};
 	addr.copyFromNative(saddr);
 	return addr.getPort();
 }
@@ -127,7 +127,7 @@ bool udpsocket::isIpv6() const noexcept
 	return addr.ss_family == AF_INET6;
 }
 
-int32_t udpsocket::sendTo(void* buffer, size_t bufferSize, const internetaddr& addr) const noexcept
+int32_t udpsocket::sendTo(void* buffer, size_t bufferSize, const socket_address& addr) const noexcept
 {
 	sockaddr_storage saddr{};
 	const socklen_t slen = sizeof(saddr);
@@ -136,7 +136,7 @@ int32_t udpsocket::sendTo(void* buffer, size_t bufferSize, const internetaddr& a
 	return ::sendto(m_socket, (const buffer_t*)buffer, bufferSize, 0, (struct sockaddr*)&saddr, slen);
 }
 
-int32_t udpsocket::recvFrom(void* buffer, size_t bufferSize, internetaddr& addr) const noexcept
+int32_t udpsocket::recvFrom(void* buffer, size_t bufferSize, socket_address& addr) const noexcept
 {
 	sockaddr_storage saddr{};
 	socklen_t slen = sizeof(saddr);

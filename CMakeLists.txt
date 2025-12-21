@@ -25,11 +25,11 @@ target_sources(${UDP_RELAY_LIB_NAME}
                     src/udp-relay/relay.cxx
                     src/udp-relay/version.cxx
                     src/udp-relay/net/udpsocket.cxx
-                    src/udp-relay/net/internetaddr.cxx
+                    src/udp-relay/net/socket_address.cxx
                 PUBLIC
                     FILE_SET HEADERS
                     FILES
-                    include/udp-relay/net/internetaddr.hxx
+                    include/udp-relay/net/socket_address.hxx
                     include/udp-relay/net/network_utils.hxx
                     include/udp-relay/net/udpsocket.hxx
                     include/udp-relay/guid.hxx

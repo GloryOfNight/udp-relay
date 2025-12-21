@@ -34,7 +34,7 @@ public:
 	void close() noexcept;
 
 	// bind on socket on specific port in host byte order
-	bool bind(const struct internetaddr& addr) const;
+	bool bind(const struct socket_address& addr) const;
 
 	// get socket port in host byte order
 	uint16_t getPort() const;
@@ -49,10 +49,10 @@ public:
 	bool isIpv6() const noexcept;
 
 	// sends data to addr. Return bytes sent or -1 on error
-	int32_t sendTo(void* buffer, size_t bufferSize, const struct internetaddr& addr) const noexcept;
+	int32_t sendTo(void* buffer, size_t bufferSize, const struct socket_address& addr) const noexcept;
 
 	// receives data. Return bytes received or -1 on error
-	int32_t recvFrom(void* buffer, size_t bufferSize, struct internetaddr& addr) const noexcept;
+	int32_t recvFrom(void* buffer, size_t bufferSize, struct socket_address& addr) const noexcept;
 
 	// for ipv6 socket, set if socket should be ipv6 only or dual-stack
 	bool setOnlyIpv6(bool value) const noexcept;

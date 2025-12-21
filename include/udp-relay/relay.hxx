@@ -3,7 +3,7 @@
 #pragma once
 
 #include "udp-relay/guid.hxx"
-#include "udp-relay/net/internetaddr.hxx"
+#include "udp-relay/net/socket_address.hxx"
 #include "udp-relay/net/udpsocket.hxx"
 
 #include <array>
@@ -27,8 +27,8 @@ struct channel_stats
 struct channel
 {
 	const guid m_guid{};
-	internetaddr m_peerA{};
-	internetaddr m_peerB{};
+	socket_address m_peerA{};
+	socket_address m_peerB{};
 	std::chrono::time_point<std::chrono::steady_clock> m_lastUpdated{};
 	channel_stats m_stats{};
 };
@@ -82,7 +82,7 @@ private:
 
 	relay_params m_params;
 
-	internetaddr m_recvAddr{};
+	socket_address m_recvAddr{};
 
 	recv_buffer m_recvBuffer{};
 
@@ -90,7 +90,7 @@ private:
 
 	std::map<guid, channel> m_channels{};
 
-	std::map<internetaddr, guid> m_addressChannels{};
+	std::map<socket_address, guid> m_addressChannels{};
 
 	std::chrono::steady_clock::time_point m_lastTickTime{};
 

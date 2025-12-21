@@ -1,6 +1,6 @@
 // Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
 
-#include "udp-relay/net/internetaddr.hxx"
+#include "udp-relay/net/socket_address.hxx"
 
 #include "udp-relay/net/network_utils.hxx"
 
@@ -38,31 +38,31 @@ std::array<std::byte, 16> ur::net::localhostIpv6()
 	return addr;
 }
 
-internetaddr internetaddr::make_ipv4(uint32_t ip, uint16_t port) noexcept
+socket_address socket_address::make_ipv4(uint32_t ip, uint16_t port) noexcept
 {
-	internetaddr newAddr{};
+	socket_address newAddr{};
 	newAddr.m_family = AF_INET;
 	newAddr.m_port = port;
 	std::memcpy(newAddr.m_ip.data(), &ip, sizeof(uint32_t));
 	return newAddr;
 }
 
-internetaddr internetaddr::make_ipv6(std::array<std::byte, 16> ip, uint16_t port) noexcept
+socket_address socket_address::make_ipv6(std::array<std::byte, 16> ip, uint16_t port) noexcept
 {
-	internetaddr newAddr{};
+	socket_address newAddr{};
 	newAddr.m_family = AF_INET6;
 	newAddr.m_port = port;
 	newAddr.m_ip = std::move(ip);
 	return newAddr;
 }
 
-bool internetaddr::isNull() const noexcept
+bool socket_address::isNull() const noexcept
 {
-	internetaddr zeroAddr{};
-	return std::memcmp(this, &zeroAddr, sizeof(internetaddr)) == 0;
+	socket_address zeroAddr{};
+	return std::memcmp(this, &zeroAddr, sizeof(socket_address)) == 0;
 }
 
-void internetaddr::copyToNative(sockaddr_storage& saddr) const noexcept
+void socket_address::copyToNative(native_socket_address& saddr) const noexcept
 {
 	if (m_family == AF_INET6)
 	{
@@ -70,7 +70,7 @@ void internetaddr::copyToNative(sockaddr_storage& saddr) const noexcept
 		v6->sin6_family = AF_INET6;
 		v6->sin6_port = ur::net::hton16(m_port);
 
-		static_assert(sizeof(internetaddr::m_ip) == sizeof(v6->sin6_addr));
+		static_assert(sizeof(socket_address::m_ip) == sizeof(v6->sin6_addr));
 		std::memcpy(&v6->sin6_addr, m_ip.data(), sizeof(v6->sin6_addr));
 	}
 	else if (m_family == AF_INET)
@@ -82,7 +82,7 @@ void internetaddr::copyToNative(sockaddr_storage& saddr) const noexcept
 	}
 }
 
-void internetaddr::copyFromNative(const sockaddr_storage& saddr) noexcept
+void socket_address::copyFromNative(const native_socket_address& saddr) noexcept
 {
 	if (saddr.ss_family == AF_INET6)
 	{
@@ -90,7 +90,7 @@ void internetaddr::copyFromNative(const sockaddr_storage& saddr) noexcept
 		m_family = v6->sin6_family;
 		m_port = ur::net::ntoh16(v6->sin6_port);
 
-		static_assert(sizeof(internetaddr::m_ip) == sizeof(v6->sin6_addr));
+		static_assert(sizeof(socket_address::m_ip) == sizeof(v6->sin6_addr));
 		std::memcpy(m_ip.data(), &v6->sin6_addr, sizeof(m_ip));
 	}
 	else if (saddr.ss_family == AF_INET)
@@ -102,7 +102,7 @@ void internetaddr::copyFromNative(const sockaddr_storage& saddr) noexcept
 	}
 }
 
-std::string internetaddr::toString(bool withPort) const
+std::string socket_address::toString(bool withPort) const
 {
 	std::array<char, INET6_ADDRSTRLEN> ipStr{};
 	switch (m_family)
@@ -122,32 +122,32 @@ std::string internetaddr::toString(bool withPort) const
 	return "invaddr";
 }
 
-bool internetaddr::operator==(const internetaddr& other) const noexcept
+bool socket_address::operator==(const socket_address& other) const noexcept
 {
-	return std::memcmp(this, &other, sizeof(internetaddr)) == 0;
+	return std::memcmp(this, &other, sizeof(socket_address)) == 0;
 }
 
-bool internetaddr::operator!=(const internetaddr& other) const noexcept
+bool socket_address::operator!=(const socket_address& other) const noexcept
 {
-	return std::memcmp(this, &other, sizeof(internetaddr)) != 0;
+	return std::memcmp(this, &other, sizeof(socket_address)) != 0;
 }
 
-const std::array<std::byte, 16>& internetaddr::getRawIp() const noexcept
+const std::array<std::byte, 16>& socket_address::getRawIp() const noexcept
 {
 	return m_ip;
 }
 
-uint16_t internetaddr::getPort() const noexcept
+uint16_t socket_address::getPort() const noexcept
 {
 	return m_port;
 }
 
-bool internetaddr::isIpv4() const noexcept
+bool socket_address::isIpv4() const noexcept
 {
 	return m_family == AF_INET;
 }
 
-bool internetaddr::isIpv6() const noexcept
+bool socket_address::isIpv6() const noexcept
 {
 	return m_family == AF_INET6;
 }

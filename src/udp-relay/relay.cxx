@@ -62,7 +62,7 @@ bool relay::init(relay_params params)
 		return false;
 	}
 
-	const auto addr = params.ipv6 ? internetaddr::make_ipv6(ur::net::anyIpv6(), params.m_primaryPort) : internetaddr::make_ipv4(ur::net::anyIpv4(), params.m_primaryPort);
+	const auto addr = params.ipv6 ? socket_address::make_ipv6(ur::net::anyIpv6(), params.m_primaryPort) : socket_address::make_ipv4(ur::net::anyIpv4(), params.m_primaryPort);
 	if (!newSocket.bind(addr))
 	{
 		LOG(Error, Relay, "Failed bind to {0} port", params.m_primaryPort);
