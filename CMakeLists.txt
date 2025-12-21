@@ -46,7 +46,7 @@ target_sources(${UDP_RELAY_LIB_NAME}
 
 target_link_libraries(${UDP_RELAY_LIB_NAME} PUBLIC $<$<PLATFORM_ID:Windows>:ws2_32.dll> $<$<PLATFORM_ID:Linux>:stdc++exp>)
 
-target_compile_options(${UDP_RELAY_LIB_NAME} PUBLIC $<$<PLATFORM_ID:Linux>:-fsized-deallocation>)
+target_compile_options(${UDP_RELAY_LIB_NAME} PUBLIC $<$<PLATFORM_ID:Linux>:-fsized-deallocation> $<$<CXX_COMPILER_ID:Clang>:-Wall>)
 
 target_include_directories(${UDP_RELAY_LIB_NAME} PUBLIC     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                             $<INSTALL_INTERFACE:include>)

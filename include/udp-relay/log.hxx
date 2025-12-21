@@ -27,7 +27,7 @@ static constexpr log_level g_compileLogLevel{log_level::Verbose};
 
 namespace ur
 {
-	static const char* log_level_to_string(const log_level level)
+	static inline const char* log_level_to_string(const log_level level)
 	{
 		switch (level)
 		{
@@ -39,6 +39,8 @@ namespace ur
 			return "Info";
 		case log_level::Verbose:
 			return "Verbose";
+		case log_level::NoLogs:
+			return "";
 		default:
 			return "Unknown";
 		}
@@ -55,7 +57,7 @@ namespace ur
 		std::println(std::cout, "{0} {1}", std::vformat("[{0:%F}T{0:%T}] {1}: {2}:", std::make_format_args(now, category, logLevelStr)), std::vformat(format, std::make_format_args(args...)));
 	}
 
-	static void log_flush()
+	static inline void log_flush()
 	{
 		std::cout.flush();
 	}

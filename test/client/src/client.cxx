@@ -83,12 +83,8 @@ void relay_client::run(const relay_client_params& params)
 
 	m_recvBuffer.resize(2048);
 
-	auto lastSendTime = std::chrono::steady_clock::now();
-
 	m_running = true;
 	m_allowSend = true;
-
-	bool relayEstablished = false;
 
 	while (m_running)
 	{
