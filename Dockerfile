@@ -33,8 +33,13 @@ EXPOSE 6060/udp
 
 # Copy built binary
 COPY --from=build /opt/udp-relay/build/Release/udp-relay /opt/bin/udp-relay
+COPY --from=build /opt/udp-relay/build/Release/udp-relay-healthchecker /opt/bin/udp-relay-healthchecker
+
 RUN chmod +x /opt/bin/udp-relay
+RUN chmod +x /opt/bin/udp-relay-healthchecker
 
 WORKDIR /opt/udp-relay
+
+HEALTHCHECK --interval=60s --timeout=10s --retries=1 CMD ./udp-relay-healthchecker
 
 ENTRYPOINT ["/opt/bin/udp-relay"]
