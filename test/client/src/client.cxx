@@ -42,19 +42,16 @@ std::pair<bool, relay_client_handshake> relay_client_helpers::tryDeserialize(rel
 	if (recvBytes < handshake_packet_data_size)
 		return std::pair<bool, relay_client_handshake>{};
 
-	relay_client_handshake netValue{};
-	std::memcpy(&netValue, recvBuffer.data(), handshake_packet_data_size);
+	const auto [isHeader, header] = relay_helpers::tryDeserializeHeader(recvBuffer, recvBytes);
 
-	relay_client_handshake hostValue{};
-	hostValue.m_header.m_magicNumber = ur::net::ntoh32(netValue.m_header.m_magicNumber);
-	hostValue.m_header.m_guid.m_a = ur::net::ntoh32(netValue.m_header.m_guid.m_a);
-	hostValue.m_header.m_guid.m_b = ur::net::ntoh32(netValue.m_header.m_guid.m_b);
-	hostValue.m_header.m_guid.m_c = ur::net::ntoh32(netValue.m_header.m_guid.m_c);
-	hostValue.m_header.m_guid.m_d = ur::net::ntoh32(netValue.m_header.m_guid.m_d);
-	hostValue.m_type = ur::net::ntoh16(netValue.m_type);
-	hostValue.m_time = ur::net::ntoh64(netValue.m_time);
+	relay_client_handshake result{};
+	std::memcpy(&result, recvBuffer.data(), handshake_packet_data_size);
 
-	return std::pair<bool, relay_client_handshake>(true, hostValue);
+	result.m_header = header;
+	result.m_type = ur::net::ntoh16(result.m_type);
+	result.m_time = ur::net::ntoh64(result.m_time);
+
+	return std::pair<bool, relay_client_handshake>(true, result);
 }
 
 bool relay_client::init(relay_client_params params)
@@ -127,6 +124,12 @@ void relay_client::processIncoming()
 		const auto [packetOk, packet] = relay_client_helpers::tryDeserialize(m_recvBuffer, bytesRead);
 		if (!packetOk)
 			continue;
+
+		if (packet.m_header.m_guid != m_params.m_guid)
+		{
+			LOG(Warning, RelayClient, "Recv packet with invalid guid {} (expected: {})", packet.m_header.m_guid, m_params.m_guid);
+			continue;
+		}
 
 		++m_stats.m_packetsRecv;
 
