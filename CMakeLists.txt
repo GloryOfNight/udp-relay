@@ -3,13 +3,14 @@
 cmake_minimum_required(VERSION 3.28.0)
 
 project(udp-relay
-        VERSION 0.7.1
+        VERSION 0.7.2
         DESCRIPTION "Simple UDP packet relay"
         HOMEPAGE_URL "https://github.com/GloryOfNight/udp-relay"
         LANGUAGES CXX C)
 
 set(UDP_RELAY_LIB_NAME ${PROJECT_NAME}-static)
 set(UDP_RELAY_EXE_NAME ${PROJECT_NAME}) 
+set(UDP_RELAY_HEALTHCHECK_EXE_NAME ${PROJECT_NAME}-healthcheck) 
 
 include(cmake/ProjectDefaults.cmake)
 include(cmake/ProjectOptions.cmake)
@@ -67,11 +68,19 @@ install(EXPORT ${PROJECT_NAME}Targets DESTINATION cmake)
 if (ENABLE_BUILD_EXEC)
     add_executable(${UDP_RELAY_EXE_NAME})
     target_sources(${UDP_RELAY_EXE_NAME} PRIVATE 
-                        src/relay_main.cxx
-                        $<$<PLATFORM_ID:Linux>:src/unixmain.cxx>
-                        $<$<PLATFORM_ID:Windows>:src/winmain.cxx>)
+                        src/udp-relay/relay_main.cxx
+                        $<$<PLATFORM_ID:Linux>:src/udp-relay/unixmain.cxx>
+                        $<$<PLATFORM_ID:Windows>:src/udp-relay/winmain.cxx>)
     target_link_libraries(${UDP_RELAY_EXE_NAME} PRIVATE ${UDP_RELAY_LIB_NAME})
     install(TARGETS ${UDP_RELAY_EXE_NAME})
+
+    add_executable(${UDP_RELAY_HEALTHCHECK_EXE_NAME})
+    target_sources(${UDP_RELAY_HEALTHCHECK_EXE_NAME} PRIVATE 
+                        src/udp-relay-healthcheck/relay_healthcheck_main.cxx
+                        $<$<PLATFORM_ID:Linux>:src/udp-relay-healthcheck/unixmain.cxx>
+                        $<$<PLATFORM_ID:Windows>:src/udp-relay-healthcheck/winmain.cxx>)
+    target_link_libraries(${UDP_RELAY_HEALTHCHECK_EXE_NAME} PRIVATE ${UDP_RELAY_LIB_NAME})
+    install(TARGETS ${UDP_RELAY_HEALTHCHECK_EXE_NAME})
 endif()
 
 if (ENABLE_BUILD_TEST)

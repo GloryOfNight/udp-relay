@@ -81,12 +81,7 @@ bool udpsocket::bind(const socket_address& addr) const
 {
 	sockaddr_storage saddr{};
 	addr.copyToNative(saddr);
-
-	if (::bind(m_socket, (sockaddr*)&saddr, sizeof(saddr)) == -1) [[unlikely]]
-	{
-		return false;
-	}
-	return true;
+	return ::bind(m_socket, (sockaddr*)&saddr, sizeof(saddr)) != -1;
 }
 
 uint16_t udpsocket::getPort() const

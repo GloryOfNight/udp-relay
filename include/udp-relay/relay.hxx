@@ -102,3 +102,8 @@ private:
 
 	std::atomic_bool m_gracefulStopRequested{false};
 };
+
+struct relay_helpers
+{
+	static std::pair<bool, handshake_header> tryDeserializeHeader(relay::recv_buffer& recvBuffer, size_t recvBytes);
+};
