@@ -3,6 +3,7 @@
 #pragma once
 
 #include "udp-relay/guid.hxx"
+#include "udp-relay/net/network_utils.hxx"
 #include "udp-relay/net/socket_address.hxx"
 #include "udp-relay/net/udpsocket.hxx"
 
@@ -43,11 +44,12 @@ struct relay_params
 	bool ipv6{};
 };
 
-const uint32_t handshake_magic_number = 0x4B28000;
-const uint16_t handshake_min_size = 24;
+constexpr uint32_t handshake_magic_number_host = 0x4B28000;
+constexpr uint32_t handshake_magic_number_hton = ur::net::hton32(0x4B28000);
+constexpr uint16_t handshake_min_size = 24;
 struct alignas(4) handshake_header
 {
-	uint32_t m_magicNumber{handshake_magic_number};
+	uint32_t m_magicNumber{handshake_magic_number_host};
 	uint32_t m_reserved{};
 	guid m_guid{};
 };
@@ -56,7 +58,7 @@ static_assert(sizeof(handshake_header) == handshake_min_size);
 class relay
 {
 public:
-	using recv_buffer = std::array<std::max_align_t, 65536 / alignof(std::max_align_t)>;
+	using recv_buffer = std::array<std::uint64_t, 65536 / alignof(std::uint64_t)>;
 
 	relay() = default;
 	relay(const relay&) = delete;

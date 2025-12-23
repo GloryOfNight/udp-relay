@@ -19,16 +19,15 @@ std::pair<bool, handshake_header> relay_helpers::tryDeserializeHeader(relay::rec
 	if (recvBytes < sizeof(handshake_header))
 		return std::pair<bool, handshake_header>();
 
-	constexpr uint32_t handshakeMagicNumberHton = ur::net::hton32(handshake_magic_number);
-	if (std::memcmp(&handshakeMagicNumberHton, (std::byte*)recvBuffer.data() + offsetof(handshake_header, m_magicNumber), sizeof(uint32_t)) != 0)
+	handshake_header recvHeader{};
+	std::memcpy(&recvHeader, recvBuffer.data(), sizeof(recvHeader));
+
+	if (recvHeader.m_magicNumber != handshake_magic_number_hton)
 		return std::pair<bool, handshake_header>();
 
 	constexpr guid zeroGuid{};
-	if (std::memcmp(&zeroGuid, (std::byte*)recvBuffer.data() + offsetof(handshake_header, m_guid), sizeof(guid)) == 0)
+	if (recvHeader.m_guid == zeroGuid)
 		return std::pair<bool, handshake_header>();
-
-	handshake_header recvHeader;
-	std::memcpy(&recvHeader, recvBuffer.data(), sizeof(handshake_header));
 
 	recvHeader.m_magicNumber = ur::net::ntoh32(recvHeader.m_magicNumber);
 	recvHeader.m_guid.m_a = ur::net::ntoh32(recvHeader.m_guid.m_a);
