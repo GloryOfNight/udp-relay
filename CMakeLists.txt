@@ -67,9 +67,9 @@ install(EXPORT ${PROJECT_NAME}Targets DESTINATION cmake)
 if (ENABLE_BUILD_EXEC)
     add_executable(${UDP_RELAY_EXE_NAME})
     target_sources(${UDP_RELAY_EXE_NAME} PRIVATE 
-                        src/relay_main.cxx
-                        $<$<PLATFORM_ID:Linux>:src/unixmain.cxx>
-                        $<$<PLATFORM_ID:Windows>:src/winmain.cxx>)
+                        src/udp-relay/relay_main.cxx
+                        $<$<PLATFORM_ID:Linux>:src/udp-relay/unixmain.cxx>
+                        $<$<PLATFORM_ID:Windows>:src/udp-relay/winmain.cxx>)
     target_link_libraries(${UDP_RELAY_EXE_NAME} PRIVATE ${UDP_RELAY_LIB_NAME})
     install(TARGETS ${UDP_RELAY_EXE_NAME})
 endif()
