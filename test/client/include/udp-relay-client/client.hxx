@@ -23,6 +23,12 @@ struct relay_client_stats
 	uint32_t m_packetsRecv = 0;
 };
 
+enum
+{
+	HandshakeRequest = 1,
+	HandshakeResponse = 2
+};
+
 struct relay_client_handshake
 {
 	handshake_header m_header{};

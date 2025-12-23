@@ -40,7 +40,7 @@ static bool g_running{};
 
 static void handleAbort(int sig);
 
-int relay_tester_main(int argc, char* argv[], char* envp[])
+int relay_tester_main(int argc, char* argv[], [[maybe_unused]] char* envp[])
 {
 	std::signal(SIGABRT, handleAbort);
 	std::signal(SIGINT, handleAbort);

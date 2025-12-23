@@ -131,25 +131,25 @@ void relay_client::processIncoming()
 			continue;
 		}
 
-		++m_stats.m_packetsRecv;
+		m_stats.m_packetsRecv++;
 
-		if (packet.m_type == 1)
+		if (packet.m_type == HandshakeRequest)
 		{
 			auto responsePacket = packet;
-			responsePacket.m_type = 2;
+			responsePacket.m_type = HandshakeResponse;
 
 			auto responseBuf = relay_client_helpers::serialize(responsePacket);
 
 			m_socket.waitForWrite(500us);
 			const auto bytesSent = m_socket.sendTo(responseBuf.data(), bytesRead, recvAddr);
 			if (bytesSent >= 0)
-				++m_stats.m_packetsSent;
+				m_stats.m_packetsSent++;
 		}
 		else if (packet.m_type == 2)
 		{
-			const auto recvNs = std::chrono::steady_clock::now().time_since_epoch().count();
-			const auto sentNs = packet.m_time;
-			const auto packetTimeNs = std::chrono::nanoseconds(recvNs - sentNs);
+			const auto recvNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch());
+			const auto sentNs = std::chrono::nanoseconds(packet.m_time);
+			const auto packetTimeNs = recvNs - sentNs;
 			const auto packetTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(packetTimeNs);
 			m_stats.m_latenciesMs.push_back(packetTimeMs.count());
 		}
@@ -169,7 +169,7 @@ void relay_client::trySend()
 
 		relay_client_handshake packet{};
 		packet.m_header.m_guid = m_params.m_guid;
-		packet.m_type = 1;
+		packet.m_type = HandshakeRequest;
 		packet.m_time = std::chrono::steady_clock::now().time_since_epoch().count();
 		packet.generateRandomPayload();
 
