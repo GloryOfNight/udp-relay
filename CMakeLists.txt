@@ -10,6 +10,7 @@ project(udp-relay
 
 set(UDP_RELAY_LIB_NAME ${PROJECT_NAME}-static)
 set(UDP_RELAY_EXE_NAME ${PROJECT_NAME}) 
+set(UDP_RELAY_HEALTHCHECKER_EXE_NAME ${PROJECT_NAME}-healthchecker) 
 
 include(cmake/ProjectDefaults.cmake)
 include(cmake/ProjectOptions.cmake)
@@ -72,6 +73,14 @@ if (ENABLE_BUILD_EXEC)
                         $<$<PLATFORM_ID:Windows>:src/udp-relay/winmain.cxx>)
     target_link_libraries(${UDP_RELAY_EXE_NAME} PRIVATE ${UDP_RELAY_LIB_NAME})
     install(TARGETS ${UDP_RELAY_EXE_NAME})
+
+    add_executable(${UDP_RELAY_HEALTHCHECKER_EXE_NAME})
+    target_sources(${UDP_RELAY_HEALTHCHECKER_EXE_NAME} PRIVATE 
+                        src/udp-relay-healthchecker/relay_healthchecker_main.cxx
+                        $<$<PLATFORM_ID:Linux>:src/udp-relay-healthchecker/unixmain.cxx>
+                        $<$<PLATFORM_ID:Windows>:src/udp-relay-healthchecker/winmain.cxx>)
+    target_link_libraries(${UDP_RELAY_HEALTHCHECKER_EXE_NAME} PRIVATE ${UDP_RELAY_LIB_NAME})
+    install(TARGETS ${UDP_RELAY_HEALTHCHECKER_EXE_NAME})
 endif()
 
 if (ENABLE_BUILD_TEST)
