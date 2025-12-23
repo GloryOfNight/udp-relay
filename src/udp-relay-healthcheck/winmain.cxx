@@ -2,7 +2,7 @@
 
 #include <WinSock2.h>
 
-extern int relay_healthchecker_main(int argc, char* argv[], char* envp[]);
+extern int relay_healthcheck_main(int argc, char* argv[], char* envp[]);
 
 int main(int argc, char* argv[], char* envp[])
 {
@@ -11,7 +11,7 @@ int main(int argc, char* argv[], char* envp[])
 	if (wsaRes != 0)
 		return 1;
 
-	const auto ret = relay_healthchecker_main(argc, argv, envp);
+	const auto ret = relay_healthcheck_main(argc, argv, envp);
 
 	WSACleanup();
 

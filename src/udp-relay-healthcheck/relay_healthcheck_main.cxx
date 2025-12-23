@@ -45,7 +45,7 @@ udpsocket make_socket(bool ipv6)
 	return socket;
 }
 
-int relay_healthchecker_main(int argc, char* argv[], [[maybe_unused]] char* envp[])
+int relay_healthcheck_main(int argc, char* argv[], [[maybe_unused]] char* envp[])
 {
 	ur::parseArgs(argList, argc, argv);
 
