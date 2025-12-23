@@ -20,7 +20,7 @@ RUN apt-get update && \
 
 # Clone and build
 RUN cd /opt && \
-    git clone --branch $GIT_BRANCH --depth 1 $GIT_REPOSITORY udp-relay && \
+    git clone --branch ${GIT_BRANCH:-main} --depth 1 $GIT_REPOSITORY udp-relay && \
     cd udp-relay && \
     cmake --preset ninja-multi -DENABLE_BUILD_TEST=OFF && \
     cmake --build --preset ninja-release
