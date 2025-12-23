@@ -30,6 +30,8 @@ struct socket_address final
 	// make ipv6 address
 	static socket_address make_ipv6(std::array<std::byte, 16> ip, uint16_t port) noexcept;
 
+	static socket_address from_string(std::string_view ip);
+
 	// convert address to address string
 	std::string toString(bool withPort = true) const;
 
@@ -44,6 +46,9 @@ struct socket_address final
 
 	// get raw ip array
 	const std::array<std::byte, 16>& getRawIp() const noexcept;
+
+	// set host order port
+	void setPort(uint16_t port) noexcept;
 
 	// get host ordered port
 	uint16_t getPort() const noexcept;

@@ -9,23 +9,29 @@
 #include <functional>
 #include <thread>
 
+using namespace std::chrono_literals;
+
 namespace args
 {
 	static bool printHelp{};
 	static int32_t maxClients{2};
-	static std::vector<int32_t> relayAddr{};
-	static int32_t relayPort{6060};
-	static int32_t shutdownAfter{60};
+	static std::string relayAddr{};
+	static uint16_t relayPort{6060};
+	static int32_t shutdownAfter{15};
+	static std::chrono::milliseconds sendIntervalMs{24ms};
+	static bool useIpv6{false};
 } // namespace args
 
 // clang-format off
 static constexpr auto argList = std::array
 {
-	cl_arg_ref{"--help", args::printHelp,									"--help                                        = print help" },
-	cl_arg_ref{"--max-clients", args::maxClients,							"--max-clients                                 = number of clients to create, should be power of 2" },
-	cl_arg_ref{"--relay-addr", args::relayAddr,								"--relay-addr <value> <value> <value> <value>  = space separated address of relay server, 127 0 0 1 dy default" },
-	cl_arg_ref{"--relay-port", args::relayPort,								"--relay-port <value>                          = relay server port, 6060 by default" },
-	cl_arg_ref{"--shutdown-after", args::shutdownAfter,						"--shutdown-after <value>                      = time in seconds after which test will end" },
+	cl_arg_ref{"--help", args::printHelp,									"--help											= print help" },
+	cl_arg_ref{"--max-clients", args::maxClients,							"--max-clients									= number of clients to create, should be power of 2" },
+	cl_arg_ref{"--relay-addr", args::relayAddr,								"--relay-addr <value> <value> <value> <value>	= space separated address of relay server, 127 0 0 1 dy default" },
+	cl_arg_ref{"--relay-port", args::relayPort,								"--relay-port <value>							= relay server port, 6060 by default" },
+	cl_arg_ref{"--shutdown-after", args::shutdownAfter,						"--shutdown-after <value>						= time in seconds after which test will end" },
+	cl_arg_ref{"--send-interval-ms", args::sendIntervalMs,					"--send-interval-ms <value>						= how often client should send" },
+	cl_arg_ref{"--ipv6", args::useIpv6,										"--ipv6 0|1										= use ipv6" },
 };
 // clang-format on
 
@@ -50,11 +56,20 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 
 	if (args::relayAddr.empty())
 	{
-		args::relayAddr = {127, 0, 0, 1};
+		args::relayAddr = args::useIpv6 ? "::1" : "127.0.0.1";
 	}
-	else if (args::relayAddr.size() != 4)
+
+	socket_address relayAddr = socket_address::from_string(args::relayAddr);
+	relayAddr.setPort(args::relayPort);
+	if (relayAddr.isNull() && relayAddr.getPort() != 0)
 	{
-		LOG(Error, RelayTester, "Invalid relay addr size {0}", args::relayAddr.size())
+		LOG(Error, RelayTester, "Invalid relay addr {}, port {}", args::relayAddr, args::relayPort)
+		return 1;
+	}
+
+	if (relayAddr.isIpv4() && args::useIpv6)
+	{
+		LOG(Error, RelayTester, "Conflicting arguments. Cannot use ipv4 addr while ipv6 enabled");
 		return 1;
 	}
 
@@ -67,26 +82,24 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 		args::maxClients = 1024;
 	}
 
-	LOG(Info, RelayTester, "Using relay address: {0}.{1}.{2}.{3}:{4}", args::relayAddr[0], args::relayAddr[1], args::relayAddr[2], args::relayAddr[3], args::relayPort);
+	LOG(Info, RelayTester, "Using relay address: {}", relayAddr);
 	LOG(Info, RelayTester, "Starting {0} clients", args::maxClients);
 
 	for (int32_t i = 0; i < args::maxClients; i += 2)
 	{
-		relay_client_params param;
-		param.m_guid = guid::newGuid();
-		param.m_sendIntervalMs = 16;
+		relay_client_params params{};
+		params.m_guid = guid::newGuid();
+		params.m_sendIntervalMs = args::sendIntervalMs;
+		params.m_relayAddr = relayAddr;
 
-		reinterpret_cast<uint8_t*>(&param.m_server_ip)[0] = args::relayAddr[0];
-		reinterpret_cast<uint8_t*>(&param.m_server_ip)[1] = args::relayAddr[1];
-		reinterpret_cast<uint8_t*>(&param.m_server_ip)[2] = args::relayAddr[2];
-		reinterpret_cast<uint8_t*>(&param.m_server_ip)[3] = args::relayAddr[3];
+		auto clientA = &g_clients[i];
+		auto clientB = &g_clients[i + 1];
 
-		param.m_server_port = args::relayPort;
+		clientA->init(params);
+		clientB->init(params);
 
-		std::thread(std::bind(&relay_client::run, &g_clients[i], param)).detach();
-		std::thread(std::bind(&relay_client::run, &g_clients[i + 1], param)).detach();
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		std::thread(std::bind(&relay_client::run, clientA)).detach();
+		std::thread(std::bind(&relay_client::run, clientB)).detach();
 	}
 
 	const auto start = std::chrono::steady_clock::now();
@@ -96,25 +109,25 @@ int relay_tester_main(int argc, char* argv[], char* envp[])
 	g_running = true;
 	while (g_running)
 	{
-		std::this_thread::sleep_for(std::chrono::seconds(1));
+		std::this_thread::sleep_for(1s);
 
 		const auto now = std::chrono::steady_clock::now();
 
 		if (args::shutdownAfter > 0 && std::chrono::duration_cast<std::chrono::seconds>(now - start).count() > args::shutdownAfter)
 		{
-			LOG(Info, RelayTester, "Timesup. Stopping clients.");
+			LOG(Info, RelayTester, "Times up. Stopping clients.");
 
 			for (size_t i = 0; i < args::maxClients; ++i)
 				g_clients[i].stopSending();
 
-			std::this_thread::sleep_for(std::chrono::seconds(2));
+			std::this_thread::sleep_for(2s);
 
 			for (size_t i = 0; i < args::maxClients; ++i)
 				g_clients[i].stop();
 
 			g_running = false;
 
-			std::this_thread::sleep_for(std::chrono::seconds(2));
+			std::this_thread::sleep_for(2s);
 
 			for (size_t i = 0; i < args::maxClients; ++i)
 			{

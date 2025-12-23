@@ -56,6 +56,25 @@ socket_address socket_address::make_ipv6(std::array<std::byte, 16> ip, uint16_t 
 	return newAddr;
 }
 
+socket_address socket_address::from_string(std::string_view ip)
+{
+	if (struct in6_addr ipv6; inet_pton(AF_INET6, ip.data(), &ipv6) == 1)
+	{
+		socket_address result{};
+		result.m_family = AF_INET6;
+		std::memcpy(result.m_ip.data(), &ipv6, sizeof(ipv6));
+		return result;
+	}
+	else if (struct in_addr ipv4; inet_pton(AF_INET, ip.data(), &ipv4) == 1)
+	{
+		socket_address result{};
+		result.m_family = AF_INET;
+		std::memcpy(result.m_ip.data(), &ipv4, sizeof(ipv4));
+		return result;
+	}
+	return socket_address();
+}
+
 bool socket_address::isNull() const noexcept
 {
 	socket_address zeroAddr{};
@@ -135,6 +154,11 @@ bool socket_address::operator!=(const socket_address& other) const noexcept
 const std::array<std::byte, 16>& socket_address::getRawIp() const noexcept
 {
 	return m_ip;
+}
+
+void socket_address::setPort(uint16_t port) noexcept
+{
+	m_port = port;
 }
 
 uint16_t socket_address::getPort() const noexcept

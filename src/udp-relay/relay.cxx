@@ -9,11 +9,6 @@
 
 using namespace std::chrono_literals;
 
-struct relay_helpers
-{
-	static std::pair<bool, handshake_header> tryDeserializeHeader(relay::recv_buffer& recvBuffer, size_t recvBytes);
-};
-
 std::pair<bool, handshake_header> relay_helpers::tryDeserializeHeader(relay::recv_buffer& recvBuffer, size_t recvBytes)
 {
 	if (recvBytes < sizeof(handshake_header))
@@ -61,10 +56,10 @@ bool relay::init(relay_params params)
 		return false;
 	}
 
-	const auto addr = params.ipv6 ? socket_address::make_ipv6(ur::net::anyIpv6(), params.m_primaryPort) : socket_address::make_ipv4(ur::net::anyIpv4(), params.m_primaryPort);
-	if (!newSocket.bind(addr))
+	const auto bindAddr = params.ipv6 ? socket_address::make_ipv6(ur::net::anyIpv6(), params.m_primaryPort) : socket_address::make_ipv4(ur::net::anyIpv4(), params.m_primaryPort);
+	if (!newSocket.bind(bindAddr))
 	{
-		LOG(Error, Relay, "Failed bind to {0} port", params.m_primaryPort);
+		LOG(Error, Relay, "Failed bind socket to {}", bindAddr);
 		return false;
 	}
 
@@ -89,7 +84,7 @@ bool relay::init(relay_params params)
 	}
 
 	LOG(Info, Relay, "Relay initialized {:A}:{}. SndBuf={}, RcvBuf={}. Version: {}.{}.{}",
-		addr, newSocket.getPort(), newSocket.getSendBufferSize(), newSocket.getRecvBufferSize(),
+		bindAddr, newSocket.getPort(), newSocket.getSendBufferSize(), newSocket.getRecvBufferSize(),
 		ur::getVersionMajor(), ur::getVersionMinor(), ur::getVersionPatch());
 
 	m_params = params;
