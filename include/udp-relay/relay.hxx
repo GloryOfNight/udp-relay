@@ -44,6 +44,15 @@ struct relay_params
 	bool ipv6{};
 };
 
+#if __cpp_lib_flat_map
+#include <flat_map>
+using relay_channel_map = std::flat_map<guid, channel>;
+using relay_address_channel_map = std::flat_map<socket_address, guid>;
+#else
+using relay_channel_map = std::map<guid, channel>;
+using relay_address_channel_map = std::map<socket_address, guid>;
+#endif
+
 constexpr uint32_t handshake_magic_number_host = 0x4B28000;
 constexpr uint32_t handshake_magic_number_hton = ur::net::hton32(0x4B28000);
 constexpr uint16_t handshake_min_size = 24;
@@ -90,9 +99,9 @@ private:
 
 	udpsocket m_socket{};
 
-	std::map<guid, channel> m_channels{};
+	relay_channel_map m_channels{};
 
-	std::map<socket_address, guid> m_addressChannels{};
+	relay_address_channel_map m_addressChannels{};
 
 	std::chrono::steady_clock::time_point m_lastTickTime{};
 
