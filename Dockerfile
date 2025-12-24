@@ -1,5 +1,5 @@
 # ===== Build stage =====
-FROM ubuntu:25.10 AS build
+FROM ubuntu:26.04 AS build
 
 # Set noninteractive frontend
 ENV DEBIAN_FRONTEND=noninteractive
@@ -26,7 +26,7 @@ RUN cd /opt && \
     cmake --build --preset ninja-release
 
 # ===== Runtime stage =====
-FROM ubuntu:25.10
+FROM ubuntu:26.04
 
 # Expose UDP port
 EXPOSE 6060/udp

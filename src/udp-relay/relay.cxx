@@ -208,29 +208,28 @@ void relay::conditionalCleanup()
 	if (m_lastTickTime < m_nextCleanupTime)
 		return;
 
-	for (auto it = m_channels.begin(); it != m_channels.end();)
-	{
-		const auto timeSinceInactive = m_lastTickTime - it->second.m_lastUpdated;
-		if (timeSinceInactive > m_params.m_cleanupInactiveChannelAfterTime)
+	{ // close inactive channels
+		const auto eraseChannelLam = [&](const auto& pair) -> bool
 		{
-			const auto stats = it->second.m_stats;
-			LOG(Info, Relay, "Channel closed: \"{0}\". Received: {1} packets ({2} bytes); Dropped: {3} ({4});",
-				it->second.m_guid, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsReceived - stats.m_packetsSent, stats.m_bytesReceived - stats.m_bytesSent);
-
-			it = m_channels.erase(it);
-		}
-		else
-		{
-			++it;
-		}
+			const auto timeSinceInactive = m_lastTickTime - pair.second.m_lastUpdated;
+			if (timeSinceInactive > m_params.m_cleanupInactiveChannelAfterTime)
+			{
+				const auto& stats = pair.second.m_stats;
+				LOG(Info, Relay, "Channel closed: \"{0}\". Received: {1} packets ({2} bytes); Dropped: {3} ({4});",
+					pair.second.m_guid, stats.m_packetsReceived, stats.m_bytesReceived, stats.m_packetsReceived - stats.m_packetsSent, stats.m_bytesReceived - stats.m_bytesSent);
+				return true;
+			}
+			return false;
+		};
+		std::erase_if(m_channels, eraseChannelLam);
 	}
 
-	for (auto it = m_addressChannels.begin(); it != m_addressChannels.end();)
-	{
-		if (m_channels.find(it->second) == m_channels.end())
-			it = m_addressChannels.erase(it);
-		else
-			++it;
+	{ // erase address mappings that uses erased channels
+		const auto eraseAddressChannelLam = [&](const auto& pair) -> bool
+		{
+			return m_channels.find(pair.second) == m_channels.end();
+		};
+		std::erase_if(m_addressChannels, eraseAddressChannelLam);
 	}
 
 	m_nextCleanupTime = m_lastTickTime + m_params.m_cleanupTime;
