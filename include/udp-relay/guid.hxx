@@ -61,7 +61,7 @@ namespace std
 	template <>
 	struct less<guid>
 	{
-		bool operator()(const guid& a, const guid& b) const noexcept
+		constexpr bool operator()(const guid& a, const guid& b) const noexcept
 		{
 			return std::tie(a.m_a, a.m_b, a.m_c, a.m_d) <
 				   std::tie(b.m_a, b.m_b, b.m_c, b.m_d);

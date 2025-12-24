@@ -16,6 +16,8 @@
 #include <memory>
 #include <queue>
 
+#include "udp-relay/flat_map.hxx"
+
 struct channel_stats
 {
 	uint64_t m_bytesReceived{};
@@ -27,7 +29,7 @@ struct channel_stats
 
 struct channel
 {
-	const guid m_guid{};
+	guid m_guid{};
 	socket_address m_peerA{};
 	socket_address m_peerB{};
 	std::chrono::time_point<std::chrono::steady_clock> m_lastUpdated{};
@@ -43,15 +45,6 @@ struct relay_params
 	std::chrono::milliseconds m_cleanupInactiveChannelAfterTime{30000};
 	bool ipv6{};
 };
-
-#if __cpp_lib_flat_map
-#include <flat_map>
-using relay_channel_map = std::flat_map<guid, channel>;
-using relay_address_channel_map = std::flat_map<socket_address, guid>;
-#else
-using relay_channel_map = std::map<guid, channel>;
-using relay_address_channel_map = std::map<socket_address, guid>;
-#endif
 
 constexpr uint32_t handshake_magic_number_host = 0x4B28000;
 constexpr uint32_t handshake_magic_number_hton = ur::net::hton32(0x4B28000);
@@ -99,9 +92,9 @@ private:
 
 	udpsocket m_socket{};
 
-	relay_channel_map m_channels{};
+	ur::flat_map<guid, channel> m_channels{};
 
-	relay_address_channel_map m_addressChannels{};
+	ur::flat_map<socket_address, guid> m_addressChannels{};
 
 	std::chrono::steady_clock::time_point m_lastTickTime{};
 
