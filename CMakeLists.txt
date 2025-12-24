@@ -33,6 +33,7 @@ target_sources(${UDP_RELAY_LIB_NAME}
                     include/udp-relay/net/socket_address.hxx
                     include/udp-relay/net/network_utils.hxx
                     include/udp-relay/net/udpsocket.hxx
+                    include/udp-relay/flat_map.hxx
                     include/udp-relay/guid.hxx
                     include/udp-relay/log.hxx
                     include/udp-relay/relay.hxx
