@@ -27,7 +27,7 @@ To start communication, first you need to agree on the following between peers:
 Then you can start sending handshake packets every second or so until your client receives a packet back from the relay. This means a connection has been established, and you can proceed to send other packet data.
 
 This process looks like this:
-```c++
+```
 // peer A and B start sending handshake values to relay using the same GUID value
 Peer A -- handshake packet with GUID (1,2,3,4) -->  Relay *acknowledges handshake packet*
 Peer B -- handshake packet with GUID (1,2,3,4) -->  Relay *creates mapping between Peer A and Peer B*
@@ -49,8 +49,29 @@ By default, the relay expects the following header for the handshake. magicNumbe
 ```c++
 struct alignas(4) handshake_header     // aligned by 4
 {
-	uint32_t m_magicNumber{0x4B28000}; // required - 4 bytes - must be exact same number
-	uint32_t m_reserved{};             // spacing
+	uint32_t m_magicNumber{0x4B28000}; // required - 4 bytes - little-endian constant that expected to be converted to big-endian before sent
+	uint32_t m_reserved{};             // spacing, reserved for *might be* future flags and versions
 	guid m_guid{};                     // required - 4 x 4 bytes - must be not null
 };
+```
+
+# Build
+
+> [!WARNING]
+> AVOID downloading source code from main branch directly since it might contain in-progress code. Only do that from tags or releases page!
+
+Project doesn't have any special dependecies and should be compiled without issue using Clang >= 18.1.3 or MSVC >= 19.44.
+
+Project uses certain C++23 features, like print and stacktrace.
+
+### List all available presets:
+```
+cmake --list-presets
+cmake --build --list-presets
+```
+
+### Start building
+```
+cmake --preset <preset>
+cmake --build --preset <build-preset>
 ```
