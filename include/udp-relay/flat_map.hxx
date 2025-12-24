@@ -15,7 +15,11 @@ namespace ur
 
 		typename dataType::iterator begin() { return m_data.begin(); }
 		typename dataType::iterator end() { return m_data.end(); }
+
 		size_t size() const { return m_data.size(); }
+
+		void reserve(typename dataType::size_type newCap) { m_data.reserve(newCap); }
+		typename dataType::size_type capacity() const { return m_data.capacity(); }
 
 		std::pair<typename dataType::iterator, bool> emplace(TKey key, TValue value)
 		{
@@ -48,11 +52,6 @@ namespace ur
 		typename dataType::iterator erase(dataType::iterator itBegin, dataType::iterator itEnd)
 		{
 			return m_data.erase(itBegin, itEnd);
-		}
-
-		void reserve(typename dataType::size_type amount)
-		{
-			m_data.reserve(amount);
 		}
 
 	private:

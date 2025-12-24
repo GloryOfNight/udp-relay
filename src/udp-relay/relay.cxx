@@ -101,8 +101,8 @@ void relay::run()
 		return;
 	}
 
-	m_channels.reserve(1024);
-	m_addressChannels.reserve(2048);
+	m_channels.reserve(4096);
+	m_addressChannels.reserve(m_channels.capacity() * 2);
 
 	m_running = true;
 
