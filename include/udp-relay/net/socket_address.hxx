@@ -109,6 +109,9 @@ template <>
 struct std::formatter<socket_address>
 {
 private:
+	// D - default
+	// A - address only
+	// P - port only
 	char m_formatMode = 'D';
 
 public:
