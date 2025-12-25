@@ -101,10 +101,24 @@ void relay::run()
 		return;
 	}
 
-	m_channels.reserve(4096);
-	m_addressChannels.reserve(m_channels.capacity() * 2);
-
 	m_running = true;
+
+	constexpr size_t preAllocateNum = 2048;
+	constexpr size_t preAllocateNumX2 = preAllocateNum * 2;
+	{ // pre-allocate channel space
+		decltype(m_channels)::key_container_type keys;
+		keys.reserve(preAllocateNum);
+		decltype(m_channels)::mapped_container_type values;
+		values.reserve(preAllocateNum);
+		m_channels.replace(std::move(keys), std::move(values));
+	}
+	{ // pre-allocate addressChannel space
+		decltype(m_addressChannels)::key_container_type keys;
+		keys.reserve(preAllocateNumX2);
+		decltype(m_addressChannels)::mapped_container_type values;
+		values.reserve(preAllocateNumX2);
+		m_addressChannels.replace(std::move(keys), std::move(values));
+	}
 
 	while (m_running)
 	{
