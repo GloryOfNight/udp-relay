@@ -1,8 +1,9 @@
+// Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
+
 #pragma once
 
 #include <algorithm>
 #include <functional>
-#include <ranges>
 #include <utility>
 #include <vector>
 
@@ -138,7 +139,7 @@ namespace ur
 			c.values = std::move(mapped_cont);
 		}
 
-		containers&& extract() { return std::move(c); }
+		containers extract() { return std::move(c); }
 
 	private:
 		containers c;
