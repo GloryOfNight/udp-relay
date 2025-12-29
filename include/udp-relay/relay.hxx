@@ -29,7 +29,15 @@ struct channel_stats
 
 struct channel
 {
-	guid m_guid{};
+	channel() = default;
+	channel(guid inGuid, socket_address inPeerA, std::chrono::time_point<std::chrono::steady_clock> inLastUpdated)
+		: m_guid{inGuid}
+		, m_peerA{inPeerA}
+		, m_lastUpdated{inLastUpdated}
+	{
+	}
+
+	const guid m_guid{};
 	socket_address m_peerA{};
 	socket_address m_peerB{};
 	std::chrono::time_point<std::chrono::steady_clock> m_lastUpdated{};
