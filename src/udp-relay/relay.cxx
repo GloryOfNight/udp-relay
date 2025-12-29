@@ -145,33 +145,23 @@ void relay::processIncoming()
 			return;
 
 		// check if packet is relay handshake header, and extract guid if possible
-		// always check for handshake first, to allow creating new connections from same socket without waiting prev. session to close
-		if (const auto [isHeader, header] = relay_helpers::tryDeserializeHeader(m_recvBuffer, bytesRead); !m_gracefulStopRequested && isHeader)
+		// always check for handshake first, allow creating new connections from same socket without waiting prev. session to close
+		if (const auto [isHeader, header] = relay_helpers::tryDeserializeHeader(m_recvBuffer, bytesRead); isHeader && !m_gracefulStopRequested)
 		{
-			auto findChannel = m_channels.find(header.m_guid);
-			if (findChannel == m_channels.end())
+			auto [it, inserted] = m_channels.try_emplace(header.m_guid, header.m_guid, m_recvAddr, m_lastTickTime);
+			if (inserted)
 			{
-				// clang-format off
-				const channel newChannel = channel
-				{
-					.m_guid = header.m_guid,
-					.m_peerA = m_recvAddr,
-					.m_lastUpdated = m_lastTickTime
-				};
-				// clang-format on
-				m_channels.emplace(header.m_guid, newChannel);
-
-				LOG(Info, Relay, "Channel allocated: \"{}\". Peer: {}", header.m_guid, m_recvAddr);
+				LOG(Info, Relay, "Channel allocated: \"{}\". Peer: {}", it->second.m_guid, it->second.m_peerA);
 			}
-			else if (findChannel->second.m_peerA != m_recvAddr && findChannel->second.m_peerB.isNull())
+			else if (it->second.m_peerA != m_recvAddr && it->second.m_peerB.isNull())
 			{
-				findChannel->second.m_peerB = m_recvAddr;
-				findChannel->second.m_lastUpdated = m_lastTickTime;
+				it->second.m_peerB = m_recvAddr;
+				it->second.m_lastUpdated = m_lastTickTime;
 
-				m_addressChannels[findChannel->second.m_peerA] = findChannel->second.m_guid;
-				m_addressChannels[findChannel->second.m_peerB] = findChannel->second.m_guid;
+				m_addressChannels[it->second.m_peerA] = it->second.m_guid;
+				m_addressChannels[it->second.m_peerB] = it->second.m_guid;
 
-				LOG(Info, Relay, "Channel established: \"{}\". PeerA: {}, PeerB: {}", header.m_guid, findChannel->second.m_peerA, findChannel->second.m_peerB);
+				LOG(Info, Relay, "Channel established: \"{}\". PeerA: {}, PeerB: {}", it->second.m_guid, it->second.m_peerA, it->second.m_peerB);
 			}
 		}
 
