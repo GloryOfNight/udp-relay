@@ -168,8 +168,8 @@ void relay::processIncoming()
 				findChannel->second.m_peerB = m_recvAddr;
 				findChannel->second.m_lastUpdated = m_lastTickTime;
 
-				m_addressChannels.emplace(findChannel->second.m_peerA, findChannel->second.m_guid);
-				m_addressChannels.emplace(findChannel->second.m_peerB, findChannel->second.m_guid);
+				m_addressChannels[findChannel->second.m_peerA] = findChannel->second.m_guid;
+				m_addressChannels[findChannel->second.m_peerB] = findChannel->second.m_guid;
 
 				LOG(Info, Relay, "Channel established: \"{}\". PeerA: {}, PeerB: {}", header.m_guid, findChannel->second.m_peerA, findChannel->second.m_peerB);
 			}
