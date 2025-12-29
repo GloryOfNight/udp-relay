@@ -16,6 +16,7 @@
 #include <memory>
 #include <queue>
 
+#define FLAT_MAP_NAMESPACE ur
 #include "udp-relay/flat_map.hxx"
 
 struct channel_stats
@@ -37,7 +38,7 @@ struct channel
 	{
 	}
 
-	const guid m_guid{};
+	guid m_guid{};
 	socket_address m_peerA{};
 	socket_address m_peerB{};
 	std::chrono::time_point<std::chrono::steady_clock> m_lastUpdated{};

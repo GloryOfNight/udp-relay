@@ -1,18 +1,25 @@
-// Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
-
-#pragma once
+#ifndef _GLORYOFNIGHT_FLAT_MAP_
+#define _GLORYOFNIGHT_FLAT_MAP_
 
 #include <algorithm>
 #include <functional>
+#include <iterator>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
-namespace ur
+#ifndef FLAT_MAP_NAMESPACE
+#define FLAT_MAP_NAMESPACE std
+#endif
+
+namespace FLAT_MAP_NAMESPACE
 {
 	template <typename KeyIter, typename ValueIter>
 	class flat_map_iterator;
 
-	template <class Key, class T,
+	template <
+		class Key,
+		class T,
 		class Compare = std::less<Key>,
 		class KeyContainer = std::vector<Key>,
 		class MappedContainer = std::vector<T>>
@@ -82,9 +89,21 @@ namespace ur
 			return {iterator(k_pos, v_pos), true};
 		}
 
-		std::pair<iterator, bool> insert(const value_type& value)
+		template <class... Args>
+		std::pair<iterator, bool> try_emplace(const key_type& key, Args&&... args)
 		{
-			return emplace(value);
+			auto it = lower_bound(key);
+			if (it != end() && !compare(key, it->first))
+				return {it, false};
+
+			auto k_pos = c.keys.insert(it.key_it(), key_type(key));
+			auto v_pos = c.values.insert(it.value_it(), mapped_type(std::forward<Args>(args)...));
+			return {iterator(k_pos, v_pos), true};
+		}
+
+		std::pair<iterator, bool> insert(const value_type& v)
+		{
+			return emplace(v);
 		}
 
 		template <class InputIt>
@@ -96,7 +115,22 @@ namespace ur
 			}
 		}
 
-		iterator erase(const_iterator pos)
+		std::pair<iterator, bool> insert_or_assign(const value_type& v)
+		{
+			auto it = lower_bound(v.first);
+
+			if (it != end() && !compare(v.first, it->first))
+			{
+				it->second = v.second;
+				return {it, false};
+			}
+
+			auto k_pos = c.keys.insert(it.key_it(), std::move(v.first));
+			auto v_pos = c.values.insert(it.value_it(), std::move(v.second));
+			return {iterator(k_pos, v_pos), true};
+		}
+
+		iterator erase(iterator pos)
 		{
 			auto k_it = c.keys.erase(pos.key_it());
 			auto v_it = c.values.erase(pos.value_it());
@@ -114,7 +148,17 @@ namespace ur
 			return 0;
 		}
 
-		size_type size() const { return c.keys.size(); }
+		void clear() noexcept
+		{
+			c.keys.clear();
+			c.values.clear();
+		}
+
+		bool empty() const noexcept { return c.keys.size(); }
+
+		size_type size() const noexcept { return c.keys.size(); }
+
+		size_type max_size() const noexcept { return c.keys.max_size(); }
 
 		iterator lower_bound(const key_type& key)
 		{
@@ -141,6 +185,32 @@ namespace ur
 
 		containers extract() { return std::move(c); }
 
+		key_compare key_comp() const { return key_compare(); }
+
+		const key_container_type& keys() const noexcept { return c.keys; }
+
+		const mapped_container_type& values() const noexcept { return c.values; }
+
+		T& at(const Key& key)
+		{
+			const auto it = find(key);
+			if (it == end())
+				throw std::out_of_range("key doesn't exist");
+			return it->second;
+		}
+
+		const T& at(const Key& key) const
+		{
+			const auto it = find(key);
+			if (it == end())
+				throw std::out_of_range("key doesn't exist");
+			return it->second;
+		}
+
+		T& operator[](const Key& key) { return try_emplace(key).first->second; }
+
+		T& operator[](Key&& key) { return try_emplace(key).first->second; }
+
 	private:
 		containers c;
 		key_compare compare;
@@ -153,14 +223,14 @@ namespace ur
 		using iterator_category = std::random_access_iterator_tag;
 		using difference_type = std::ptrdiff_t;
 
-		using key_type = std::iterator_traits<KeyIter>::value_type;
-		using mapped_type = std::iterator_traits<ValueIter>::value_type;
+		using key_type = typename std::iterator_traits<KeyIter>::value_type;
+		using mapped_type = typename std::iterator_traits<ValueIter>::value_type;
 
-		struct reference // proxy type
+		struct reference // proxy type, allows (it->first) to work
 		{
 			const key_type& first;
 			mapped_type& second;
-			reference* operator->() { return this; } // this allows (it->first) to work
+			reference* operator->() { return this; }
 		};
 
 		flat_map_iterator(KeyIter k, ValueIter v)
@@ -215,12 +285,12 @@ namespace ur
 		KeyIter k_it;
 		ValueIter v_it;
 	};
-} // namespace ur
+} // namespace FLAT_MAP_NAMESPACE
 
 namespace std
 {
 	template <class K, class V, class C, class KC, class MC, class Predicate>
-	size_t erase_if(ur::flat_map<K, V, C, KC, MC>& container, Predicate pred)
+	size_t erase_if(FLAT_MAP_NAMESPACE::flat_map<K, V, C, KC, MC>& container, Predicate pred)
 	{
 		auto c = container.extract();
 		auto& keys = c.keys;
@@ -259,3 +329,5 @@ namespace std
 		return removed_count;
 	};
 } // namespace std
+
+#endif
