@@ -139,6 +139,10 @@ void relay_client::processIncoming()
 
 		m_stats.m_packetsRecv++;
 
+		// after relay established, it better to zero nonce to avoid unnessesery checks
+		if (m_nonce)
+			m_nonce = 0;
+
 		if (packet.m_type == HandshakeRequest)
 		{
 			auto responsePacket = packet;
@@ -176,8 +180,11 @@ void relay_client::trySend()
 
 		relay_client_handshake packet{};
 		packet.m_header.m_guid = m_params.m_guid;
-		packet.m_header.m_nonce = ur::net::hton64(m_nonce);
-		packet.m_header.m_mac = relay_helpers::makeHMAC(m_secretKey, packet.m_header.m_nonce);
+		if (m_nonce)
+		{
+			packet.m_header.m_nonce = ur::net::hton64(m_nonce);
+			packet.m_header.m_mac = relay_helpers::makeHMAC(m_secretKey, packet.m_header.m_nonce);
+		}
 		packet.m_type = HandshakeRequest;
 		packet.m_time = std::chrono::steady_clock::now().time_since_epoch().count();
 		packet.generateRandomPayload();

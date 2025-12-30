@@ -116,7 +116,7 @@ private:
 
 	std::unordered_map<socket_address, guid> m_addressChannels{};
 
-	ur::ring_buffer<uint64_t, 32> m_recentNonces{};
+	ur::ring_buffer<uint64_t, 64> m_recentNonces{};
 
 	std::chrono::steady_clock::time_point m_lastTickTime{};
 

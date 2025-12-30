@@ -63,7 +63,7 @@ bool relay::init(relay_params params, secret_key key)
 		LOG(Info, Relay, "Socket requested recv buffer size {}", params.m_socketRecvBufferSize);
 	}
 
-	if (key.size())
+	if (!key.size())
 		LOG(Warning, Relay, "Secret key not provided or empty. Message authentication will be disabled.");
 
 	LOG(Info, Relay, "Relay initialized {:A}:{}. SndBuf={}, RcvBuf={}. Version: {}.{}.{}",
@@ -131,8 +131,8 @@ void relay::processIncoming()
 		// check if packet is relay handshake header, and extract guid if possible
 		// always check for handshake first, allow creating new connections from same socket without waiting prev. session to close
 		const auto [isValidHeader, header] = relay_helpers::tryDeserializeHeader(m_secretKey, m_recvBuffer, bytesRead);
-		const bool isNewNonce = m_recentNonces.find(header.m_nonce) == m_recentNonces.end();
-		if (isValidHeader && isNewNonce && !m_gracefulStopRequested)
+		const bool isValidNonce = header.m_nonce ? m_recentNonces.find(header.m_nonce) == m_recentNonces.end() : false;
+		if (isValidHeader && isValidNonce && !m_gracefulStopRequested)
 		{
 			m_recentNonces.assign_next(header.m_nonce);
 
@@ -226,7 +226,7 @@ std::pair<bool, handshake_header> relay_helpers::tryDeserializeHeader(const secr
 	if (recvHeader.m_magicNumber != handshake_magic_number_hton)
 		return std::pair<bool, handshake_header>();
 
-	if (key.size()) // ignore HMAC validation if key not provided
+	if (key.size() && recvHeader.m_nonce) // ignore HMAC validation if key not provided
 	{
 		const auto hmac = makeHMAC(key, recvHeader.m_nonce);
 		if (std::memcmp(&hmac, &recvHeader.m_mac, sizeof(hmac)) != 0)
