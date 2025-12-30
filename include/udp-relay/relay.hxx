@@ -19,6 +19,10 @@
 
 // initialize udp-relay library and it's components
 extern int ur_init();
+
+// true if udp-relay library was already initialized
+extern bool ur_is_init();
+
 // shutdown udp-relay library
 extern void ur_shutdown();
 

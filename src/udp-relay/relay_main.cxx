@@ -43,7 +43,7 @@ static constexpr auto envList = std::array
 static void relay_signal_handler(int sig);
 
 static ur::relay g_relay{};
-static int g_exit_code{};
+static int exit_code{};
 
 int main(int argc, char* argv[], char* envp[])
 {
@@ -73,7 +73,7 @@ int main(int argc, char* argv[], char* envp[])
 
 	ur_shutdown();
 
-	return g_exit_code;
+	return exit_code;
 }
 
 void relay_signal_handler(int sig)
@@ -98,5 +98,5 @@ void relay_signal_handler(int sig)
 		break;
 	}
 
-	g_exit_code = 128 + sig;
+	exit_code = 128 + sig;
 }

@@ -52,6 +52,8 @@ static void handleAbort(int sig);
 
 int main(int argc, char* argv[], [[maybe_unused]] char* envp[])
 {
+	ur_init();
+
 	std::signal(SIGABRT, handleAbort);
 	std::signal(SIGINT, handleAbort);
 	std::signal(SIGTERM, handleAbort);
@@ -150,6 +152,8 @@ int main(int argc, char* argv[], [[maybe_unused]] char* envp[])
 			}
 		}
 	}
+
+	ur_shutdown();
 
 	return 0;
 }

@@ -14,6 +14,7 @@
 using namespace std::chrono_literals;
 
 ur::log_level ur::runtime_log_verbosity{ur::log_level::Info};
+bool ur_is_initialized{false};
 
 #if UR_PLATFORM_WINDOWS
 #include <WinSock2.h>
@@ -21,13 +22,22 @@ ur::log_level ur::runtime_log_verbosity{ur::log_level::Info};
 
 int ur_init()
 {
+	if (ur_is_init())
+		return 1;
+
 #if UR_PLATFORM_WINDOWS
 	WSADATA wsaData;
 	const int wsaRes = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (wsaRes != 0)
 		return 1;
 #endif
+	ur_is_initialized = true;
 	return 0;
+}
+
+bool ur_is_init()
+{
+	return ur_is_initialized;
 }
 
 void ur_shutdown()
@@ -35,10 +45,17 @@ void ur_shutdown()
 #if UR_PLATFORM_WINDOWS
 	WSACleanup();
 #endif
+	ur_is_initialized = false;
 }
 
 bool ur::relay::init(relay_params params, secret_key key)
 {
+	if (!ur_is_init())
+	{
+		LOG(Warning, Relay, "udp-relay library not initialized. Call ur_init() first.");
+		return false;
+	}
+
 	if (m_running)
 	{
 		LOG(Warning, Relay, "Cannon initialize while running");
@@ -103,7 +120,7 @@ bool ur::relay::init(relay_params params, secret_key key)
 
 void ur::relay::run()
 {
-	if (!m_socket.isValid())
+	if (!ur_is_init() || !m_socket.isValid())
 	{
 		LOG(Error, Relay, "Cannot run while not initialized");
 		return;
