@@ -21,6 +21,7 @@ jobs:
     - name: Install tools
       run: |
         choco install cmake
+        choco install openssl
 
     - name: Configure and build
       run: |

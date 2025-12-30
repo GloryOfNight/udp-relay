@@ -7,10 +7,21 @@
 #include "udp-relay/net/udpsocket.hxx"
 #include "udp-relay/version.hxx"
 
+#include <openssl/hmac.h>
+
 using namespace std::chrono_literals;
 
 std::pair<bool, handshake_header> relay_helpers::tryDeserializeHeader(relay::recv_buffer& recvBuffer, size_t recvBytes)
 {
+	const unsigned char key[] = "secret";
+	const unsigned char data[] = "hello world";
+	unsigned char result[EVP_MAX_MD_SIZE];
+	unsigned int result_len = 0;
+	HMAC(EVP_sha256(),
+		key, sizeof(key) - 1,
+		data, sizeof(data) - 1,
+		result, &result_len);
+
 	if (recvBytes < sizeof(handshake_header))
 		return std::pair<bool, handshake_header>();
 
