@@ -52,11 +52,11 @@ By default, the relay expects the following header for the handshake. magicNumbe
 // include/udp-relay/relay.hxx
 
 // MUST override here or use UDP_RELAY_SECRET_KEY env var
-std::string_view handshake_secret_key = "fL6I8F3egv6ApC15fkJO9U7xKeDD6Xur";
+constexpr char8_t handshake_secret_key[33] = u8"fL6I8F3egv6ApC15fkJO9U7xKeDD6Xur";
 
 // override if you feel like it or you want break compatability
-uint32_t handshake_magic_number_host = 0x4B28000;
-uint32_t handshake_magic_number_hton = ur::net::hton32(handshake_magic_number_host);
+constexpr uint32_t handshake_magic_number_host = 0x4B28000;
+constexpr uint32_t handshake_magic_number_hton = ur::net::hton32(handshake_magic_number_host);
 
 struct alignas(8) handshake_header
 {

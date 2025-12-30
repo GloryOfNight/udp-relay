@@ -57,7 +57,7 @@ using hmac = std::array<std::byte, 32>;
 using secret_key = std::array<std::byte, 32>;
 
 // MUST override or use UDP_RELAY_SECRET_KEY env var
-constexpr std::string_view handshake_secret_key = "fL6I8F3egv6ApC15fkJO9U7xKeDD6Xur";
+constexpr char8_t handshake_secret_key[33] = u8"fL6I8F3egv6ApC15fkJO9U7xKeDD6Xur";
 
 // override if you feel like it or you want break compatability
 constexpr uint32_t handshake_magic_number_host = 0x4B28000;
