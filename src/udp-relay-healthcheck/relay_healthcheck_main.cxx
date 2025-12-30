@@ -144,5 +144,6 @@ int relay_healthcheck_main(int argc, char* argv[], [[maybe_unused]] char* envp[]
 		}
 	}
 
-	return 0;
+	std::println("Healthcheck failed");
+	return 1;
 }
