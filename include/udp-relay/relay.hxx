@@ -72,8 +72,15 @@ struct alignas(8) handshake_header
 	uint64_t m_nonce{};									 // security nonce
 	hmac_sha256 m_mac{};								 // mac
 };
-constexpr uint16_t handshake_min_size = 64;
-static_assert(sizeof(handshake_header) == handshake_min_size);
+static_assert(sizeof(handshake_header) == 64);
+
+struct alignas(4) handshake_extension_header
+{
+	uint16_t m_length{};
+	uint8_t m_type{};
+	uint8_t m_flags{};
+};
+static_assert(sizeof(handshake_extension_header) == 4);
 
 class relay
 {
