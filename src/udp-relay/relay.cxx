@@ -63,6 +63,9 @@ bool relay::init(relay_params params, secret_key key)
 		LOG(Info, Relay, "Socket requested recv buffer size {}", params.m_socketRecvBufferSize);
 	}
 
+	if (key.size())
+		LOG(Warning, Relay, "Secret key not provided or empty. Message authentication will be disabled.");
+
 	LOG(Info, Relay, "Relay initialized {:A}:{}. SndBuf={}, RcvBuf={}. Version: {}.{}.{}",
 		bindAddr, newSocket.getPort(), newSocket.getSendBufferSize(), newSocket.getRecvBufferSize(),
 		ur::getVersionMajor(), ur::getVersionMinor(), ur::getVersionPatch());
@@ -249,11 +252,7 @@ secret_key relay_helpers::makeSecret(std::string b64)
 
 	auto bytes = decodeBase64(b64);
 	if (!bytes.size())
-	{
-		LOG(Warning, RelayHelpers, "Secret key not provided or empty. Message authentication will be disabled.", sizeof(secret_key), bytes.size());
 		return secret_key();
-	}
-
 	return secret_key(bytes);
 }
 
