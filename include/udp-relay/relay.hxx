@@ -6,7 +6,7 @@
 #include "udp-relay/net/network_utils.hxx"
 #include "udp-relay/net/socket_address.hxx"
 #include "udp-relay/net/udpsocket.hxx"
-#include "udp-relay/ring_buffer.hxx"
+#include "udp-relay/circular_buffer.hxx"
 
 #include <array>
 #include <atomic>
@@ -123,7 +123,7 @@ private:
 
 	std::unordered_map<socket_address, guid> m_addressChannels{};
 
-	ur::ring_buffer<uint64_t, 64> m_recentNonces{};
+	ur::circular_buffer<uint64_t, 64> m_recentNonces{};
 
 	std::chrono::steady_clock::time_point m_lastTickTime{};
 

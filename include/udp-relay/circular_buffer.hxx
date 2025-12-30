@@ -4,10 +4,10 @@
 
 namespace ur
 {
-	template <typename Value, size_t S>
-	struct ring_buffer
+	template <typename Value, size_t Size>
+	struct circular_buffer
 	{
-		using container = std::array<Value, S>;
+		using container = std::array<Value, Size>;
 		using iterator = container::iterator;
 		using const_iterator = container::const_iterator;
 
