@@ -53,13 +53,13 @@ struct relay_params
 	bool ipv6{};
 };
 
-using hmac = std::array<std::byte, 32>;
-using secret_key = std::array<std::byte, 32>;
+using hmac_sha256 = std::array<std::byte, 32>;
+using secret_key = std::vector<std::byte>;
 
 // MUST override or use UDP_RELAY_SECRET_KEY env var
 constexpr std::string_view handshake_secret_key_base64 = "Zkw2SThGM2VndjZBcEMxNWZrSk85VTd4S2VERDZYdXI=";
 
-// override if you feel like it or you want break compatability
+// override if you feel like it or you want break compatibility
 constexpr uint32_t handshake_magic_number_host = 0x4B28000;
 constexpr uint32_t handshake_magic_number_hton = ur::net::hton32(handshake_magic_number_host);
 
@@ -70,7 +70,7 @@ struct alignas(8) handshake_header
 	uint16_t m_flags{};									 // support handhsake extensions
 	guid m_guid{};										 // channel identifier
 	uint64_t m_nonce{};									 // security nonce
-	hmac m_mac{};										 // hmac
+	hmac_sha256 m_mac{};								 // mac
 };
 constexpr uint16_t handshake_min_size = 64;
 static_assert(sizeof(handshake_header) == handshake_min_size);
@@ -133,7 +133,7 @@ struct relay_helpers
 
 	static secret_key makeSecret(std::string b64);
 
-	static hmac makeHMAC(const secret_key& key, uint64_t nonce);
+	static hmac_sha256 makeHMAC(const secret_key& key, uint64_t nonce);
 
 	static std::vector<std::byte> decodeBase64(const std::string& b64);
 };

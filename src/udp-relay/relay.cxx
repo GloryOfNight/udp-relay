@@ -7,6 +7,10 @@
 #include "udp-relay/net/udpsocket.hxx"
 #include "udp-relay/version.hxx"
 
+#include <openssl/bio.h>
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
+
 using namespace std::chrono_literals;
 
 bool relay::init(relay_params params, secret_key key)
@@ -219,9 +223,12 @@ std::pair<bool, handshake_header> relay_helpers::tryDeserializeHeader(const secr
 	if (recvHeader.m_magicNumber != handshake_magic_number_hton)
 		return std::pair<bool, handshake_header>();
 
-	const auto hmac = makeHMAC(key, recvHeader.m_nonce);
-	if (std::memcmp(&hmac, &recvHeader.m_mac, sizeof(hmac)) != 0)
-		return std::pair<bool, handshake_header>();
+	if (key.size()) // ignore HMAC validation if key not provided
+	{
+		const auto hmac = makeHMAC(key, recvHeader.m_nonce);
+		if (std::memcmp(&hmac, &recvHeader.m_mac, sizeof(hmac)) != 0)
+			return std::pair<bool, handshake_header>();
+	}
 
 	constexpr guid zeroGuid{};
 	if (recvHeader.m_guid == zeroGuid)
@@ -241,34 +248,25 @@ secret_key relay_helpers::makeSecret(std::string b64)
 		b64 = handshake_secret_key_base64;
 
 	auto bytes = decodeBase64(b64);
-	if (bytes.size() != sizeof(secret_key))
+	if (!bytes.size())
 	{
-		LOG(Error, RelayHelpers, "Secret key invalid. Expected {} bytes ({} provided).", sizeof(secret_key), bytes.size());
+		LOG(Warning, RelayHelpers, "Secret key not provided or empty. Message authentication will be disabled.", sizeof(secret_key), bytes.size());
 		return secret_key();
 	}
 
-	secret_key outKey{};
-	std::memcpy(outKey.data(), bytes.data(), sizeof(secret_key));
-
-	return outKey;
+	return secret_key(bytes);
 }
 
-#include <openssl/bio.h>
-#include <openssl/evp.h>
-#include <openssl/hmac.h>
-
-hmac relay_helpers::makeHMAC(const secret_key& key, uint64_t nonce)
+hmac_sha256 relay_helpers::makeHMAC(const secret_key& key, uint64_t nonce)
 {
-	unsigned char result[EVP_MAX_MD_SIZE];
-	unsigned int result_len = 0;
+	static_assert(sizeof(hmac_sha256) == 32);
 
-	HMAC(EVP_sha256(), key.data(), key.size(), (unsigned char*)&nonce, sizeof(nonce), result, &result_len);
-	if (result_len < sizeof(hmac))
-		return {};
-
-	hmac out;
-	std::memcpy(out.data(), result, out.size());
-	return out;
+	hmac_sha256 result;
+	unsigned int mdLen{};
+	const auto outPtr = HMAC(EVP_sha256(), key.data(), key.size(), (unsigned char*)&nonce, sizeof(nonce), (unsigned char*)result.data(), &mdLen);
+	if (outPtr == nullptr || mdLen != sizeof(result)) [[unlikely]]
+		return hmac_sha256();
+	return result;
 }
 
 std::vector<std::byte> relay_helpers::decodeBase64(const std::string& b64)

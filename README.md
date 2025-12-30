@@ -46,10 +46,10 @@ Peer A <-- handshake packet with GUID (1,2,3,4) --  Relay *Peer B has mapping fo
 // note that if communication between peers stops for ~30 seconds - relay will clear the mapping for addresses.
 ```
 
-By default, the relay expects the following header for the handshake. magicNumber used to identify handshake packets and GUID can't be null. Relay expects header in network byte order, after communication channel is established - relay doesn't care about contents of received packets.
+By default, the relay expects the following header for the handshake. `magicNumber` used to identify handshake packets and `guid` can't be null. Relay expects network byte order.
 
 ```c++
-// include/udp-relay/relay.hxx
+// code from - include/udp-relay/relay.hxx
 
 // MUST override here or use UDP_RELAY_SECRET_KEY env var
 constexpr std::string_view handshake_secret_key_base64 = "Zkw2SThGM2VndjZBcEMxNWZrSk85VTd4S2VERDZYdXI=";
@@ -65,7 +65,7 @@ struct alignas(8) handshake_header
 	uint16_t m_flags{};									 // support handhsake extensions
 	guid m_guid{};										 // channel identifier (128-bit, 4 x uint32_t)
 	uint64_t m_nonce{};									 // security nonce
-	std::array<std::byte, 32> m_mac{};					 // hmac
+	hmac m_mac{};					                     // hmac (32 bytes array)
 };
 constexpr uint16_t handshake_min_size = 64;
 static_assert(sizeof(handshake_header) == handshake_min_size);
