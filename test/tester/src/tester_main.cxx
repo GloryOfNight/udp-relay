@@ -105,8 +105,8 @@ int main(int argc, char* argv[], [[maybe_unused]] char* envp[])
 		auto clientA = &g_clients[i];
 		auto clientB = &g_clients[i + 1];
 
-		clientA->init(params, relay_helpers::makeSecret(secretKey));
-		clientB->init(params, relay_helpers::makeSecret(secretKey));
+		clientA->init(params, ur::relay_helpers::makeSecret(secretKey));
+		clientB->init(params, ur::relay_helpers::makeSecret(secretKey));
 
 		std::thread(std::bind(&relay_client::run, clientA)).detach();
 		std::thread(std::bind(&relay_client::run, clientB)).detach();

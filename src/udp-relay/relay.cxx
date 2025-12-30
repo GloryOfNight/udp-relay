@@ -19,7 +19,7 @@ ur::log_level ur::runtime_log_verbosity{ur::log_level::Info};
 #include <WinSock2.h>
 #endif
 
-int relay_init()
+int ur_init()
 {
 #if UR_PLATFORM_WINDOWS
 	WSADATA wsaData;
@@ -30,14 +30,14 @@ int relay_init()
 	return 0;
 }
 
-void relay_shutdown()
+void ur_shutdown()
 {
 #if UR_PLATFORM_WINDOWS
 	WSACleanup();
 #endif
 }
 
-bool relay::init(relay_params params, secret_key key)
+bool ur::relay::init(relay_params params, secret_key key)
 {
 	if (m_running)
 	{
@@ -101,7 +101,7 @@ bool relay::init(relay_params params, secret_key key)
 	return true;
 }
 
-void relay::run()
+void ur::relay::run()
 {
 	if (!m_socket.isValid())
 	{
@@ -130,19 +130,19 @@ void relay::run()
 	LOG(Info, Relay, "Exited run loop");
 }
 
-void relay::stop()
+void ur::relay::stop()
 {
 	LOG(Info, Relay, "Stop");
 	m_running = false;
 }
 
-void relay::stopGracefully()
+void ur::relay::stopGracefully()
 {
 	LOG(Info, Relay, "Graceful stop requested");
 	m_gracefulStopRequested = true;
 }
 
-void relay::processIncoming()
+void ur::relay::processIncoming()
 {
 	const int32_t maxRecvCycles = 32;
 	for (int32_t currentCycle = 0; currentCycle < maxRecvCycles; ++currentCycle)
@@ -205,7 +205,7 @@ void relay::processIncoming()
 	}
 }
 
-void relay::conditionalCleanup()
+void ur::relay::conditionalCleanup()
 {
 	if (m_lastTickTime < m_nextCleanupTime)
 		return;
@@ -239,7 +239,7 @@ void relay::conditionalCleanup()
 	ur::log_flush();
 }
 
-std::pair<bool, handshake_header> relay_helpers::tryDeserializeHeader(const secret_key& key, const relay::recv_buffer_t& recvBuffer, size_t recvBytes)
+std::pair<bool, ur::handshake_header> ur::relay_helpers::tryDeserializeHeader(const secret_key& key, const recv_buffer& recvBuffer, size_t recvBytes)
 {
 	if (recvBytes < sizeof(handshake_header))
 		return std::pair<bool, handshake_header>();
@@ -269,7 +269,7 @@ std::pair<bool, handshake_header> relay_helpers::tryDeserializeHeader(const secr
 	return std::pair<bool, handshake_header>{true, recvHeader};
 }
 
-secret_key relay_helpers::makeSecret(std::string b64)
+ur::secret_key ur::relay_helpers::makeSecret(std::string b64)
 {
 	if (b64.size() == 0)
 		b64 = handshake_secret_key_base64;
@@ -280,7 +280,7 @@ secret_key relay_helpers::makeSecret(std::string b64)
 	return secret_key(bytes);
 }
 
-hmac_sha256 relay_helpers::makeHMAC(const secret_key& key, uint64_t nonce)
+ur::hmac_sha256 ur::relay_helpers::makeHMAC(const secret_key& key, uint64_t nonce)
 {
 	static_assert(sizeof(hmac_sha256) == 32);
 
@@ -292,7 +292,7 @@ hmac_sha256 relay_helpers::makeHMAC(const secret_key& key, uint64_t nonce)
 	return result;
 }
 
-std::vector<std::byte> relay_helpers::decodeBase64(const std::string& b64)
+std::vector<std::byte> ur::relay_helpers::decodeBase64(const std::string& b64)
 {
 	BIO* bio = BIO_new_mem_buf(b64.data(), (int)b64.size());
 	BIO* b64f = BIO_new(BIO_f_base64());

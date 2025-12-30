@@ -2,11 +2,11 @@
 
 #pragma once
 
+#include "udp-relay/circular_buffer.hxx"
 #include "udp-relay/guid.hxx"
 #include "udp-relay/net/network_utils.hxx"
 #include "udp-relay/net/socket_address.hxx"
 #include "udp-relay/net/udpsocket.hxx"
-#include "udp-relay/circular_buffer.hxx"
 
 #include <array>
 #include <atomic>
@@ -18,134 +18,137 @@
 #include <unordered_map>
 
 // initialize udp-relay library and it's components
-extern int relay_init();
+extern int ur_init();
 // shutdown udp-relay library
-extern void relay_shutdown();
+extern void ur_shutdown();
 
-struct channel_stats
+namespace ur
 {
-	uint64_t m_bytesReceived{};
-	uint64_t m_bytesSent{};
-
-	uint32_t m_packetsReceived{};
-	uint32_t m_packetsSent{};
-};
-
-struct channel
-{
-	channel() = default;
-	channel(guid inGuid, socket_address inPeerA, std::chrono::steady_clock::time_point inLastUpdated)
-		: m_guid{inGuid}
-		, m_peerA{inPeerA}
-		, m_lastUpdated{inLastUpdated}
+	struct channel_stats
 	{
-	}
+		uint64_t m_bytesReceived{};
+		uint64_t m_bytesSent{};
 
-	const guid m_guid{};
-	socket_address m_peerA{};
-	socket_address m_peerB{};
-	std::chrono::steady_clock::time_point m_lastUpdated{};
-	channel_stats m_stats{};
-};
+		uint32_t m_packetsReceived{};
+		uint32_t m_packetsSent{};
+	};
 
-struct relay_params
-{
-	uint16_t m_primaryPort{6060};
-	uint32_t m_socketRecvBufferSize{0};
-	uint32_t m_socketSendBufferSize{0};
-	std::chrono::milliseconds m_cleanupTime{1800};
-	std::chrono::milliseconds m_cleanupInactiveChannelAfterTime{30000};
-	bool ipv6{};
-};
+	struct channel
+	{
+		channel() = default;
+		channel(guid inGuid, socket_address inPeerA, std::chrono::steady_clock::time_point inLastUpdated)
+			: m_guid{inGuid}
+			, m_peerA{inPeerA}
+			, m_lastUpdated{inLastUpdated}
+		{
+		}
 
-using hmac_sha256 = std::array<std::byte, 32>;
-using secret_key = std::vector<std::byte>;
+		const guid m_guid{};
+		socket_address m_peerA{};
+		socket_address m_peerB{};
+		std::chrono::steady_clock::time_point m_lastUpdated{};
+		channel_stats m_stats{};
+	};
 
-// MUST override or use UDP_RELAY_SECRET_KEY env var
-constexpr std::string_view handshake_secret_key_base64 = "Zkw2SThGM2VndjZBcEMxNWZrSk85VTd4S2VERDZYdXI=";
+	struct relay_params
+	{
+		uint16_t m_primaryPort{6060};
+		uint32_t m_socketRecvBufferSize{0};
+		uint32_t m_socketSendBufferSize{0};
+		std::chrono::milliseconds m_cleanupTime{1800};
+		std::chrono::milliseconds m_cleanupInactiveChannelAfterTime{30000};
+		bool ipv6{};
+	};
 
-// override if you feel like it or you want break compatibility
-constexpr uint32_t handshake_magic_number_host = 0x4B28000;
-constexpr uint32_t handshake_magic_number_hton = ur::net::hton32(handshake_magic_number_host);
+	using hmac_sha256 = std::array<std::byte, 32>;
+	using secret_key = std::vector<std::byte>;
 
-struct alignas(8) handshake_header
-{
-	uint32_t m_magicNumber{handshake_magic_number_host}; // relay packet identifier
-	uint16_t m_length{};								 // support handhsake extensions
-	uint16_t m_flags{};									 // support handhsake extensions
-	guid m_guid{};										 // channel identifier
-	uint64_t m_nonce{};									 // security nonce
-	hmac_sha256 m_mac{};								 // mac
-};
-static_assert(sizeof(handshake_header) == 64);
+	// MUST override or use UDP_RELAY_SECRET_KEY env var
+	constexpr std::string_view handshake_secret_key_base64 = "Zkw2SThGM2VndjZBcEMxNWZrSk85VTd4S2VERDZYdXI=";
 
-struct alignas(4) handshake_extension_header
-{
-	uint16_t m_length{};
-	uint8_t m_type{};
-	uint8_t m_flags{};
-};
-static_assert(sizeof(handshake_extension_header) == 4);
+	// override if you feel like it or you want break compatibility
+	constexpr uint32_t handshake_magic_number_host = 0x4B28000;
+	constexpr uint32_t handshake_magic_number_hton = ur::net::hton32(handshake_magic_number_host);
 
-class relay
-{
-public:
-	using recv_buffer_t = std::array<std::uint64_t, 65536 / alignof(std::uint64_t)>;
+	struct alignas(8) handshake_header
+	{
+		uint32_t m_magicNumber{handshake_magic_number_host}; // relay packet identifier
+		uint16_t m_length{};								 // support handhsake extensions
+		uint16_t m_flags{};									 // support handhsake extensions
+		guid m_guid{};										 // channel identifier
+		uint64_t m_nonce{};									 // security nonce
+		hmac_sha256 m_mac{};								 // mac
+	};
+	static_assert(sizeof(handshake_header) == 64);
 
-	relay() = default;
-	relay(const relay&) = delete;
-	relay(relay&&) = delete;
-	~relay() = default;
+	struct alignas(4) handshake_extension_header
+	{
+		uint16_t m_length{};
+		uint8_t m_type{};
+		uint8_t m_flags{};
+	};
+	static_assert(sizeof(handshake_extension_header) == 4);
 
-	// Initialize relay with params
-	bool init(relay_params params, secret_key key);
+	using recv_buffer = std::array<std::uint64_t, 65536 / alignof(std::uint64_t)>;
 
-	// Begin spin loop
-	void run();
+	class relay
+	{
+	public:
+		relay() = default;
+		relay(const relay&) = delete;
+		relay(relay&&) = delete;
+		~relay() = default;
 
-	// Immediate stop
-	void stop();
+		// Initialize relay with params
+		bool init(relay_params params, secret_key key);
 
-	// Wait until all existing connections closed and then stop. Also prevents new connections being created.
-	void stopGracefully();
+		// Begin spin loop
+		void run();
 
-private:
-	void processIncoming();
+		// Immediate stop
+		void stop();
 
-	void conditionalCleanup();
+		// Wait until all existing connections closed and then stop. Also prevents new connections being created.
+		void stopGracefully();
 
-	relay_params m_params{};
+	private:
+		void processIncoming();
 
-	secret_key m_secretKey{};
+		void conditionalCleanup();
 
-	udpsocket m_socket{};
+		relay_params m_params{};
 
-	socket_address m_recvAddr{};
+		secret_key m_secretKey{};
 
-	recv_buffer_t m_recvBuffer{};
+		udpsocket m_socket{};
 
-	std::unordered_map<guid, channel> m_channels{};
+		socket_address m_recvAddr{};
 
-	std::unordered_map<socket_address, guid> m_addressChannels{};
+		recv_buffer m_recvBuffer{};
 
-	ur::circular_buffer<uint64_t, 64> m_recentNonces{};
+		std::unordered_map<guid, channel> m_channels{};
 
-	std::chrono::steady_clock::time_point m_lastTickTime{};
+		std::unordered_map<socket_address, guid> m_addressChannels{};
 
-	std::chrono::steady_clock::time_point m_nextCleanupTime{};
+		ur::circular_buffer<uint64_t, 64> m_recentNonces{};
 
-	std::atomic_bool m_running{false};
+		std::chrono::steady_clock::time_point m_lastTickTime{};
 
-	std::atomic_bool m_gracefulStopRequested{false};
-};
+		std::chrono::steady_clock::time_point m_nextCleanupTime{};
 
-struct relay_helpers
-{
-	static std::pair<bool, handshake_header> tryDeserializeHeader(const secret_key& key, const relay::recv_buffer_t& recvBuffer, size_t recvBytes);
+		std::atomic_bool m_running{false};
 
-	static secret_key makeSecret(std::string b64);
+		std::atomic_bool m_gracefulStopRequested{false};
+	};
 
-	static hmac_sha256 makeHMAC(const secret_key& key, uint64_t nonce);
+	struct relay_helpers
+	{
+		static std::pair<bool, handshake_header> tryDeserializeHeader(const secret_key& key, const recv_buffer& recvBuffer, size_t recvBytes);
 
-	static std::vector<std::byte> decodeBase64(const std::string& b64);
-};
+		static secret_key makeSecret(std::string b64);
+
+		static hmac_sha256 makeHMAC(const secret_key& key, uint64_t nonce);
+
+		static std::vector<std::byte> decodeBase64(const std::string& b64);
+	};
+} // namespace ur

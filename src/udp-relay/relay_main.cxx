@@ -14,7 +14,7 @@
 namespace args
 {
 	static bool printHelp{}; // when true - prints help and exits
-	static relay_params relayParams{};
+	static ur::relay_params relayParams{};
 } // namespace args
 
 // clang-format off
@@ -41,12 +41,12 @@ static constexpr auto envList = std::array
 
 static void relay_signal_handler(int sig);
 
-static relay g_relay{};
+static ur::relay g_relay{};
 static int g_exit_code{};
 
 int main(int argc, char* argv[], char* envp[])
 {
-	if (relay_init())
+	if (ur_init())
 		return 1;
 
 	std::signal(SIGINT, relay_signal_handler);
@@ -65,12 +65,12 @@ int main(int argc, char* argv[], char* envp[])
 		return 0;
 	}
 
-	if (g_relay.init(args::relayParams, relay_helpers::makeSecret(secretKey)))
+	if (g_relay.init(args::relayParams, ur::relay_helpers::makeSecret(secretKey)))
 	{
 		g_relay.run();
 	}
 
-	relay_shutdown();
+	ur_shutdown();
 
 	return g_exit_code;
 }

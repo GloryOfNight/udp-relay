@@ -55,7 +55,7 @@ udpsocket make_socket(bool ipv6)
 
 int main(int argc, char* argv[], char* envp[])
 {
-	if (relay_init())
+	if (ur_init())
 		return 1;
 
 	ur::parseArgs(argList, argc, argv);
@@ -67,7 +67,7 @@ int main(int argc, char* argv[], char* envp[])
 		return 0;
 	}
 
-	const secret_key key = relay_helpers::makeSecret(secretKey);
+	const ur::secret_key key = ur::relay_helpers::makeSecret(secretKey);
 
 	socket_address relayAddr = socket_address::from_string(args::relayAddr);
 	relayAddr.setPort(args::relayPort);
@@ -88,23 +88,23 @@ int main(int argc, char* argv[], char* envp[])
 			return 1;
 		}
 
-		handshake_header headerPacket{};
-		headerPacket.m_magicNumber = handshake_magic_number_hton;
+		ur::handshake_header headerPacket{};
+		headerPacket.m_magicNumber = ur::handshake_magic_number_hton;
 		headerPacket.m_guid = guid::newGuid();
 		// custom guid stuff to indicate healthchecks from everything else
 		headerPacket.m_guid.m_c = 0x2301FFFF;
 		headerPacket.m_guid.m_d = 0xAB986745;
 
 		headerPacket.m_nonce = ur::net::hton64(ur::randRange<uint64_t>(0, UINT64_MAX));
-		headerPacket.m_mac = relay_helpers::makeHMAC(key, headerPacket.m_nonce);
+		headerPacket.m_mac = ur::relay_helpers::makeHMAC(key, headerPacket.m_nonce);
 		socketA.sendTo(&headerPacket, sizeof(headerPacket), relayAddr);
 
 		headerPacket.m_nonce = ur::net::hton64(ur::randRange<uint64_t>(0, UINT64_MAX));
-		headerPacket.m_mac = relay_helpers::makeHMAC(key, headerPacket.m_nonce);
+		headerPacket.m_mac = ur::relay_helpers::makeHMAC(key, headerPacket.m_nonce);
 		socketB.sendTo(&headerPacket, sizeof(headerPacket), relayAddr);
 
 		socket_address recvAddr{};
-		relay::recv_buffer_t recvBuffer{};
+		ur::recv_buffer recvBuffer{};
 		int32_t recvBytes{};
 
 		const auto waitUntil = std::chrono::steady_clock::now() + args::waitTime;
@@ -124,9 +124,9 @@ int main(int argc, char* argv[], char* envp[])
 			std::println("Probe failed {} / {} (no data)", i + 1, args::maxProbes);
 			continue;
 		}
-		else if (recvBytes != sizeof(handshake_header))
+		else if (recvBytes != sizeof(ur::handshake_header))
 		{
-			std::println("Probe failed {} / {} (unexpected size of {} instead {})", i + 1, args::maxProbes, recvBytes, sizeof(handshake_header));
+			std::println("Probe failed {} / {} (unexpected size of {} instead {})", i + 1, args::maxProbes, recvBytes, sizeof(ur::handshake_header));
 			continue;
 		}
 		else if (recvAddr != relayAddr)
@@ -135,7 +135,7 @@ int main(int argc, char* argv[], char* envp[])
 			// it's ok for the most part;
 		}
 
-		handshake_header recvHeader{};
+		ur::handshake_header recvHeader{};
 		std::memcpy(&recvHeader, recvBuffer.data(), sizeof(recvHeader));
 
 		if (recvHeader.m_magicNumber == headerPacket.m_magicNumber && recvHeader.m_guid == headerPacket.m_guid)
@@ -152,7 +152,7 @@ int main(int argc, char* argv[], char* envp[])
 
 	std::println("Healthcheck failed");
 
-	relay_shutdown();
+	ur_shutdown();
 
 	return 1;
 }
