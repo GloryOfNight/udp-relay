@@ -17,6 +17,11 @@
 #include <queue>
 #include <unordered_map>
 
+// initialize udp-relay library and it's components
+extern int relay_init();
+// shutdown udp-relay library
+extern void relay_shutdown();
+
 struct channel_stats
 {
 	uint64_t m_bytesReceived{};

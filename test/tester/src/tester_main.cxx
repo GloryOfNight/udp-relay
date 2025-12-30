@@ -1,7 +1,8 @@
 // Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
 
-#include "udp-relay-client/client.hxx"
 #include "udp-relay/utils.hxx"
+
+#include "client.hxx"
 
 #include <array>
 #include <chrono>
@@ -48,7 +49,7 @@ static bool g_running{};
 
 static void handleAbort(int sig);
 
-int relay_tester_main(int argc, char* argv[], [[maybe_unused]] char* envp[])
+int main(int argc, char* argv[], [[maybe_unused]] char* envp[])
 {
 	std::signal(SIGABRT, handleAbort);
 	std::signal(SIGINT, handleAbort);

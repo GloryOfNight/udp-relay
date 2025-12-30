@@ -22,7 +22,6 @@ add_library(${UDP_RELAY_LIB_NAME} STATIC)
 
 target_sources(${UDP_RELAY_LIB_NAME} 
                 PRIVATE
-                    src/udp-relay/log.cxx
                     src/udp-relay/relay.cxx
                     src/udp-relay/version.cxx
                     src/udp-relay/net/udpsocket.cxx
@@ -71,18 +70,12 @@ install(EXPORT ${PROJECT_NAME}Targets DESTINATION cmake)
 
 if (ENABLE_BUILD_EXEC)
     add_executable(${UDP_RELAY_EXE_NAME})
-    target_sources(${UDP_RELAY_EXE_NAME} PRIVATE 
-                        src/udp-relay/relay_main.cxx
-                        $<$<PLATFORM_ID:Linux>:src/udp-relay/unixmain.cxx>
-                        $<$<PLATFORM_ID:Windows>:src/udp-relay/winmain.cxx>)
+    target_sources(${UDP_RELAY_EXE_NAME} PRIVATE src/udp-relay/relay_main.cxx)
     target_link_libraries(${UDP_RELAY_EXE_NAME} PRIVATE ${UDP_RELAY_LIB_NAME})
     install(TARGETS ${UDP_RELAY_EXE_NAME})
 
     add_executable(${UDP_RELAY_HEALTHCHECK_EXE_NAME})
-    target_sources(${UDP_RELAY_HEALTHCHECK_EXE_NAME} PRIVATE 
-                        src/udp-relay-healthcheck/relay_healthcheck_main.cxx
-                        $<$<PLATFORM_ID:Linux>:src/udp-relay-healthcheck/unixmain.cxx>
-                        $<$<PLATFORM_ID:Windows>:src/udp-relay-healthcheck/winmain.cxx>)
+    target_sources(${UDP_RELAY_HEALTHCHECK_EXE_NAME} PRIVATE src/udp-relay-healthcheck/relay_healthcheck_main.cxx)
     target_link_libraries(${UDP_RELAY_HEALTHCHECK_EXE_NAME} PRIVATE ${UDP_RELAY_LIB_NAME})
     install(TARGETS ${UDP_RELAY_HEALTHCHECK_EXE_NAME})
 endif()

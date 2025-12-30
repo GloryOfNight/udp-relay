@@ -13,16 +13,15 @@
 
 namespace args
 {
-	bool printHelp{};										 // when true - prints help and exits
-	int32_t logLevel{static_cast<int32_t>(log_level::Info)}; // 0 - no logs, 1 - errors only, 2 - warnings only, 3 - log (default), 4 - verbose
-	relay_params relayParams{};
+	static bool printHelp{}; // when true - prints help and exits
+	static relay_params relayParams{};
 } // namespace args
 
 // clang-format off
 static constexpr auto argList = std::array
 {
 	cl_arg_ref{"--help", args::printHelp,																"--help										= print help" },
-	cl_arg_ref{"--log-level", args::logLevel,															"--log-level 0-4							= set log level no logs - verbose" },
+	cl_arg_ref{"--log-level", ur::runtime_log_verbosity,												"--log-level 0-4							= set log level no logs - verbose" },
 	cl_arg_ref{"--port", args::relayParams.m_primaryPort,												"--port 0-65535								= main port for accepting requests" },
 	cl_arg_ref{"--socketRecvBufferSize", args::relayParams.m_socketRecvBufferSize,						"--socketRecvBufferSize <value>             = receive buffer size for internal socket" },
 	cl_arg_ref{"--socketSendBufferSize", args::relayParams.m_socketSendBufferSize,						"--socketSendBufferSize <value>             = send buffer size for internal socket" },
@@ -40,19 +39,22 @@ static constexpr auto envList = std::array
 };
 // clang-format on
 
+static void relay_signal_handler(int sig);
+
 static relay g_relay{};
-static int g_exitCode{};
+static int g_exit_code{};
 
-static void signal_handler(int sig);
-
-int relay_main(int argc, char* argv[], char* envp[])
+int main(int argc, char* argv[], char* envp[])
 {
-	std::signal(SIGINT, signal_handler);
-	std::signal(SIGTERM, signal_handler);
-	std::signal(SIGABRT, signal_handler);
-	std::signal(SIGSEGV, signal_handler);
-	std::signal(SIGILL, signal_handler);
-	std::signal(SIGFPE, signal_handler);
+	if (relay_init())
+		return 1;
+
+	std::signal(SIGINT, relay_signal_handler);
+	std::signal(SIGTERM, relay_signal_handler);
+	std::signal(SIGABRT, relay_signal_handler);
+	std::signal(SIGSEGV, relay_signal_handler);
+	std::signal(SIGILL, relay_signal_handler);
+	std::signal(SIGFPE, relay_signal_handler);
 
 	ur::parseArgs(argList, argc, argv);
 	ur::parseEnvp(envList, envp);
@@ -63,17 +65,17 @@ int relay_main(int argc, char* argv[], char* envp[])
 		return 0;
 	}
 
-	g_runtimeLogLevel = static_cast<log_level>(args::logLevel);
-
 	if (g_relay.init(args::relayParams, relay_helpers::makeSecret(secretKey)))
 	{
 		g_relay.run();
 	}
 
-	return g_exitCode;
+	relay_shutdown();
+
+	return g_exit_code;
 }
 
-void signal_handler(int sig)
+void relay_signal_handler(int sig)
 {
 	std::println("- - - Caught signal {} - - -", sig);
 
@@ -95,5 +97,5 @@ void signal_handler(int sig)
 		break;
 	}
 
-	g_exitCode = 128 + sig;
+	g_exit_code = 128 + sig;
 }

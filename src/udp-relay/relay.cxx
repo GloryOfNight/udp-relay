@@ -13,6 +13,30 @@
 
 using namespace std::chrono_literals;
 
+ur::log_level ur::runtime_log_verbosity{ur::log_level::Info};
+
+#if UR_PLATFORM_WINDOWS
+#include <WinSock2.h>
+#endif
+
+int relay_init()
+{
+#if UR_PLATFORM_WINDOWS
+	WSADATA wsaData;
+	const int wsaRes = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (wsaRes != 0)
+		return 1;
+#endif
+	return 0;
+}
+
+void relay_shutdown()
+{
+#if UR_PLATFORM_WINDOWS
+	WSACleanup();
+#endif
+}
+
 bool relay::init(relay_params params, secret_key key)
 {
 	if (m_running)

@@ -53,8 +53,11 @@ udpsocket make_socket(bool ipv6)
 	return socket;
 }
 
-int relay_healthcheck_main(int argc, char* argv[], [[maybe_unused]] char* envp[])
+int main(int argc, char* argv[], char* envp[])
 {
+	if (relay_init())
+		return 1;
+
 	ur::parseArgs(argList, argc, argv);
 	ur::parseEnvp(envList, envp);
 
@@ -148,5 +151,8 @@ int relay_healthcheck_main(int argc, char* argv[], [[maybe_unused]] char* envp[]
 	}
 
 	std::println("Healthcheck failed");
+
+	relay_shutdown();
+
 	return 1;
 }
