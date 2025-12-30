@@ -7,8 +7,6 @@
 #include "udp-relay/net/udpsocket.hxx"
 #include "udp-relay/version.hxx"
 
-#include <openssl/hmac.h>
-
 using namespace std::chrono_literals;
 
 bool relay::init(relay_params params, secret_key key)
@@ -237,21 +235,28 @@ std::pair<bool, handshake_header> relay_helpers::tryDeserializeHeader(const secr
 	return std::pair<bool, handshake_header>{true, recvHeader};
 }
 
-secret_key relay_helpers::makeSecret(std::string inKey)
+secret_key relay_helpers::makeSecret(std::string b64)
 {
-	if (inKey.size() && inKey.size() != sizeof(secret_key))
+	if (b64.size() == 0)
+		b64 = handshake_secret_key_base64;
+
+	auto bytes = decodeBase64(b64);
+	if (bytes.size() != sizeof(secret_key))
 	{
-		LOG(Warning, RelayHelpers, "Secret key invalid. Expected {} byte value ({} provided). Using default key.", sizeof(secret_key), inKey.size());
-		inKey = "fL6I8F3egv6ApC15fkJO9U7xKeDD6Xur"; // dumb "secret" key
+		LOG(Error, RelayHelpers, "Secret key invalid. Expected {} bytes ({} provided).", sizeof(secret_key), bytes.size());
+		return secret_key();
 	}
 
 	secret_key outKey{};
-	std::memcpy(outKey.data(), inKey.data(), sizeof(secret_key));
+	std::memcpy(outKey.data(), bytes.data(), sizeof(secret_key));
 
 	return outKey;
 }
 
-#include "openssl/hmac.h"
+#include <openssl/bio.h>
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
+
 hmac relay_helpers::makeHMAC(const secret_key& key, uint64_t nonce)
 {
 	unsigned char result[EVP_MAX_MD_SIZE];
@@ -263,5 +268,20 @@ hmac relay_helpers::makeHMAC(const secret_key& key, uint64_t nonce)
 
 	hmac out;
 	std::memcpy(out.data(), result, out.size());
+	return out;
+}
+
+std::vector<std::byte> relay_helpers::decodeBase64(const std::string& b64)
+{
+	BIO* bio = BIO_new_mem_buf(b64.data(), (int)b64.size());
+	BIO* b64f = BIO_new(BIO_f_base64());
+	BIO_set_flags(b64f, BIO_FLAGS_BASE64_NO_NL);
+	bio = BIO_push(b64f, bio);
+
+	std::vector<std::byte> out(b64.size() * 3 / 4 + 1);
+	int len = BIO_read(bio, out.data(), (int)out.size());
+	out.resize(len);
+
+	BIO_free_all(bio);
 	return out;
 }
