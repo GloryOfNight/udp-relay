@@ -20,7 +20,8 @@ jobs:
 
     - name: Install tools
       run: |
-        choco install cmake
+        choco install cmake --no-progress
+        choco install openssl --no-progress
 
     - name: Configure and build
       run: |

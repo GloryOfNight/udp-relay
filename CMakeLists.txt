@@ -3,7 +3,7 @@
 cmake_minimum_required(VERSION 3.28.0)
 
 project(udp-relay
-        VERSION 0.7.5
+        VERSION 0.8.0
         DESCRIPTION "Simple UDP packet relay"
         HOMEPAGE_URL "https://github.com/GloryOfNight/udp-relay"
         LANGUAGES CXX C)
@@ -36,6 +36,7 @@ target_sources(${UDP_RELAY_LIB_NAME}
                     include/udp-relay/guid.hxx
                     include/udp-relay/log.hxx
                     include/udp-relay/relay.hxx
+                    include/udp-relay/ring_buffer.hxx
                     include/udp-relay/utils.hxx
                     include/udp-relay/version.hxx
                 PUBLIC
@@ -44,8 +45,11 @@ target_sources(${UDP_RELAY_LIB_NAME}
                     # modules; later
                 )
 
+find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 
 target_link_libraries(${UDP_RELAY_LIB_NAME} PUBLIC $<$<PLATFORM_ID:Windows>:ws2_32.dll> $<$<PLATFORM_ID:Linux>:stdc++exp>)
+
+target_link_libraries(${UDP_RELAY_LIB_NAME} PRIVATE OpenSSL::Crypto)
 
 target_compile_options(${UDP_RELAY_LIB_NAME} PUBLIC $<$<PLATFORM_ID:Linux>:-fsized-deallocation> $<$<CXX_COMPILER_ID:Clang>:-Wall>)
 

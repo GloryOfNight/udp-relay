@@ -12,10 +12,10 @@ ARG GIT_BRANCH=main
 RUN apt-get update && \
     apt-get install -y \
         build-essential \
+		ninja-build \
+		cmake \
         clang \
-        clang-tools \
-        cmake \
-        ninja-build \
+        libssl-dev \
         git
 
 # Clone and build

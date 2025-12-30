@@ -47,7 +47,7 @@ struct relay_client_handshake
 class relay_client
 {
 public:
-	bool init(relay_client_params params);
+	bool init(relay_client_params params, secret_key key);
 
 	void run();
 
@@ -69,9 +69,13 @@ public:
 private:
 	relay_client_params m_params{};
 
+	secret_key m_secretKey{};
+
 	udpsocket m_socket{};
 
-	relay::recv_buffer m_recvBuffer{};
+	uint64_t m_nonce{};
+
+	relay::recv_buffer_t m_recvBuffer{};
 
 	std::chrono::steady_clock::time_point m_lastSendAt{};
 
@@ -84,5 +88,5 @@ private:
 struct relay_client_helpers
 {
 	static std::vector<uint8_t> serialize(const relay_client_handshake& value);
-	static std::pair<bool, relay_client_handshake> tryDeserialize(relay::recv_buffer& recvBuffer, size_t recvBytes);
+	static std::pair<bool, relay_client_handshake> tryDeserialize(const secret_key& key, relay::recv_buffer_t& recvBuffer, size_t recvBytes);
 };
