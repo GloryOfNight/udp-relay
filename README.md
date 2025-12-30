@@ -65,7 +65,7 @@ struct alignas(8) handshake_header
 	uint16_t m_flags{};									 // support handhsake extensions
 	guid m_guid{};										 // channel identifier (128-bit, 4 x uint32_t)
 	uint64_t m_nonce{};									 // security nonce
-	hmac m_mac{};					                     // hmac (32 bytes array)
+	hmac_sha256 m_mac{};					             // hmac (32 bytes array)
 };
 constexpr uint16_t handshake_min_size = 64;
 static_assert(sizeof(handshake_header) == handshake_min_size);
