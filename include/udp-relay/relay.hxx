@@ -6,6 +6,7 @@
 #include "udp-relay/net/network_utils.hxx"
 #include "udp-relay/net/socket_address.hxx"
 #include "udp-relay/net/udpsocket.hxx"
+#include "udp-relay/ring_buffer.hxx"
 
 #include <array>
 #include <atomic>
@@ -52,21 +53,32 @@ struct relay_params
 	bool ipv6{};
 };
 
+using hmac = std::array<std::byte, 32>;
+using secret_key = std::array<std::byte, 32>;
+
+// MUST override or use UDP_RELAY_SECRET_KEY env var
+constexpr std::string_view handshake_secret_key = "fL6I8F3egv6ApC15fkJO9U7xKeDD6Xur";
+
+// override if you feel like it or you want break compatability
 constexpr uint32_t handshake_magic_number_host = 0x4B28000;
-constexpr uint32_t handshake_magic_number_hton = ur::net::hton32(0x4B28000);
-constexpr uint16_t handshake_min_size = 24;
-struct alignas(4) handshake_header
+constexpr uint32_t handshake_magic_number_hton = ur::net::hton32(handshake_magic_number_host);
+
+struct alignas(8) handshake_header
 {
-	uint32_t m_magicNumber{handshake_magic_number_host};
-	uint32_t m_reserved{};
-	guid m_guid{};
+	uint32_t m_magicNumber{handshake_magic_number_host}; // relay packet identifier
+	uint16_t m_length{};								 // support handhsake extensions
+	uint16_t m_flags{};									 // support handhsake extensions
+	guid m_guid{};										 // channel identifier
+	uint64_t m_nonce{};									 // security nonce
+	hmac m_mac{};										 // hmac
 };
+constexpr uint16_t handshake_min_size = 64;
 static_assert(sizeof(handshake_header) == handshake_min_size);
 
 class relay
 {
 public:
-	using recv_buffer = std::array<std::uint64_t, 65536 / alignof(std::uint64_t)>;
+	using recv_buffer_t = std::array<std::uint64_t, 65536 / alignof(std::uint64_t)>;
 
 	relay() = default;
 	relay(const relay&) = delete;
@@ -74,7 +86,7 @@ public:
 	~relay() = default;
 
 	// Initialize relay with params
-	bool init(relay_params params);
+	bool init(relay_params params, secret_key key);
 
 	// Begin spin loop
 	void run();
@@ -90,17 +102,21 @@ private:
 
 	void conditionalCleanup();
 
-	relay_params m_params;
+	relay_params m_params{};
+
+	secret_key m_secretKey{};
+
+	udpsocket m_socket{};
 
 	socket_address m_recvAddr{};
 
-	recv_buffer m_recvBuffer{};
-
-	udpsocket m_socket{};
+	recv_buffer_t m_recvBuffer{};
 
 	std::unordered_map<guid, channel> m_channels{};
 
 	std::unordered_map<socket_address, guid> m_addressChannels{};
+
+	ur::ring_buffer<uint64_t, 32> m_recentNonces{};
 
 	std::chrono::steady_clock::time_point m_lastTickTime{};
 
@@ -113,5 +129,9 @@ private:
 
 struct relay_helpers
 {
-	static std::pair<bool, handshake_header> tryDeserializeHeader(relay::recv_buffer& recvBuffer, size_t recvBytes);
+	static std::pair<bool, handshake_header> tryDeserializeHeader(const secret_key& key, const relay::recv_buffer_t& recvBuffer, size_t recvBytes);
+
+	static secret_key makeSecret(std::string key);
+
+	static hmac makeHMAC(const secret_key& key, uint64_t nonce);
 };

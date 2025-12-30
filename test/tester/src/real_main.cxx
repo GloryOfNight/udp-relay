@@ -35,6 +35,14 @@ static constexpr auto argList = std::array
 };
 // clang-format on
 
+// clang-format off
+static std::string secretKey{};
+static constexpr auto envList = std::array
+{
+	env_var_ref{"UDP_RELAY_SECRET_KEY", secretKey, "Key for auth relay packets"},
+};
+// clang-format on
+
 static std::array<relay_client, 1024> g_clients{};
 static bool g_running{};
 
@@ -47,6 +55,7 @@ int relay_tester_main(int argc, char* argv[], [[maybe_unused]] char* envp[])
 	std::signal(SIGTERM, handleAbort);
 
 	ur::parseArgs(argList, argc, argv);
+	ur::parseEnvp(envList, envp);
 
 	if (args::printHelp)
 	{
@@ -95,8 +104,8 @@ int relay_tester_main(int argc, char* argv[], [[maybe_unused]] char* envp[])
 		auto clientA = &g_clients[i];
 		auto clientB = &g_clients[i + 1];
 
-		clientA->init(params);
-		clientB->init(params);
+		clientA->init(params, relay_helpers::makeSecret(secretKey));
+		clientB->init(params, relay_helpers::makeSecret(secretKey));
 
 		std::thread(std::bind(&relay_client::run, clientA)).detach();
 		std::thread(std::bind(&relay_client::run, clientB)).detach();

@@ -33,10 +33,10 @@ static constexpr auto argList = std::array
 // clang-format on
 
 // clang-format off
-static std::string envSomeVar{};
+static std::string secretKey{};
 static constexpr auto envList = std::array
 {
-	env_var_ref{"UDP_RELAY_SOME_VAR", envSomeVar, "Placeholder variable until actual variable is needed"},
+	env_var_ref{"UDP_RELAY_SECRET_KEY", secretKey, "Key for auth relay packets"},
 };
 // clang-format on
 
@@ -65,7 +65,7 @@ int relay_main(int argc, char* argv[], char* envp[])
 
 	g_runtimeLogLevel = static_cast<log_level>(args::logLevel);
 
-	if (g_relay.init(args::relayParams))
+	if (g_relay.init(args::relayParams, relay_helpers::makeSecret(secretKey)))
 	{
 		g_relay.run();
 	}

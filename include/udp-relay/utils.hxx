@@ -192,6 +192,10 @@ void ur::parseEnvp(const T& envList, char* envp[])
 			{
 				*val = env_value;
 			}
+			else if (auto val = found_env->template to<std::string>())
+			{
+				*val = env_value;
+			}
 			else
 			{
 				LOG(Error, Envp, "Failed parse environment variable: {0}. Type not supported: {1}", found_env->m_name, found_env->m_type.name());

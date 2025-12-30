@@ -11,40 +11,7 @@
 
 using namespace std::chrono_literals;
 
-std::pair<bool, handshake_header> relay_helpers::tryDeserializeHeader(relay::recv_buffer& recvBuffer, size_t recvBytes)
-{
-	const unsigned char key[] = "secret";
-	const unsigned char data[] = "hello world";
-	unsigned char result[EVP_MAX_MD_SIZE];
-	unsigned int result_len = 0;
-	HMAC(EVP_sha256(),
-		key, sizeof(key) - 1,
-		data, sizeof(data) - 1,
-		result, &result_len);
-
-	if (recvBytes < sizeof(handshake_header))
-		return std::pair<bool, handshake_header>();
-
-	handshake_header recvHeader{};
-	std::memcpy(&recvHeader, recvBuffer.data(), sizeof(recvHeader));
-
-	if (recvHeader.m_magicNumber != handshake_magic_number_hton)
-		return std::pair<bool, handshake_header>();
-
-	constexpr guid zeroGuid{};
-	if (recvHeader.m_guid == zeroGuid)
-		return std::pair<bool, handshake_header>();
-
-	recvHeader.m_magicNumber = ur::net::ntoh32(recvHeader.m_magicNumber);
-	recvHeader.m_guid.m_a = ur::net::ntoh32(recvHeader.m_guid.m_a);
-	recvHeader.m_guid.m_b = ur::net::ntoh32(recvHeader.m_guid.m_b);
-	recvHeader.m_guid.m_c = ur::net::ntoh32(recvHeader.m_guid.m_c);
-	recvHeader.m_guid.m_d = ur::net::ntoh32(recvHeader.m_guid.m_d);
-
-	return std::pair<bool, handshake_header>{true, recvHeader};
-}
-
-bool relay::init(relay_params params)
+bool relay::init(relay_params params, secret_key key)
 {
 	if (m_running)
 	{
@@ -98,7 +65,8 @@ bool relay::init(relay_params params)
 		bindAddr, newSocket.getPort(), newSocket.getSendBufferSize(), newSocket.getRecvBufferSize(),
 		ur::getVersionMajor(), ur::getVersionMinor(), ur::getVersionPatch());
 
-	m_params = params;
+	m_params = std::move(params);
+	m_secretKey = std::move(key);
 	m_socket = std::move(newSocket);
 
 	return true;
@@ -157,8 +125,12 @@ void relay::processIncoming()
 
 		// check if packet is relay handshake header, and extract guid if possible
 		// always check for handshake first, allow creating new connections from same socket without waiting prev. session to close
-		if (const auto [isHeader, header] = relay_helpers::tryDeserializeHeader(m_recvBuffer, bytesRead); isHeader && !m_gracefulStopRequested)
+		const auto [isValidHeader, header] = relay_helpers::tryDeserializeHeader(m_secretKey, m_recvBuffer, bytesRead);
+		const bool isNewNonce = m_recentNonces.find(header.m_nonce) == m_recentNonces.end();
+		if (isValidHeader && isNewNonce && !m_gracefulStopRequested)
 		{
+			m_recentNonces.assign_next(header.m_nonce);
+
 			auto [it, inserted] = m_channels.try_emplace(header.m_guid, header.m_guid, m_recvAddr, m_lastTickTime);
 			if (inserted)
 			{
@@ -236,4 +208,60 @@ void relay::conditionalCleanup()
 	m_nextCleanupTime = m_lastTickTime + m_params.m_cleanupTime;
 
 	ur::log_flush();
+}
+
+std::pair<bool, handshake_header> relay_helpers::tryDeserializeHeader(const secret_key& key, const relay::recv_buffer_t& recvBuffer, size_t recvBytes)
+{
+	if (recvBytes < sizeof(handshake_header))
+		return std::pair<bool, handshake_header>();
+
+	handshake_header recvHeader{};
+	std::memcpy(&recvHeader, recvBuffer.data(), sizeof(recvHeader));
+
+	if (recvHeader.m_magicNumber != handshake_magic_number_hton)
+		return std::pair<bool, handshake_header>();
+
+	const auto hmac = makeHMAC(key, recvHeader.m_nonce);
+	if (std::memcmp(&hmac, &recvHeader.m_mac, sizeof(hmac)) != 0)
+		return std::pair<bool, handshake_header>();
+
+	constexpr guid zeroGuid{};
+	if (recvHeader.m_guid == zeroGuid)
+		return std::pair<bool, handshake_header>();
+
+	recvHeader.m_guid.m_a = ur::net::ntoh32(recvHeader.m_guid.m_a);
+	recvHeader.m_guid.m_b = ur::net::ntoh32(recvHeader.m_guid.m_b);
+	recvHeader.m_guid.m_c = ur::net::ntoh32(recvHeader.m_guid.m_c);
+	recvHeader.m_guid.m_d = ur::net::ntoh32(recvHeader.m_guid.m_d);
+
+	return std::pair<bool, handshake_header>{true, recvHeader};
+}
+
+secret_key relay_helpers::makeSecret(std::string inKey)
+{
+	if (inKey.size() && inKey.size() != sizeof(secret_key))
+	{
+		LOG(Warning, RelayHelpers, "Secret key invalid. Expected {} byte value ({} provided). Using default key.", sizeof(secret_key), inKey.size());
+		inKey = "fL6I8F3egv6ApC15fkJO9U7xKeDD6Xur"; // dumb "secret" key
+	}
+
+	secret_key outKey{};
+	std::memcpy(outKey.data(), inKey.data(), sizeof(secret_key));
+
+	return outKey;
+}
+
+#include "openssl/hmac.h"
+hmac relay_helpers::makeHMAC(const secret_key& key, uint64_t nonce)
+{
+	unsigned char result[EVP_MAX_MD_SIZE];
+	unsigned int result_len = 0;
+
+	HMAC(EVP_sha256(), key.data(), key.size(), (unsigned char*)&nonce, sizeof(nonce), result, &result_len);
+	if (result_len < sizeof(hmac))
+		return {};
+
+	hmac out;
+	std::memcpy(out.data(), result, out.size());
+	return out;
 }

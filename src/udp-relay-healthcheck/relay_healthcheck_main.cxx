@@ -34,6 +34,14 @@ static constexpr auto argList = std::array
 };
 // clang-format on
 
+// clang-format off
+static std::string secretKey{};
+static constexpr auto envList = std::array
+{
+	env_var_ref{"UDP_RELAY_SECRET_KEY", secretKey, "Key for auth relay packets"},
+};
+// clang-format on
+
 udpsocket make_socket(bool ipv6)
 {
 	auto socket = udpsocket::make(ipv6);
@@ -48,12 +56,15 @@ udpsocket make_socket(bool ipv6)
 int relay_healthcheck_main(int argc, char* argv[], [[maybe_unused]] char* envp[])
 {
 	ur::parseArgs(argList, argc, argv);
+	ur::parseEnvp(envList, envp);
 
 	if (args::printHelp)
 	{
 		ur::printArgsHelp(argList);
 		return 0;
 	}
+
+	const secret_key key = relay_helpers::makeSecret(secretKey);
 
 	socket_address relayAddr = socket_address::from_string(args::relayAddr);
 	relayAddr.setPort(args::relayPort);
@@ -78,11 +89,16 @@ int relay_healthcheck_main(int argc, char* argv[], [[maybe_unused]] char* envp[]
 		headerPacket.m_magicNumber = handshake_magic_number_hton;
 		headerPacket.m_guid = guid::newGuid();
 
+		headerPacket.m_nonce = ur::net::hton64(ur::randRange<uint64_t>(0, UINT64_MAX));
+		headerPacket.m_mac = relay_helpers::makeHMAC(key, headerPacket.m_nonce);
 		socketA.sendTo(&headerPacket, sizeof(headerPacket), relayAddr);
+
+		headerPacket.m_nonce = ur::net::hton64(ur::randRange<uint64_t>(0, UINT64_MAX));
+		headerPacket.m_mac = relay_helpers::makeHMAC(key, headerPacket.m_nonce);
 		socketB.sendTo(&headerPacket, sizeof(headerPacket), relayAddr);
 
 		socket_address recvAddr{};
-		relay::recv_buffer recvBuffer{};
+		relay::recv_buffer_t recvBuffer{};
 		int32_t recvBytes{};
 
 		const auto waitUntil = std::chrono::steady_clock::now() + args::waitTime;

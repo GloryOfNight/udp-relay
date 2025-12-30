@@ -36,6 +36,7 @@ target_sources(${UDP_RELAY_LIB_NAME}
                     include/udp-relay/guid.hxx
                     include/udp-relay/log.hxx
                     include/udp-relay/relay.hxx
+                    include/udp-relay/ring_buffer.hxx
                     include/udp-relay/utils.hxx
                     include/udp-relay/version.hxx
                 PUBLIC

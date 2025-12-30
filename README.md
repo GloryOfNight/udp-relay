@@ -1,13 +1,15 @@
 # UDP Relay
-Simple UDP relay that relays packets between two peers.
+Simple UDP packet relay that relays packets between two peers.
 
-Sometimes there is a need to make a connection between two peers that are behind NAT. Inspired by [TURN](https://datatracker.ietf.org/doc/html/rfc8656), but unlike TURN, this relay is simplified and intended only to relay UDP packets between two peers.
+Allows client peers anonymously connect with each other, should they known common relay address and 128-bit guid value.
 
-For peers to communicate through this relay, clients are only required to send a handshake packet with the same guid (128-bit) value. The relay will create a mapping for these clients and start relaying packets between them.
+Relay doesn't wrap packets in data-types, it uses handshake process to identify clients and establish channel between them.
 
-It's recommended to modify the relay code to better suit your specific needs, such as changing the default handshake packet. There are also a few security concerns; if security is important to you, you may want to address them.
+It's recommended to modify the relay to tailor for your specific handshake process.
 
-This relay cannot have more than two peers within a single mapping. The relay uses ip:port to identify mapped addresses.
+Relay doesn't support more then 2 clients per channel. Multiple relay instances may solve that for you.
+
+Relay automatically closes established channels after certain period of no communication between peers has passed.
 
 This project is single-threaded by design.
 
@@ -47,12 +49,29 @@ Peer A <-- handshake packet with GUID (1,2,3,4) --  Relay *Peer B has mapping fo
 By default, the relay expects the following header for the handshake. magicNumber used to identify handshake packets and GUID can't be null. Relay expects header in network byte order, after communication channel is established - relay doesn't care about contents of received packets.
 
 ```c++
-struct alignas(4) handshake_header     // aligned by 4
+// include/udp-relay/relay.hxx
+
+// MUST override here or use UDP_RELAY_SECRET_KEY env var
+std::string_view handshake_secret_key = "fL6I8F3egv6ApC15fkJO9U7xKeDD6Xur";
+
+// override if you feel like it or you want break compatability
+uint32_t handshake_magic_number_host = 0x4B28000;
+uint32_t handshake_magic_number_hton = ur::net::hton32(handshake_magic_number_host);
+
+struct alignas(8) handshake_header
 {
-	uint32_t m_magicNumber{0x4B28000}; // required - 4 bytes - little-endian constant that expected to be converted to big-endian before sent
-	uint32_t m_reserved{};             // spacing, reserved for *might be* future flags and versions
-	guid m_guid{};                     // required - 4 x 4 bytes - must be not null
+	uint32_t m_magicNumber{handshake_magic_number_host}; // relay packet identifier
+	uint16_t m_length{};								 // support handhsake extensions
+	uint16_t m_flags{};									 // support handhsake extensions
+	guid m_guid{};										 // channel identifier (128-bit, 4 x uint32_t)
+	uint64_t m_nonce{};									 // security nonce
+	std::array<std::byte, 32> m_mac{};					 // hmac
 };
+constexpr uint16_t handshake_min_size = 64;
+static_assert(sizeof(handshake_header) == handshake_min_size);
+
+// relay uses HMAC_sha256 for message authentication
+HMAC(EVP_sha256(), secret_key, 32, &nonce, sizeof(nonce), mac, &mac_len);
 ```
 
 # Build
@@ -60,9 +79,9 @@ struct alignas(4) handshake_header     // aligned by 4
 > [!WARNING]
 > AVOID downloading source code from main branch directly since it might contain in-progress code. Only do that from tags or releases page!
 
-Project doesn't have any special dependecies and should be compiled without issue using Clang >= 18.1.3 or MSVC >= 19.44.
+Project depends on `OpenSSL::Crypto` component for additional packet validation.
 
-Project uses certain C++23 features, like print and stacktrace.
+Project uses certain C++23 features, like `<print>` and `<stacktrace>`. Expected to be compiled without issue using Clang >= 18.1.3 or MSVC >= 19.44.
 
 ### List all available presets:
 ```
