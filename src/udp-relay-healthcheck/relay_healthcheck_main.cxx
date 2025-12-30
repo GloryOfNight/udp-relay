@@ -1,10 +1,10 @@
 // Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
 
+#include "udp-relay/main_helpers.hxx"
 #include "udp-relay/net/network_utils.hxx"
 #include "udp-relay/net/socket_address.hxx"
 #include "udp-relay/net/udpsocket.hxx"
 #include "udp-relay/relay.hxx"
-#include "udp-relay/utils.hxx"
 
 #include <array>
 #include <chrono>
@@ -26,19 +26,19 @@ namespace args
 // clang-format off
 static constexpr auto argList = std::array
 {
-	cl_arg_ref{"--help", args::printHelp,		"--help	= print help" },
-	cl_arg_ref{"--addr", args::relayAddr,		"--addr <value>	= relay address" },
-	cl_arg_ref{"--port", args::relayPort,		"--port 0-65535 = relay port" },
-	cl_arg_ref{"--maxProbes", args::maxProbes,	"--maxProbes 0-65535 = maximum amount of tries before fail" },
-	cl_arg_ref{"--waitTime", args::waitTime,	"--waitTime <value> = time in milliseconds to wait between attempts" },
+	ur::cl_var_ref{"--help", args::printHelp,		"--help	= print help" },
+	ur::cl_var_ref{"--addr", args::relayAddr,		"--addr <value>	= relay address" },
+	ur::cl_var_ref{"--port", args::relayPort,		"--port 0-65535 = relay port" },
+	ur::cl_var_ref{"--maxProbes", args::maxProbes,	"--maxProbes 0-65535 = maximum amount of tries before fail" },
+	ur::cl_var_ref{"--waitTime", args::waitTime,	"--waitTime <value> = time in milliseconds to wait between attempts" },
 };
 // clang-format on
 
 // clang-format off
-static std::string secretKey{};
+static std::string_view secretKey{};
 static constexpr auto envList = std::array
 {
-	env_var_ref{"UDP_RELAY_SECRET_KEY", secretKey, "Key for auth relay packets"},
+	ur::env_var_ref{"UDP_RELAY_SECRET_KEY", secretKey, "Key for auth relay packets"},
 };
 // clang-format on
 

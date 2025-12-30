@@ -145,10 +145,13 @@ namespace ur
 	{
 		static std::pair<bool, handshake_header> tryDeserializeHeader(const secret_key& key, const recv_buffer& recvBuffer, size_t recvBytes);
 
-		static secret_key makeSecret(std::string b64);
+		// make secret key from base64 string or generate default key if empty
+		static secret_key makeSecret(std::string_view b64);
 
+		// make HMAC_sha256 from key and nonce
 		static hmac_sha256 makeHMAC(const secret_key& key, uint64_t nonce);
 
-		static std::vector<std::byte> decodeBase64(const std::string& b64);
+		// decode base64 into byte array
+		static std::vector<std::byte> decodeBase64(std::string_view b64);
 	};
 } // namespace ur

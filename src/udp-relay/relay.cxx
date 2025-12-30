@@ -269,7 +269,7 @@ std::pair<bool, ur::handshake_header> ur::relay_helpers::tryDeserializeHeader(co
 	return std::pair<bool, handshake_header>{true, recvHeader};
 }
 
-ur::secret_key ur::relay_helpers::makeSecret(std::string b64)
+ur::secret_key ur::relay_helpers::makeSecret(std::string_view b64)
 {
 	if (b64.size() == 0)
 		b64 = handshake_secret_key_base64;
@@ -292,7 +292,7 @@ ur::hmac_sha256 ur::relay_helpers::makeHMAC(const secret_key& key, uint64_t nonc
 	return result;
 }
 
-std::vector<std::byte> ur::relay_helpers::decodeBase64(const std::string& b64)
+std::vector<std::byte> ur::relay_helpers::decodeBase64(const std::string_view b64)
 {
 	BIO* bio = BIO_new_mem_buf(b64.data(), (int)b64.size());
 	BIO* b64f = BIO_new(BIO_f_base64());

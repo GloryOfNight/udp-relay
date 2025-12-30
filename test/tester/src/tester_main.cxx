@@ -1,6 +1,7 @@
 // Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
 
-#include "udp-relay/utils.hxx"
+#include "udp-relay/log.hxx"
+#include "udp-relay/main_helpers.hxx"
 
 #include "client.hxx"
 
@@ -26,21 +27,21 @@ namespace args
 // clang-format off
 static constexpr auto argList = std::array
 {
-	cl_arg_ref{"--help", args::printHelp,									"--help											= print help" },
-	cl_arg_ref{"--max-clients", args::maxClients,							"--max-clients									= number of clients to create, should be power of 2" },
-	cl_arg_ref{"--relay-addr", args::relayAddr,								"--relay-addr <value> <value> <value> <value>	= space separated address of relay server, 127 0 0 1 dy default" },
-	cl_arg_ref{"--relay-port", args::relayPort,								"--relay-port <value>							= relay server port, 6060 by default" },
-	cl_arg_ref{"--shutdown-after", args::shutdownAfter,						"--shutdown-after <value>						= time in seconds after which test will end" },
-	cl_arg_ref{"--send-interval-ms", args::sendIntervalMs,					"--send-interval-ms <value>						= how often client should send" },
-	cl_arg_ref{"--ipv6", args::useIpv6,										"--ipv6 0|1										= use ipv6" },
+	ur::cl_var_ref{"--help", args::printHelp,									"--help											= print help" },
+	ur::cl_var_ref{"--max-clients", args::maxClients,							"--max-clients									= number of clients to create, should be power of 2" },
+	ur::cl_var_ref{"--relay-addr", args::relayAddr,								"--relay-addr <value> <value> <value> <value>	= space separated address of relay server, 127 0 0 1 dy default" },
+	ur::cl_var_ref{"--relay-port", args::relayPort,								"--relay-port <value>							= relay server port, 6060 by default" },
+	ur::cl_var_ref{"--shutdown-after", args::shutdownAfter,						"--shutdown-after <value>						= time in seconds after which test will end" },
+	ur::cl_var_ref{"--send-interval-ms", args::sendIntervalMs,					"--send-interval-ms <value>						= how often client should send" },
+	ur::cl_var_ref{"--ipv6", args::useIpv6,										"--ipv6 0|1										= use ipv6" },
 };
 // clang-format on
 
 // clang-format off
-static std::string secretKey{};
+static std::string_view secretKey{};
 static constexpr auto envList = std::array
 {
-	env_var_ref{"UDP_RELAY_SECRET_KEY", secretKey, "Key for auth relay packets"},
+	ur::env_var_ref{"UDP_RELAY_SECRET_KEY", secretKey, "Key for auth relay packets"},
 };
 // clang-format on
 
