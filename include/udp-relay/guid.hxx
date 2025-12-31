@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "net/network_utils.hxx"
+
 #include "utils.hxx"
 
 #include <cstdint>
@@ -11,7 +13,7 @@
 struct guid
 {
 	guid() noexcept = default;
-	guid(uint32_t a, uint32_t b, uint32_t c, uint32_t d) noexcept
+	constexpr guid(uint32_t a, uint32_t b, uint32_t c, uint32_t d) noexcept
 		: m_a{a}
 		, m_b{b}
 		, m_c{c}
@@ -45,6 +47,19 @@ struct guid
 		return !(m_a || m_b || m_c || m_d);
 	}
 };
+
+namespace ur::net
+{
+	constexpr guid hton(const guid& v)
+	{
+		return guid(hton32(v.m_a), hton32(v.m_b), hton32(v.m_c), hton32(v.m_d));
+	}
+
+	constexpr guid ntoh(const guid& v)
+	{
+		return guid(ntoh32(v.m_a), ntoh32(v.m_b), ntoh32(v.m_c), ntoh32(v.m_d));
+	}
+} // namespace ur::net
 
 namespace std
 {
@@ -82,4 +97,3 @@ namespace std
 		}
 	};
 } // namespace std
-

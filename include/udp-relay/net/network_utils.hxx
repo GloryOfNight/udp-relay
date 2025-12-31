@@ -22,20 +22,20 @@ namespace ur::net
 
 	// convert host byte order to network
 	template <std::unsigned_integral T>
-	constexpr T hton(const T value) noexcept
+	constexpr T hton(const T v) noexcept
 	{
 		if constexpr (ur::net::nativeLittleEndian())
-			return std::byteswap<T>(value);
-		return value;
+			return std::byteswap<T>(v);
+		return v;
 	}
 
 	// convert network byte order to host
 	template <std::unsigned_integral T>
-	constexpr T ntoh(const T value) noexcept
+	constexpr T ntoh(const T v) noexcept
 	{
 		if constexpr (ur::net::nativeLittleEndian())
-			return std::byteswap(value);
-		return value;
+			return std::byteswap(v);
+		return v;
 	}
 
 	// clang-format off

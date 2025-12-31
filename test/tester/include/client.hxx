@@ -33,15 +33,7 @@ struct relay_client_handshake
 {
 	ur::handshake_header m_header{};
 	uint16_t m_type{};
-	int64_t m_time{};
-	std::array<uint8_t, 992> m_randomPayload{};
-
-	void generateRandomPayload()
-	{
-		// fill array with random bytes
-		std::generate(m_randomPayload.begin(), m_randomPayload.end(), []() -> uint8_t
-			{ return ur::randRange<uint32_t>(0, UINT8_MAX); });
-	}
+	uint64_t m_time{};
 };
 
 class relay_client
@@ -87,6 +79,5 @@ private:
 
 struct relay_client_helpers
 {
-	static std::vector<uint8_t> serialize(const relay_client_handshake& value);
 	static std::pair<bool, relay_client_handshake> tryDeserialize(const ur::secret_key& key, ur::recv_buffer& recvBuffer, size_t recvBytes);
 };

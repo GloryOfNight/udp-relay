@@ -16,7 +16,8 @@ namespace ur
 		Error = 1,
 		Warning = 2,
 		Info = 3,
-		Verbose = 4
+		Verbose = 4,
+		Debug = 5
 	};
 
 	extern std::atomic<log_level> runtime_log_verbosity;
@@ -24,7 +25,7 @@ namespace ur
 #if UR_BUILD_RELEASE
 	static constexpr log_level compile_log_verbosity{log_level::Info};
 #else
-	static constexpr log_level compile_log_verbosity{log_level::Verbose};
+	static constexpr log_level compile_log_verbosity{log_level::Debug};
 #endif
 
 	static inline const char* log_level_to_string(const log_level level)
@@ -39,6 +40,8 @@ namespace ur
 			return "Info";
 		case log_level::Verbose:
 			return "Verbose";
+		case log_level::Debug:
+			return "Debug";
 		case log_level::NoLogs:
 			return "";
 		default:

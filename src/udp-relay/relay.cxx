@@ -170,7 +170,16 @@ void ur::relay::processIncoming()
 	{
 		const int32_t bytesRead = m_socket.recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), m_recvAddr);
 		if (bytesRead < 0)
-			return;
+		{
+			switch (net::udpsocket::getLastErrno())
+			{
+			case EAGAIN:
+			case EWOULDBLOCK:
+				return;
+			default:
+				continue;
+			}
+		}
 
 		if (size_t(bytesRead) > m_recvBuffer.size()) [[unlikely]]
 			continue;
@@ -262,30 +271,41 @@ void ur::relay::conditionalCleanup()
 
 std::pair<bool, ur::handshake_header> ur::relay_helpers::tryDeserializeHeader(const secret_key& key, const recv_buffer& recvBuffer, size_t recvBytes)
 {
+	// not a handshake packet
 	if (recvBytes < sizeof(handshake_header))
+		return std::pair<bool, handshake_header>();
+	else if (std::memcmp(recvBuffer.data(), &handshake_magic_number_be, sizeof(handshake_header::m_magicNumber) != 0))
 		return std::pair<bool, handshake_header>();
 
 	handshake_header recvHeader{};
 	std::memcpy(&recvHeader, recvBuffer.data(), sizeof(recvHeader));
 
-	if (recvHeader.m_magicNumber != handshake_magic_number_hton)
-		return std::pair<bool, handshake_header>();
+	recvHeader.m_length = ur::net::ntoh(recvHeader.m_length);
+	recvHeader.m_flags = ur::net::ntoh(recvHeader.m_flags);
+	recvHeader.m_guid = ur::net::ntoh(recvHeader.m_guid);
 
-	if (key.size() && recvHeader.m_nonce) // ignore HMAC validation if key not provided
+	if (const uint16_t len = recvHeader.m_length + sizeof(handshake_header); len != recvBytes)
 	{
-		const auto hmac = makeHMAC(key, recvHeader.m_nonce);
-		if (std::memcmp(&hmac, &recvHeader.m_mac, sizeof(hmac)) != 0)
-			return std::pair<bool, handshake_header>();
+		LOG(Debug, RelayHelpers, "Packet length invalid. Expected: {}, received: {}", len, recvBytes);
+		return std::pair<bool, handshake_header>();
 	}
 
 	constexpr guid zeroGuid{};
 	if (recvHeader.m_guid == zeroGuid)
+	{
+		LOG(Debug, RelayHelpers, "Packet guid must not be zero'd");
 		return std::pair<bool, handshake_header>();
+	}
 
-	recvHeader.m_guid.m_a = ur::net::ntoh32(recvHeader.m_guid.m_a);
-	recvHeader.m_guid.m_b = ur::net::ntoh32(recvHeader.m_guid.m_b);
-	recvHeader.m_guid.m_c = ur::net::ntoh32(recvHeader.m_guid.m_c);
-	recvHeader.m_guid.m_d = ur::net::ntoh32(recvHeader.m_guid.m_d);
+	if (key.size() && recvHeader.m_nonce) // ignore HMAC validation if key not provided
+	{
+		const auto mac = makeHMAC(key, recvHeader.m_nonce);
+		if (std::memcmp(&mac, &recvHeader.m_mac, sizeof(mac)) != 0)
+		{
+			LOG(Debug, RelayHelpers, "Packet HMAC_sha256 invalid. Nonce: {}; Expected: {}, received: {}", recvHeader.m_nonce, mac, recvHeader.m_nonce);
+			return std::pair<bool, handshake_header>();
+		}
+	}
 
 	return std::pair<bool, handshake_header>{true, recvHeader};
 }
@@ -313,7 +333,7 @@ ur::hmac_sha256 ur::relay_helpers::makeHMAC(const secret_key& key, uint64_t nonc
 	return result;
 }
 
-std::vector<std::byte> ur::relay_helpers::decodeBase64(const std::string_view b64)
+std::vector<std::byte> ur::relay_helpers::decodeBase64(std::string_view b64)
 {
 	BIO* bio = BIO_new_mem_buf(b64.data(), (int)b64.size());
 	BIO* b64f = BIO_new(BIO_f_base64());

@@ -13,6 +13,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
+#include <format>
 #include <memory>
 #include <unordered_map>
 
@@ -70,17 +71,16 @@ namespace ur
 	constexpr std::string_view handshake_secret_key_base64 = "Zkw2SThGM2VndjZBcEMxNWZrSk85VTd4S2VERDZYdXI=";
 
 	// override if you feel like it or you want break compatibility
-	constexpr uint32_t handshake_magic_number_host = 0x4B28000;
-	constexpr uint32_t handshake_magic_number_hton = ur::net::hton32(handshake_magic_number_host);
+	constexpr uint32_t handshake_magic_number_be = ur::net::hton32(0x4B28000);
 
 	struct alignas(8) handshake_header
 	{
-		uint32_t m_magicNumber{handshake_magic_number_host}; // relay packet identifier
-		uint16_t m_length{};								 // support handhsake extensions
-		uint16_t m_flags{};									 // support handhsake extensions
-		guid m_guid{};										 // channel identifier
-		uint64_t m_nonce{};									 // security nonce
-		hmac_sha256 m_mac{};								 // mac
+		uint32_t m_magicNumber{handshake_magic_number_be}; // relay packet identifier. keep always big-endian
+		uint16_t m_length{};							   // support handhsake extensions
+		uint16_t m_flags{};								   // support handhsake extensions
+		guid m_guid{};									   // channel identifier
+		uint64_t m_nonce{};								   // security nonce. keep always big-endian
+		hmac_sha256 m_mac{};							   // hmac_sha256 of (big-endian) nonce
 	};
 	static_assert(sizeof(handshake_header) == 64);
 
@@ -154,3 +154,26 @@ namespace ur
 		static std::vector<std::byte> decodeBase64(std::string_view b64);
 	};
 } // namespace ur
+
+namespace std
+{
+	template <>
+	struct formatter<ur::hmac_sha256>
+	{
+	public:
+		constexpr auto parse(format_parse_context& ctx)
+		{
+			auto it = ctx.begin();
+			return it;
+		}
+
+		template <typename FormatContext>
+		auto format(const ur::hmac_sha256& v, FormatContext& ctx) const
+		{
+			auto it = ctx.out();
+			for (auto el : v)
+				it = std::format_to(ctx.out(), "{}", (uint8_t)el);
+			return it;
+		}
+	};
+} // namespace std

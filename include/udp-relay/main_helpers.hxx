@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "log.hxx"
+
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <print>
@@ -83,7 +86,12 @@ void ur::parseArgs(const T& argList, int argc, char* argv[])
 		}
 		else if (prev_arg)
 		{
-			if (auto val = prev_arg->to<int16_t>())
+			if (auto val = prev_arg->to<std::atomic<log_level>>())
+			{
+				*val = static_cast<log_level>(std::stol(arg.data()));
+				prev_arg = nullptr;
+			}
+			else if (auto val = prev_arg->to<int16_t>())
 			{
 				*val = std::stol(arg.data());
 				prev_arg = nullptr;

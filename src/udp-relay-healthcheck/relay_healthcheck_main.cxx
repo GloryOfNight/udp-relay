@@ -91,17 +91,17 @@ int main(int argc, char* argv[], char* envp[])
 		}
 
 		ur::handshake_header headerPacket{};
-		headerPacket.m_magicNumber = ur::handshake_magic_number_hton;
 		headerPacket.m_guid = guid::newGuid();
-		// custom guid stuff to indicate healthchecks from everything else
+
+		// custom guid identifiers to separate (visually) healthchecks from real handshakes
 		headerPacket.m_guid.m_c = 0x2301FFFF;
 		headerPacket.m_guid.m_d = 0xAB986745;
 
-		headerPacket.m_nonce = ur::net::hton64(ur::randRange<uint64_t>(0, UINT64_MAX));
+		headerPacket.m_nonce = ur::net::hton(ur::randRange<uint64_t>(0, UINT64_MAX));
 		headerPacket.m_mac = ur::relay_helpers::makeHMAC(key, headerPacket.m_nonce);
 		socketA.sendTo(&headerPacket, sizeof(headerPacket), relayAddr);
 
-		headerPacket.m_nonce = ur::net::hton64(ur::randRange<uint64_t>(0, UINT64_MAX));
+		headerPacket.m_nonce = ur::net::hton(ur::randRange<uint64_t>(0, UINT64_MAX));
 		headerPacket.m_mac = ur::relay_helpers::makeHMAC(key, headerPacket.m_nonce);
 		socketB.sendTo(&headerPacket, sizeof(headerPacket), relayAddr);
 

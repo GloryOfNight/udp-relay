@@ -9,6 +9,7 @@
 #include <chrono>
 #include <csignal>
 #include <functional>
+#include <stacktrace>
 #include <thread>
 
 using namespace std::chrono_literals;
@@ -49,16 +50,20 @@ static constexpr auto envList = std::array
 
 static std::array<relay_client, 1024> g_clients{};
 static bool g_running{};
+static int exit_code{};
 
-static void handleAbort(int sig);
+static void tester_signal_handler(int sig);
 
 int main(int argc, char* argv[], [[maybe_unused]] char* envp[])
 {
 	ur_init();
 
-	std::signal(SIGABRT, handleAbort);
-	std::signal(SIGINT, handleAbort);
-	std::signal(SIGTERM, handleAbort);
+	std::signal(SIGINT, tester_signal_handler);
+	std::signal(SIGTERM, tester_signal_handler);
+	std::signal(SIGABRT, tester_signal_handler);
+	std::signal(SIGSEGV, tester_signal_handler);
+	std::signal(SIGILL, tester_signal_handler);
+	std::signal(SIGFPE, tester_signal_handler);
 
 	ur::parseArgs(argList, argc, argv);
 	ur::parseEnvp(envList, envp);
@@ -157,15 +162,29 @@ int main(int argc, char* argv[], [[maybe_unused]] char* envp[])
 
 	ur_shutdown();
 
-	return 0;
+	return exit_code;
 }
 
-void handleAbort(int sig)
+void tester_signal_handler(int sig)
 {
-	LOG(Error, RelayTester, "CAUGHT SIGNAL - {0}", sig);
-	for (auto& client : g_clients)
+	std::println("- - - Caught signal {} - - -", sig);
+
+	switch (sig)
 	{
-		client.stop();
+	case SIGINT:
+	case SIGTERM:
+		for (auto& client : g_clients)
+			client.stop();
+		break;
+	case SIGILL:
+	case SIGFPE:
+	case SIGSEGV:
+	case SIGABRT:
+		std::println("Stacktrace:\n{}", sig, std::stacktrace::current());
+		break;
+	default:
+		break;
 	}
-	g_running = false;
+
+	exit_code = 128 + sig;
 }

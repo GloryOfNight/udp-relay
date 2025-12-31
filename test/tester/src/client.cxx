@@ -15,33 +15,9 @@
 
 using namespace std::chrono_literals;
 
-const uint32_t handshake_packet_data_size = (sizeof(relay_client_handshake) - sizeof(relay_client_handshake::m_randomPayload));
-
-std::vector<uint8_t> relay_client_helpers::serialize(const relay_client_handshake& value)
-{
-	relay_client_handshake netValue{};
-
-	netValue.m_header.m_magicNumber = ur::net::hton32(value.m_header.m_magicNumber);
-	netValue.m_header.m_guid.m_a = ur::net::hton32(value.m_header.m_guid.m_a);
-	netValue.m_header.m_guid.m_b = ur::net::hton32(value.m_header.m_guid.m_b);
-	netValue.m_header.m_guid.m_c = ur::net::hton32(value.m_header.m_guid.m_c);
-	netValue.m_header.m_guid.m_d = ur::net::hton32(value.m_header.m_guid.m_d);
-	netValue.m_header.m_nonce = value.m_header.m_nonce;
-	netValue.m_header.m_mac = value.m_header.m_mac;
-	netValue.m_type = ur::net::hton16(value.m_type);
-	netValue.m_time = ur::net::hton64(value.m_time);
-	netValue.m_randomPayload = value.m_randomPayload;
-
-	std::vector<uint8_t> output{};
-	output.resize(sizeof(relay_client_handshake));
-	std::memcpy(output.data(), &netValue, sizeof(netValue));
-
-	return output;
-}
-
 std::pair<bool, relay_client_handshake> relay_client_helpers::tryDeserialize(const ur::secret_key& key, ur::recv_buffer& recvBuffer, size_t recvBytes)
 {
-	if (recvBytes < handshake_packet_data_size)
+	if (recvBytes < sizeof(relay_client_handshake))
 		return std::pair<bool, relay_client_handshake>{};
 
 	const auto [isHeader, header] = ur::relay_helpers::tryDeserializeHeader(key, recvBuffer, recvBytes);
@@ -49,11 +25,11 @@ std::pair<bool, relay_client_handshake> relay_client_helpers::tryDeserialize(con
 		return std::pair<bool, relay_client_handshake>{};
 
 	relay_client_handshake result{};
-	std::memcpy(&result, recvBuffer.data(), handshake_packet_data_size);
+	std::memcpy(&result, recvBuffer.data(), sizeof(relay_client_handshake));
 
 	result.m_header = header;
-	result.m_type = ur::net::ntoh16(result.m_type);
-	result.m_time = ur::net::ntoh64(result.m_time);
+	result.m_type = ur::net::ntoh(result.m_type);
+	result.m_time = ur::net::ntoh(result.m_time);
 
 	return std::pair<bool, relay_client_handshake>(true, result);
 }
@@ -145,14 +121,11 @@ void relay_client::processIncoming()
 
 		if (packet.m_type == HandshakeRequest)
 		{
-			auto responsePacket = packet;
-			responsePacket.m_header.m_magicNumber = ur::handshake_magic_number_host;
-			responsePacket.m_type = HandshakeResponse;
-
-			auto responseBuf = relay_client_helpers::serialize(responsePacket);
+			constexpr uint16_t responseType = ur::net::hton16(HandshakeResponse);
+			std::memcpy(m_recvBuffer.data() + offsetof(relay_client_handshake, m_type), &responseType, sizeof(responseType));
 
 			m_socket.waitForWrite(500us);
-			const auto bytesSent = m_socket.sendTo(responseBuf.data(), bytesRead, recvAddr);
+			const auto bytesSent = m_socket.sendTo(m_recvBuffer.data(), bytesRead, recvAddr);
 			if (bytesSent >= 0)
 				m_stats.m_packetsSent++;
 		}
@@ -178,22 +151,30 @@ void relay_client::trySend()
 	{
 		m_lastSendAt = now;
 
+		std::vector<std::byte> extraPayload;
+		extraPayload.resize(ur::randRange<uint32_t>(0, 1472 - sizeof(relay_client_handshake)));
+		std::generate(extraPayload.begin(), extraPayload.end(), []() -> std::byte
+			{ return static_cast<std::byte>(ur::randRange<std::uint32_t>(0, UINT8_MAX)); });
+
 		relay_client_handshake packet{};
-		packet.m_header.m_guid = m_params.m_guid;
+		packet.m_header.m_length = ur::net::hton16(sizeof(relay_client_handshake) + extraPayload.size() - sizeof(relay_client_handshake::m_header));
+		packet.m_header.m_guid = ur::net::hton(m_params.m_guid);
+		packet.m_type = ur::net::hton16(HandshakeRequest);
+		packet.m_time = ur::net::hton64(std::chrono::steady_clock::now().time_since_epoch().count());
+
 		if (m_nonce)
 		{
 			packet.m_header.m_nonce = ur::net::hton64(m_nonce);
 			packet.m_header.m_mac = ur::relay_helpers::makeHMAC(m_secretKey, packet.m_header.m_nonce);
 		}
-		packet.m_type = HandshakeRequest;
-		packet.m_time = std::chrono::steady_clock::now().time_since_epoch().count();
-		packet.generateRandomPayload();
 
-		std::vector<uint8_t> requestBuf = relay_client_helpers::serialize(packet);
+		std::vector<uint8_t> requestBytes;
+		requestBytes.resize(sizeof(relay_client_handshake) + extraPayload.size());
 
-		const uint32_t payloadStripOffset = ur::randRange<uint32_t>(0, requestBuf.size() - handshake_packet_data_size);
+		std::memcpy(requestBytes.data(), &packet, sizeof(relay_client_handshake));
+		std::memcpy(requestBytes.data() + sizeof(relay_client_handshake), extraPayload.data(), extraPayload.size());
 
-		const auto bytesSent = m_socket.sendTo(requestBuf.data(), requestBuf.size() - payloadStripOffset, m_params.m_relayAddr);
+		const auto bytesSent = m_socket.sendTo(requestBytes.data(), requestBytes.size(), m_params.m_relayAddr);
 		if (bytesSent >= 0)
 			++m_stats.m_packetsSent;
 	};
