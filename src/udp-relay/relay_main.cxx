@@ -12,31 +12,33 @@
 #include <print>
 #include <stacktrace>
 
-namespace args
+namespace cl
 {
 	static bool printHelp{}; // when true - prints help and exits
 	static ur::relay_params relayParams{};
-} // namespace args
+} // namespace cl
+
+namespace env
+{
+	static std::string_view secretKey{};
+} // namespace env
 
 // clang-format off
 static constexpr auto argList = std::array
 {
-	ur::cl_var_ref{"--help", args::printHelp,																"--help										= print help" },
+	ur::cl_var_ref{"--help", cl::printHelp,																"--help										= print help" },
 	ur::cl_var_ref{"--log-level", ur::runtime_log_verbosity,												"--log-level 0-4							= set log level no logs - verbose" },
-	ur::cl_var_ref{"--port", args::relayParams.m_primaryPort,												"--port 0-65535								= main port for accepting requests" },
-	ur::cl_var_ref{"--socketRecvBufferSize", args::relayParams.m_socketRecvBufferSize,						"--socketRecvBufferSize <value>             = receive buffer size for internal socket" },
-	ur::cl_var_ref{"--socketSendBufferSize", args::relayParams.m_socketSendBufferSize,						"--socketSendBufferSize <value>             = send buffer size for internal socket" },
-	ur::cl_var_ref{"--cleanupTime", args::relayParams.m_cleanupTime,										"--cleanupTime <value>						= time in ms, how often relay should perform clean check" },
-	ur::cl_var_ref{"--cleanupInactiveAfterTime", args::relayParams.m_cleanupInactiveChannelAfterTime,		"--cleanupInactiveAfterTime <value>			= time in ms, inactivity timeout for channel" },
-	ur::cl_var_ref{"--ipv6", args::relayParams.ipv6,														"--ipv6 0|1									= should create and bind to ipv6 socket (dual-stack ipv4/6 mode)" },
+	ur::cl_var_ref{"--port", cl::relayParams.m_primaryPort,												"--port 0-65535								= main port for accepting requests" },
+	ur::cl_var_ref{"--socketRecvBufferSize", cl::relayParams.m_socketRecvBufferSize,						"--socketRecvBufferSize <value>             = receive buffer size for internal socket" },
+	ur::cl_var_ref{"--socketSendBufferSize", cl::relayParams.m_socketSendBufferSize,						"--socketSendBufferSize <value>             = send buffer size for internal socket" },
+	ur::cl_var_ref{"--cleanupTime", cl::relayParams.m_cleanupTime,										"--cleanupTime <value>						= time in ms, how often relay should perform clean check" },
+	ur::cl_var_ref{"--cleanupInactiveAfterTime", cl::relayParams.m_cleanupInactiveChannelAfterTime,		"--cleanupInactiveAfterTime <value>			= time in ms, inactivity timeout for channel" },
+	ur::cl_var_ref{"--ipv6", cl::relayParams.ipv6,														"--ipv6 0|1									= should create and bind to ipv6 socket (dual-stack ipv4/6 mode)" },
 };
-// clang-format on
 
-// clang-format off
-static std::string_view secretKey{};
 static constexpr auto envList = std::array
 {
-	ur::env_var_ref{"UDP_RELAY_SECRET_KEY", secretKey, "Key for auth relay packets"},
+	ur::env_var_ref{"UDP_RELAY_SECRET_KEY", env::secretKey, "Key for auth relay packets"},
 };
 // clang-format on
 
@@ -60,13 +62,13 @@ int main(int argc, char* argv[], char* envp[])
 	ur::parseArgs(argList, argc, argv);
 	ur::parseEnvp(envList, envp);
 
-	if (args::printHelp)
+	if (cl::printHelp)
 	{
 		ur::printArgsHelp(argList);
 		return 0;
 	}
 
-	if (g_relay.init(args::relayParams, ur::relay_helpers::makeSecret(secretKey)))
+	if (g_relay.init(cl::relayParams, ur::relay_helpers::makeSecret(env::secretKey)))
 	{
 		g_relay.run();
 	}

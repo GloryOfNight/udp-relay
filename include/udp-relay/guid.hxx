@@ -46,7 +46,6 @@ struct guid
 	}
 };
 
-// custom hash for guid
 namespace std
 {
 	template <>
@@ -67,19 +66,20 @@ namespace std
 				   std::tie(b.m_a, b.m_b, b.m_c, b.m_d);
 		}
 	};
+
+	template <>
+	struct formatter<guid>
+	{
+		constexpr auto parse(format_parse_context& ctx)
+		{
+			return ctx.begin();
+		}
+
+		template <typename FormatContext>
+		auto format(const guid& value, FormatContext& ctx) const
+		{
+			return std::format_to(ctx.out(), "{}", value.toString());
+		}
+	};
 } // namespace std
 
-template <>
-struct std::formatter<guid>
-{
-	constexpr auto parse(std::format_parse_context& ctx)
-	{
-		return ctx.begin();
-	}
-
-	template <typename FormatContext>
-	auto format(const guid& value, FormatContext& ctx) const
-	{
-		return std::format_to(ctx.out(), "{}", value.toString());
-	}
-};

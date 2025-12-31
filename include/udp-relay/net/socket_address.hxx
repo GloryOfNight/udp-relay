@@ -103,43 +103,43 @@ namespace std
 			return ipCmp != 0 ? ipCmp < 0 : left.getPort() < right.getPort();
 		}
 	};
-} // namespace std
 
-template <>
-struct std::formatter<socket_address>
-{
-private:
-	char m_formatMode = 'D';
-
-public:
-	constexpr auto parse(std::format_parse_context& ctx)
+	template <>
+	struct formatter<socket_address>
 	{
-		auto it = ctx.begin();
+	private:
+		char m_formatMode = 'D';
 
-		if (it != ctx.end())
+	public:
+		constexpr auto parse(format_parse_context& ctx)
 		{
-			char c = *it;
-			if (c == 'D' || c == 'A' || c == 'P')
+			auto it = ctx.begin();
+
+			if (it != ctx.end())
 			{
-				m_formatMode = c;
-				++it;
+				char c = *it;
+				if (c == 'D' || c == 'A' || c == 'P')
+				{
+					m_formatMode = c;
+					++it;
+				}
+			}
+
+			return it;
+		}
+
+		template <typename FormatContext>
+		auto format(const socket_address& value, FormatContext& ctx) const
+		{
+			switch (m_formatMode)
+			{
+			case 'A': // address only
+				return std::format_to(ctx.out(), "{}", value.toString(false));
+			case 'P': // port only
+				return std::format_to(ctx.out(), "{}", value.getPort());
+			default: // address:port
+				return std::format_to(ctx.out(), "{}", value.toString());
 			}
 		}
-
-		return it;
-	}
-
-	template <typename FormatContext>
-	auto format(const socket_address& value, FormatContext& ctx) const
-	{
-		switch (m_formatMode)
-		{
-		case 'A': // address only
-			return std::format_to(ctx.out(), "{}", value.toString(false));
-		case 'P': // port only
-			return std::format_to(ctx.out(), "{}", value.getPort());
-		default: // address:port
-			return std::format_to(ctx.out(), "{}", value.toString());
-		}
-	}
-};
+	};
+} // namespace std

@@ -14,31 +14,33 @@
 
 using namespace std::chrono_literals;
 
-namespace args
+namespace cl
 {
-	bool printHelp{};
-	std::string relayAddr{"127.0.0.1"};
-	uint16_t relayPort{6060};
-	uint16_t maxProbes{5};
-	std::chrono::milliseconds waitTime{1s};
-} // namespace args
+	static bool printHelp{};
+	static std::string relayAddr{"127.0.0.1"};
+	static uint16_t relayPort{6060};
+	static uint16_t maxProbes{5};
+	static std::chrono::milliseconds waitTime{1s};
+} // namespace cl
+
+namespace env
+{
+	static std::string_view secretKey{};
+} // namespace env
 
 // clang-format off
 static constexpr auto argList = std::array
 {
-	ur::cl_var_ref{"--help", args::printHelp,		"--help	= print help" },
-	ur::cl_var_ref{"--addr", args::relayAddr,		"--addr <value>	= relay address" },
-	ur::cl_var_ref{"--port", args::relayPort,		"--port 0-65535 = relay port" },
-	ur::cl_var_ref{"--maxProbes", args::maxProbes,	"--maxProbes 0-65535 = maximum amount of tries before fail" },
-	ur::cl_var_ref{"--waitTime", args::waitTime,	"--waitTime <value> = time in milliseconds to wait between attempts" },
+	ur::cl_var_ref{"--help", cl::printHelp,		"--help	= print help" },
+	ur::cl_var_ref{"--addr", cl::relayAddr,		"--addr <value>	= relay address" },
+	ur::cl_var_ref{"--port", cl::relayPort,		"--port 0-65535 = relay port" },
+	ur::cl_var_ref{"--maxProbes", cl::maxProbes,"--maxProbes 0-65535 = maximum amount of tries before fail" },
+	ur::cl_var_ref{"--waitTime", cl::waitTime,	"--waitTime <value> = time in milliseconds to wait between attempts" },
 };
-// clang-format on
 
-// clang-format off
-static std::string_view secretKey{};
 static constexpr auto envList = std::array
 {
-	ur::env_var_ref{"UDP_RELAY_SECRET_KEY", secretKey, "Key for auth relay packets"},
+	ur::env_var_ref{"UDP_RELAY_SECRET_KEY", env::secretKey, "Key for auth relay packets"},
 };
 // clang-format on
 
@@ -61,16 +63,16 @@ int main(int argc, char* argv[], char* envp[])
 	ur::parseArgs(argList, argc, argv);
 	ur::parseEnvp(envList, envp);
 
-	if (args::printHelp)
+	if (cl::printHelp)
 	{
 		ur::printArgsHelp(argList);
 		return 0;
 	}
 
-	const ur::secret_key key = ur::relay_helpers::makeSecret(secretKey);
+	const ur::secret_key key = ur::relay_helpers::makeSecret(env::secretKey);
 
-	socket_address relayAddr = socket_address::from_string(args::relayAddr);
-	relayAddr.setPort(args::relayPort);
+	socket_address relayAddr = socket_address::from_string(cl::relayAddr);
+	relayAddr.setPort(cl::relayPort);
 
 	if (relayAddr.isNull() || !relayAddr.getPort())
 	{
@@ -78,7 +80,7 @@ int main(int argc, char* argv[], char* envp[])
 		return 1;
 	}
 
-	for (int32_t i = 0; i < args::maxProbes; ++i)
+	for (int32_t i = 0; i < cl::maxProbes; ++i)
 	{
 		auto socketA = make_socket(relayAddr.isIpv6());
 		auto socketB = make_socket(relayAddr.isIpv6());
@@ -107,12 +109,12 @@ int main(int argc, char* argv[], char* envp[])
 		ur::recv_buffer recvBuffer{};
 		int32_t recvBytes{};
 
-		const auto waitUntil = std::chrono::steady_clock::now() + args::waitTime;
+		const auto waitUntil = std::chrono::steady_clock::now() + cl::waitTime;
 		while (waitUntil > std::chrono::steady_clock::now())
 		{
-			if (socketA.waitForRead(args::waitTime / 2))
+			if (socketA.waitForRead(cl::waitTime / 2))
 				recvBytes = socketA.recvFrom(recvBuffer.data(), recvBuffer.size(), recvAddr);
-			else if (socketB.waitForRead(args::waitTime / 2))
+			else if (socketB.waitForRead(cl::waitTime / 2))
 				recvBytes = socketB.recvFrom(recvBuffer.data(), recvBuffer.size(), recvAddr);
 
 			if (recvBytes > 0)
@@ -121,12 +123,12 @@ int main(int argc, char* argv[], char* envp[])
 
 		if (recvBytes <= 0)
 		{
-			std::println("Probe failed {} / {} (no data)", i + 1, args::maxProbes);
+			std::println("Probe failed {} / {} (no data)", i + 1, cl::maxProbes);
 			continue;
 		}
 		else if (recvBytes != sizeof(ur::handshake_header))
 		{
-			std::println("Probe failed {} / {} (unexpected size of {} instead {})", i + 1, args::maxProbes, recvBytes, sizeof(ur::handshake_header));
+			std::println("Probe failed {} / {} (unexpected size of {} instead {})", i + 1, cl::maxProbes, recvBytes, sizeof(ur::handshake_header));
 			continue;
 		}
 		else if (recvAddr != relayAddr)
@@ -140,12 +142,12 @@ int main(int argc, char* argv[], char* envp[])
 
 		if (recvHeader.m_magicNumber == headerPacket.m_magicNumber && recvHeader.m_guid == headerPacket.m_guid)
 		{
-			std::println("Probe succeeded! {} / {}", i + 1, args::maxProbes);
+			std::println("Probe succeeded! {} / {}", i + 1, cl::maxProbes);
 			return 0; // success!
 		}
 		else
 		{
-			std::println("Probe failed {} / {} (unexpected data)", i + 1, args::maxProbes);
+			std::println("Probe failed {} / {} (unexpected data)", i + 1, cl::maxProbes);
 			continue;
 		}
 	}

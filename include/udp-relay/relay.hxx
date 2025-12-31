@@ -14,7 +14,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <memory>
-#include <queue>
 #include <unordered_map>
 
 // initialize udp-relay library and it's components
@@ -93,7 +92,7 @@ namespace ur
 	};
 	static_assert(sizeof(handshake_extension_header) == 4);
 
-	using recv_buffer = std::array<std::uint64_t, 65536 / alignof(std::uint64_t)>;
+	using recv_buffer = std::array<std::byte, 1472>;
 
 	class relay
 	{
@@ -125,10 +124,6 @@ namespace ur
 		secret_key m_secretKey{};
 
 		udpsocket m_socket{};
-
-		socket_address m_recvAddr{};
-
-		recv_buffer m_recvBuffer{};
 
 		std::unordered_map<guid, channel> m_channels{};
 

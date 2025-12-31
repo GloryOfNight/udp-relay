@@ -13,7 +13,7 @@
 
 using namespace std::chrono_literals;
 
-namespace args
+namespace cl
 {
 	static bool printHelp{};
 	static int32_t maxClients{2};
@@ -22,26 +22,28 @@ namespace args
 	static int32_t shutdownAfter{15};
 	static std::chrono::milliseconds sendIntervalMs{24ms};
 	static bool useIpv6{false};
-} // namespace args
+} // namespace cl
+
+namespace env
+{
+	static std::string_view secretKey{};
+} // namespace env
 
 // clang-format off
 static constexpr auto argList = std::array
 {
-	ur::cl_var_ref{"--help", args::printHelp,									"--help											= print help" },
-	ur::cl_var_ref{"--max-clients", args::maxClients,							"--max-clients									= number of clients to create, should be power of 2" },
-	ur::cl_var_ref{"--relay-addr", args::relayAddr,								"--relay-addr <value> <value> <value> <value>	= space separated address of relay server, 127 0 0 1 dy default" },
-	ur::cl_var_ref{"--relay-port", args::relayPort,								"--relay-port <value>							= relay server port, 6060 by default" },
-	ur::cl_var_ref{"--shutdown-after", args::shutdownAfter,						"--shutdown-after <value>						= time in seconds after which test will end" },
-	ur::cl_var_ref{"--send-interval-ms", args::sendIntervalMs,					"--send-interval-ms <value>						= how often client should send" },
-	ur::cl_var_ref{"--ipv6", args::useIpv6,										"--ipv6 0|1										= use ipv6" },
+	ur::cl_var_ref{"--help", cl::printHelp,									"--help											= print help" },
+	ur::cl_var_ref{"--max-clients", cl::maxClients,							"--max-clients									= number of clients to create, should be power of 2" },
+	ur::cl_var_ref{"--relay-addr", cl::relayAddr,								"--relay-addr <value> <value> <value> <value>	= space separated address of relay server, 127 0 0 1 dy default" },
+	ur::cl_var_ref{"--relay-port", cl::relayPort,								"--relay-port <value>							= relay server port, 6060 by default" },
+	ur::cl_var_ref{"--shutdown-after", cl::shutdownAfter,						"--shutdown-after <value>						= time in seconds after which test will end" },
+	ur::cl_var_ref{"--send-interval-ms", cl::sendIntervalMs,					"--send-interval-ms <value>						= how often client should send" },
+	ur::cl_var_ref{"--ipv6", cl::useIpv6,										"--ipv6 0|1										= use ipv6" },
 };
-// clang-format on
 
-// clang-format off
-static std::string_view secretKey{};
 static constexpr auto envList = std::array
 {
-	ur::env_var_ref{"UDP_RELAY_SECRET_KEY", secretKey, "Key for auth relay packets"},
+	ur::env_var_ref{"UDP_RELAY_SECRET_KEY", env::secretKey, "Key for auth relay packets"},
 };
 // clang-format on
 
@@ -61,55 +63,55 @@ int main(int argc, char* argv[], [[maybe_unused]] char* envp[])
 	ur::parseArgs(argList, argc, argv);
 	ur::parseEnvp(envList, envp);
 
-	if (args::printHelp)
+	if (cl::printHelp)
 	{
 		ur::printArgsHelp(argList);
 		return 0;
 	}
 
-	if (args::relayAddr.empty())
+	if (cl::relayAddr.empty())
 	{
-		args::relayAddr = args::useIpv6 ? "::1" : "127.0.0.1";
+		cl::relayAddr = cl::useIpv6 ? "::1" : "127.0.0.1";
 	}
 
-	socket_address relayAddr = socket_address::from_string(args::relayAddr);
-	relayAddr.setPort(args::relayPort);
+	socket_address relayAddr = socket_address::from_string(cl::relayAddr);
+	relayAddr.setPort(cl::relayPort);
 	if (relayAddr.isNull() && relayAddr.getPort() != 0)
 	{
-		LOG(Error, RelayTester, "Invalid relay addr {}, port {}", args::relayAddr, args::relayPort)
+		LOG(Error, RelayTester, "Invalid relay addr {}, port {}", cl::relayAddr, cl::relayPort)
 		return 1;
 	}
 
-	if (relayAddr.isIpv4() && args::useIpv6)
+	if (relayAddr.isIpv4() && cl::useIpv6)
 	{
 		LOG(Error, RelayTester, "Conflicting arguments. Cannot use ipv4 addr while ipv6 enabled");
 		return 1;
 	}
 
-	if (args::maxClients % 2 != 0)
+	if (cl::maxClients % 2 != 0)
 	{
-		++args::maxClients;
+		++cl::maxClients;
 	}
-	if (args::maxClients > 1024)
+	if (cl::maxClients > 1024)
 	{
-		args::maxClients = 1024;
+		cl::maxClients = 1024;
 	}
 
 	LOG(Info, RelayTester, "Using relay address: {}", relayAddr);
-	LOG(Info, RelayTester, "Starting {0} clients", args::maxClients);
+	LOG(Info, RelayTester, "Starting {0} clients", cl::maxClients);
 
-	for (int32_t i = 0; i < args::maxClients; i += 2)
+	for (int32_t i = 0; i < cl::maxClients; i += 2)
 	{
 		relay_client_params params{};
 		params.m_guid = guid::newGuid();
-		params.m_sendIntervalMs = args::sendIntervalMs;
+		params.m_sendIntervalMs = cl::sendIntervalMs;
 		params.m_relayAddr = relayAddr;
 
 		auto clientA = &g_clients[i];
 		auto clientB = &g_clients[i + 1];
 
-		clientA->init(params, ur::relay_helpers::makeSecret(secretKey));
-		clientB->init(params, ur::relay_helpers::makeSecret(secretKey));
+		clientA->init(params, ur::relay_helpers::makeSecret(env::secretKey));
+		clientB->init(params, ur::relay_helpers::makeSecret(env::secretKey));
 
 		std::thread(std::bind(&relay_client::run, clientA)).detach();
 		std::thread(std::bind(&relay_client::run, clientB)).detach();
@@ -117,7 +119,7 @@ int main(int argc, char* argv[], [[maybe_unused]] char* envp[])
 
 	const auto start = std::chrono::steady_clock::now();
 
-	LOG(Info, RelayTester, "Clients started. Probing relay for {0} seconds", args::shutdownAfter);
+	LOG(Info, RelayTester, "Clients started. Probing relay for {0} seconds", cl::shutdownAfter);
 
 	g_running = true;
 	while (g_running)
@@ -126,23 +128,23 @@ int main(int argc, char* argv[], [[maybe_unused]] char* envp[])
 
 		const auto now = std::chrono::steady_clock::now();
 
-		if (args::shutdownAfter > 0 && std::chrono::duration_cast<std::chrono::seconds>(now - start).count() > args::shutdownAfter)
+		if (cl::shutdownAfter > 0 && std::chrono::duration_cast<std::chrono::seconds>(now - start).count() > cl::shutdownAfter)
 		{
 			LOG(Info, RelayTester, "Times up. Stopping clients.");
 
-			for (size_t i = 0; i < args::maxClients; ++i)
+			for (int32_t i = 0; i < cl::maxClients; ++i)
 				g_clients[i].stopSending();
 
 			std::this_thread::sleep_for(2s);
 
-			for (size_t i = 0; i < args::maxClients; ++i)
+			for (int32_t i = 0; i < cl::maxClients; ++i)
 				g_clients[i].stop();
 
 			g_running = false;
 
 			std::this_thread::sleep_for(2s);
 
-			for (size_t i = 0; i < args::maxClients; ++i)
+			for (int32_t i = 0; i < cl::maxClients; ++i)
 			{
 				const auto& client = g_clients[i];
 

@@ -161,13 +161,15 @@ void ur::relay::stopGracefully()
 
 void ur::relay::processIncoming()
 {
+	socket_address m_recvAddr{};
+	recv_buffer m_recvBuffer{};
+
 	const int32_t maxRecvCycles = 32;
 	for (int32_t currentCycle = 0; currentCycle < maxRecvCycles; ++currentCycle)
 	{
-		int32_t bytesRead{};
-		bytesRead = m_socket.recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), m_recvAddr);
-		if (bytesRead < 0)
-			return;
+		const int32_t bytesRead = m_socket.recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), m_recvAddr);
+		if (bytesRead < 0 || size_t(bytesRead) > m_recvBuffer.size())
+			continue;
 
 		// check if packet is relay handshake header, and extract guid if possible
 		// always check for handshake first, allow creating new connections from same socket without waiting prev. session to close
@@ -175,7 +177,7 @@ void ur::relay::processIncoming()
 		const bool isValidNonce = header.m_nonce ? m_recentNonces.find(header.m_nonce) == m_recentNonces.end() : false;
 		if (isValidHeader && isValidNonce && !m_gracefulStopRequested)
 		{
-			m_recentNonces.assign_next(header.m_nonce);
+			m_recentNonces.assign(header.m_nonce);
 
 			auto [it, inserted] = m_channels.try_emplace(header.m_guid, header.m_guid, m_recvAddr, m_lastTickTime);
 			if (inserted)

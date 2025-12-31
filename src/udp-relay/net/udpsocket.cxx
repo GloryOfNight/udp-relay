@@ -135,8 +135,9 @@ int32_t udpsocket::recvFrom(void* buffer, size_t bufferSize, socket_address& add
 {
 	sockaddr_storage saddr{};
 	socklen_t slen = sizeof(saddr);
+	const int flags = UR_PLATFORM_LINUX ? MSG_TRUNC : 0; // MSG_TRUNC not supported on windows. wtf.
 
-	const int32_t res = ::recvfrom(m_socket, (buffer_t*)buffer, bufferSize, 0, (struct sockaddr*)&saddr, &slen);
+	const int32_t res = ::recvfrom(m_socket, (buffer_t*)buffer, bufferSize, flags, (struct sockaddr*)&saddr, &slen);
 	addr.copyFromNative(saddr);
 	return res;
 }

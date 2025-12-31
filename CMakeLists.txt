@@ -51,7 +51,7 @@ target_link_libraries(${UDP_RELAY_LIB_NAME} PUBLIC $<$<PLATFORM_ID:Windows>:ws2_
 
 target_link_libraries(${UDP_RELAY_LIB_NAME} PRIVATE OpenSSL::Crypto)
 
-target_compile_options(${UDP_RELAY_LIB_NAME} PUBLIC $<$<PLATFORM_ID:Linux>:-fsized-deallocation> $<$<CXX_COMPILER_ID:Clang>:-Wall>)
+target_compile_options(${UDP_RELAY_LIB_NAME} PUBLIC $<$<PLATFORM_ID:Linux>:-fsized-deallocation> $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra>)
 
 target_include_directories(${UDP_RELAY_LIB_NAME} PUBLIC     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                             $<INSTALL_INTERFACE:include>)
