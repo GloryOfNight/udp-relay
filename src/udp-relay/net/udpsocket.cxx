@@ -64,6 +64,11 @@ udpsocket udpsocket::make(bool makeIpv6) noexcept
 	return newSocket;
 }
 
+int32_t udpsocket::getLastErrno() noexcept
+{
+	return errno;
+}
+
 void udpsocket::close() noexcept
 {
 	if (isValid())

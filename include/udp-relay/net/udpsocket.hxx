@@ -30,6 +30,8 @@ public:
 	// create new socket, result must be checked if valid
 	static udpsocket make(bool makeIpv6) noexcept;
 
+	static int32_t getLastErrno() noexcept;
+
 	// closes and invalidates current socket object
 	void close() noexcept;
 

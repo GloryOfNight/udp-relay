@@ -115,6 +115,9 @@ bool ur::relay::init(relay_params params, secret_key key)
 	m_secretKey = std::move(key);
 	m_socket = std::move(newSocket);
 
+	m_channels.reserve(256);
+	m_addressChannels.reserve(512);
+
 	return true;
 }
 
@@ -168,11 +171,13 @@ void ur::relay::processIncoming()
 	for (int32_t currentCycle = 0; currentCycle < maxRecvCycles; ++currentCycle)
 	{
 		const int32_t bytesRead = m_socket.recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), m_recvAddr);
-		if (bytesRead < 0 || size_t(bytesRead) > m_recvBuffer.size())
+		if (bytesRead < 0)
+			return;
+		
+		if (size_t(bytesRead) > m_recvBuffer.size()) [[unlikely]]
 			continue;
 
-		// check if packet is relay handshake header, and extract guid if possible
-		// always check for handshake first, allow creating new connections from same socket without waiting prev. session to close
+		// always check for handshake to allow creating new channels from same socket without waiting prev. session to close
 		const auto [isValidHeader, header] = relay_helpers::tryDeserializeHeader(m_secretKey, m_recvBuffer, bytesRead);
 		const bool isValidNonce = header.m_nonce ? m_recentNonces.find(header.m_nonce) == m_recentNonces.end() : false;
 		if (isValidHeader && isValidNonce && !m_gracefulStopRequested)
@@ -196,7 +201,6 @@ void ur::relay::processIncoming()
 			}
 		}
 
-		// if recvAddr has a channel mapped to it, as well as two valid peers, relay packet to the other peer
 		const auto findAddressChannel = m_addressChannels.find(m_recvAddr);
 		if (findAddressChannel != m_addressChannels.end())
 		{
@@ -213,13 +217,13 @@ void ur::relay::processIncoming()
 
 			const auto& sendAddr = currentChannel.m_peerA != m_recvAddr ? currentChannel.m_peerA : currentChannel.m_peerB;
 
-			// try relay packet immediately
+			// relay packet immediately or drop
 			const auto bytesSend = m_socket.sendTo(m_recvBuffer.data(), bytesRead, sendAddr);
-			if (bytesSend >= 0)
-			{
-				currentChannel.m_stats.m_packetsSent++;
-				currentChannel.m_stats.m_bytesSent += bytesSend;
-			}
+			if (bytesSend < 0) [[unlikely]]
+				return;
+
+			currentChannel.m_stats.m_packetsSent++;
+			currentChannel.m_stats.m_bytesSent += bytesSend;
 		}
 	}
 }
@@ -245,7 +249,7 @@ void ur::relay::conditionalCleanup()
 		std::erase_if(m_channels, eraseChannelLam);
 	}
 
-	{ // erase address mappings that uses erased channels
+	{ // erase address mappings that used erased channels
 		const auto eraseAddressChannelLam = [&](const auto& pair) -> bool
 		{
 			return m_channels.find(pair.second) == m_channels.end();
