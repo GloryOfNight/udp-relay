@@ -19,61 +19,61 @@ namespace ur::net
 
 	extern std::array<std::byte, 16> anyIpv6();
 	extern std::array<std::byte, 16> localhostIpv6();
+
+	// address class for sockets to handle ip & ports
+	struct socket_address final
+	{
+		// make ipv4 address
+		static socket_address make_ipv4(uint32_t ip, uint16_t port) noexcept;
+
+		// make ipv6 address
+		static socket_address make_ipv6(std::array<std::byte, 16> ip, uint16_t port) noexcept;
+
+		static socket_address from_string(std::string_view ip);
+
+		// convert address to address string
+		std::string toString(bool withPort = true) const;
+
+		// copy address from native address structure
+		void copyToNative(native_socket_address& saddr) const noexcept;
+
+		// copy address to native address structure
+		void copyFromNative(const native_socket_address& saddr) noexcept;
+
+		// check is initialized
+		bool isNull() const noexcept;
+
+		// get raw ip array
+		const std::array<std::byte, 16>& getRawIp() const noexcept;
+
+		// set host order port
+		void setPort(uint16_t port) noexcept;
+
+		// get host ordered port
+		uint16_t getPort() const noexcept;
+
+		// true if initialized as ipv4
+		bool isIpv4() const noexcept;
+
+		// true if initialized as ipv6
+		bool isIpv6() const noexcept;
+
+		bool operator==(const socket_address& other) const noexcept;
+		bool operator!=(const socket_address& other) const noexcept;
+
+	private:
+		uint16_t m_family{};						 // AF_INET or AF_INET6
+		uint16_t m_port{};							 // host order
+		alignas(4) std::array<std::byte, 16> m_ip{}; // ip bytes
+	};
 } // namespace ur::net
-
-// address class for sockets to handle ip & ports
-struct socket_address final
-{
-	// make ipv4 address
-	static socket_address make_ipv4(uint32_t ip, uint16_t port) noexcept;
-
-	// make ipv6 address
-	static socket_address make_ipv6(std::array<std::byte, 16> ip, uint16_t port) noexcept;
-
-	static socket_address from_string(std::string_view ip);
-
-	// convert address to address string
-	std::string toString(bool withPort = true) const;
-
-	// copy address from native address structure
-	void copyToNative(native_socket_address& saddr) const noexcept;
-
-	// copy address to native address structure
-	void copyFromNative(const native_socket_address& saddr) noexcept;
-
-	// check is initialized
-	bool isNull() const noexcept;
-
-	// get raw ip array
-	const std::array<std::byte, 16>& getRawIp() const noexcept;
-
-	// set host order port
-	void setPort(uint16_t port) noexcept;
-
-	// get host ordered port
-	uint16_t getPort() const noexcept;
-
-	// true if initialized as ipv4
-	bool isIpv4() const noexcept;
-
-	// true if initialized as ipv6
-	bool isIpv6() const noexcept;
-
-	bool operator==(const socket_address& other) const noexcept;
-	bool operator!=(const socket_address& other) const noexcept;
-
-private:
-	uint16_t m_family{};						 // AF_INET or AF_INET6
-	uint16_t m_port{};							 // host order
-	alignas(4) std::array<std::byte, 16> m_ip{}; // ip bytes
-};
 
 namespace std
 {
 	template <>
-	struct hash<socket_address>
+	struct hash<ur::net::socket_address>
 	{
-		std::size_t operator()(const socket_address& val) const noexcept
+		std::size_t operator()(const ur::net::socket_address& val) const noexcept
 		{
 			alignas(4) std::array<std::byte, 16 + 2> ipPort{};
 
@@ -86,18 +86,18 @@ namespace std
 	};
 
 	template <>
-	struct equal_to<socket_address>
+	struct equal_to<ur::net::socket_address>
 	{
-		bool operator()(const socket_address& left, const socket_address& right) const noexcept
+		bool operator()(const ur::net::socket_address& left, const ur::net::socket_address& right) const noexcept
 		{
 			return left == right;
 		}
 	};
 
 	template <>
-	struct less<socket_address>
+	struct less<ur::net::socket_address>
 	{
-		bool operator()(const socket_address& left, const socket_address& right) const noexcept
+		bool operator()(const ur::net::socket_address& left, const ur::net::socket_address& right) const noexcept
 		{
 			const int ipCmp = std::memcmp(left.getRawIp().data(), right.getRawIp().data(), left.getRawIp().size());
 			return ipCmp != 0 ? ipCmp < 0 : left.getPort() < right.getPort();
@@ -105,7 +105,7 @@ namespace std
 	};
 
 	template <>
-	struct formatter<socket_address>
+	struct formatter<ur::net::socket_address>
 	{
 	private:
 		char m_formatMode = 'D';
@@ -129,7 +129,7 @@ namespace std
 		}
 
 		template <typename FormatContext>
-		auto format(const socket_address& value, FormatContext& ctx) const
+		auto format(const ur::net::socket_address& value, FormatContext& ctx) const
 		{
 			switch (m_formatMode)
 			{

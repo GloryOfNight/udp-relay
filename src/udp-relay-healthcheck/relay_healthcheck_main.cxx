@@ -44,14 +44,14 @@ static constexpr auto envList = std::array
 };
 // clang-format on
 
-udpsocket make_socket(bool ipv6)
+ur::net::udpsocket make_socket(bool ipv6)
 {
-	auto socket = udpsocket::make(ipv6);
-	const socket_address bindAddr = ipv6 ? socket_address::make_ipv6(ur::net::anyIpv6(), 0) : socket_address::make_ipv4(ur::net::anyIpv4(), 0);
+	auto socket = ur::net::udpsocket::make(ipv6);
+	const ur::net::socket_address bindAddr = ipv6 ? ur::net::socket_address::make_ipv6(ur::net::anyIpv6(), 0) : ur::net::socket_address::make_ipv4(ur::net::anyIpv4(), 0);
 	if (!socket.bind(bindAddr)) [[unlikely]]
-		return udpsocket();
+		return ur::net::udpsocket();
 	if (!socket.setNonBlocking()) [[unlikely]]
-		return udpsocket();
+		return ur::net::udpsocket();
 	return socket;
 }
 
@@ -71,7 +71,7 @@ int main(int argc, char* argv[], char* envp[])
 
 	const ur::secret_key key = ur::relay_helpers::makeSecret(env::secretKey);
 
-	socket_address relayAddr = socket_address::from_string(cl::relayAddr);
+	auto relayAddr = ur::net::socket_address::from_string(cl::relayAddr);
 	relayAddr.setPort(cl::relayPort);
 
 	if (relayAddr.isNull() || !relayAddr.getPort())
@@ -105,7 +105,7 @@ int main(int argc, char* argv[], char* envp[])
 		headerPacket.m_mac = ur::relay_helpers::makeHMAC(key, headerPacket.m_nonce);
 		socketB.sendTo(&headerPacket, sizeof(headerPacket), relayAddr);
 
-		socket_address recvAddr{};
+		ur::net::socket_address recvAddr{};
 		ur::recv_buffer recvBuffer{};
 		int32_t recvBytes{};
 

@@ -74,7 +74,7 @@ int main(int argc, char* argv[], [[maybe_unused]] char* envp[])
 		cl::relayAddr = cl::useIpv6 ? "::1" : "127.0.0.1";
 	}
 
-	socket_address relayAddr = socket_address::from_string(cl::relayAddr);
+	auto relayAddr = ur::net::socket_address::from_string(cl::relayAddr);
 	relayAddr.setPort(cl::relayPort);
 	if (relayAddr.isNull() && relayAddr.getPort() != 0)
 	{

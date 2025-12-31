@@ -64,7 +64,7 @@ bool ur::relay::init(relay_params params, secret_key key)
 
 	LOG(Verbose, Relay, "Begin initialization");
 
-	udpsocket newSocket = udpsocket::make(params.ipv6);
+	auto newSocket = ur::net::udpsocket::make(params.ipv6);
 	if (!newSocket.isValid())
 	{
 		LOG(Error, Relay, "Failed to create socket!");
@@ -77,7 +77,7 @@ bool ur::relay::init(relay_params params, secret_key key)
 		return false;
 	}
 
-	const auto bindAddr = params.ipv6 ? socket_address::make_ipv6(ur::net::anyIpv6(), params.m_primaryPort) : socket_address::make_ipv4(ur::net::anyIpv4(), params.m_primaryPort);
+	const auto bindAddr = params.ipv6 ? net::socket_address::make_ipv6(ur::net::anyIpv6(), params.m_primaryPort) : net::socket_address::make_ipv4(net::anyIpv4(), params.m_primaryPort);
 	if (!newSocket.bind(bindAddr))
 	{
 		LOG(Error, Relay, "Failed bind socket to {}", bindAddr);
@@ -162,7 +162,7 @@ void ur::relay::stopGracefully()
 
 void ur::relay::processIncoming()
 {
-	socket_address m_recvAddr{};
+	net::socket_address m_recvAddr{};
 	recv_buffer m_recvBuffer{};
 
 	const int32_t maxRecvCycles = 32;

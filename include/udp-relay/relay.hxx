@@ -39,7 +39,7 @@ namespace ur
 	struct channel
 	{
 		channel() = default;
-		channel(guid inGuid, socket_address inPeerA, std::chrono::steady_clock::time_point inLastUpdated)
+		channel(guid inGuid, net::socket_address inPeerA, std::chrono::steady_clock::time_point inLastUpdated)
 			: m_guid{inGuid}
 			, m_peerA{inPeerA}
 			, m_lastUpdated{inLastUpdated}
@@ -47,8 +47,8 @@ namespace ur
 		}
 
 		const guid m_guid{};
-		socket_address m_peerA{};
-		socket_address m_peerB{};
+		net::socket_address m_peerA{};
+		net::socket_address m_peerB{};
 		std::chrono::steady_clock::time_point m_lastUpdated{};
 		channel_stats m_stats{};
 	};
@@ -123,13 +123,13 @@ namespace ur
 
 		secret_key m_secretKey{};
 
-		udpsocket m_socket{};
+		net::udpsocket m_socket{};
 
 		std::unordered_map<guid, channel> m_channels{};
 
-		std::unordered_map<socket_address, guid> m_addressChannels{};
+		std::unordered_map<net::socket_address, guid> m_addressChannels{};
 
-		ur::circular_buffer<uint64_t, 64> m_recentNonces{};
+		circular_buffer<uint64_t, 64> m_recentNonces{};
 
 		std::chrono::steady_clock::time_point m_lastTickTime{};
 

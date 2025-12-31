@@ -60,7 +60,7 @@ std::pair<bool, relay_client_handshake> relay_client_helpers::tryDeserialize(con
 
 bool relay_client::init(relay_client_params params, ur::secret_key key)
 {
-	auto socket = udpsocket::make(params.m_relayAddr.isIpv6());
+	auto socket = ur::net::udpsocket::make(params.m_relayAddr.isIpv6());
 	if (!socket.isValid())
 	{
 		LOG(Error, RelayClient, "Failed to create socket");
@@ -74,7 +74,7 @@ bool relay_client::init(relay_client_params params, ur::secret_key key)
 		return false;
 	}
 
-	auto bindAddr = useIpv6 ? socket_address::make_ipv6(ur::net::anyIpv6(), 0) : socket_address::make_ipv4(ur::net::anyIpv4(), 0);
+	auto bindAddr = useIpv6 ? ur::net::socket_address::make_ipv6(ur::net::anyIpv6(), 0) : ur::net::socket_address::make_ipv4(ur::net::anyIpv4(), 0);
 	if (!socket.bind(bindAddr))
 	{
 		LOG(Error, RelayClient, "Failed bind socket to {}", bindAddr);
@@ -119,7 +119,7 @@ void relay_client::processIncoming()
 {
 	for (int32_t i = 0; i < 32; i++)
 	{
-		socket_address recvAddr{};
+		ur::net::socket_address recvAddr{};
 
 		int32_t bytesRead{};
 		bytesRead = m_socket.recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), recvAddr);
@@ -139,7 +139,7 @@ void relay_client::processIncoming()
 
 		m_stats.m_packetsRecv++;
 
-		// after relay established, it better to zero nonce to avoid unnessesery checks
+		// after relay established, it better to zero nonce to avoid unnecessary checks
 		if (m_nonce)
 			m_nonce = 0;
 

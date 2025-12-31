@@ -13,7 +13,7 @@ struct relay_client_params
 {
 	guid m_guid{};
 	std::chrono::milliseconds m_sendIntervalMs{};
-	socket_address m_relayAddr{};
+	ur::net::socket_address m_relayAddr{};
 };
 
 struct relay_client_stats
@@ -71,7 +71,7 @@ private:
 
 	ur::secret_key m_secretKey{};
 
-	udpsocket m_socket{};
+	ur::net::udpsocket m_socket{};
 
 	uint64_t m_nonce{};
 
