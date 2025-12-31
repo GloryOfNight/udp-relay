@@ -274,7 +274,7 @@ std::pair<bool, ur::handshake_header> ur::relay_helpers::tryDeserializeHeader(co
 	// not a handshake packet
 	if (recvBytes < sizeof(handshake_header))
 		return std::pair<bool, handshake_header>();
-	else if (std::memcmp(recvBuffer.data(), &handshake_magic_number_be, sizeof(handshake_header::m_magicNumber) != 0))
+	else if (std::memcmp(recvBuffer.data(), &handshake_magic_number_be, sizeof(handshake_header::m_magicNumber)) != 0)
 		return std::pair<bool, handshake_header>();
 
 	handshake_header recvHeader{};
