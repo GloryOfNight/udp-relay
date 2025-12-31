@@ -284,7 +284,6 @@ std::pair<bool, ur::handshake_header> ur::relay_helpers::tryDeserializeHeader(co
 	if (const uint16_t len = recvHeader.m_length + sizeof(handshake_header); len != recvBytes)
 	{
 		LOG(Debug, RelayHelpers, "Packet length invalid. Expected: {}, received: {}", len, recvBytes);
-		return std::pair<bool, handshake_header>();
 	}
 
 	constexpr guid zeroGuid{};
