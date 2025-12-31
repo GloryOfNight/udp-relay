@@ -13,8 +13,8 @@
 
 using namespace std::chrono_literals;
 
-ur::log_level ur::runtime_log_verbosity{ur::log_level::Info};
-bool ur_is_initialized{false};
+std::atomic<ur::log_level> ur::runtime_log_verbosity{ur::log_level::Info};
+std::atomic<bool> ur_is_initialized{false};
 
 #if UR_PLATFORM_WINDOWS
 #include <WinSock2.h>

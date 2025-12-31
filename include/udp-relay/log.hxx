@@ -19,7 +19,7 @@ namespace ur
 		Verbose = 4
 	};
 
-	extern log_level runtime_log_verbosity;
+	extern std::atomic<log_level> runtime_log_verbosity;
 
 #if UR_BUILD_RELEASE
 	static constexpr log_level compile_log_verbosity{log_level::Info};
@@ -63,6 +63,6 @@ namespace ur
 	}
 } // namespace ur
 
-#define LOG(level, category, format, ...)                \
+#define LOG(level, category, format, ...)                            \
 	if constexpr (ur::log_level::level <= ur::compile_log_verbosity) \
 		ur::log(ur::log_level::level, #category, format, ##__VA_ARGS__);
