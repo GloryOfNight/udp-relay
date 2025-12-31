@@ -171,14 +171,11 @@ void ur::relay::processIncoming()
 		const int32_t bytesRead = m_socket.recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), m_recvAddr);
 		if (bytesRead < 0)
 		{
-			switch (net::udpsocket::getLastErrno())
-			{
-			case EAGAIN:
-			case EWOULDBLOCK:
+			const auto err = net::udpsocket::getLastErrno();
+			if (err == EAGAIN || err == EWOULDBLOCK)
 				return;
-			default:
+			else
 				continue;
-			}
 		}
 
 		if (size_t(bytesRead) > m_recvBuffer.size()) [[unlikely]]
