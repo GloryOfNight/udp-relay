@@ -38,7 +38,7 @@ std::array<std::byte, 16> ur::net::localhostIpv6()
 	return addr;
 }
 
-socket_address socket_address::make_ipv4(uint32_t ip, uint16_t port) noexcept
+ur::net::socket_address ur::net::socket_address::make_ipv4(uint32_t ip, uint16_t port) noexcept
 {
 	socket_address newAddr{};
 	newAddr.m_family = AF_INET;
@@ -47,7 +47,7 @@ socket_address socket_address::make_ipv4(uint32_t ip, uint16_t port) noexcept
 	return newAddr;
 }
 
-socket_address socket_address::make_ipv6(std::array<std::byte, 16> ip, uint16_t port) noexcept
+ur::net::socket_address ur::net::socket_address::make_ipv6(std::array<std::byte, 16> ip, uint16_t port) noexcept
 {
 	socket_address newAddr{};
 	newAddr.m_family = AF_INET6;
@@ -56,7 +56,7 @@ socket_address socket_address::make_ipv6(std::array<std::byte, 16> ip, uint16_t 
 	return newAddr;
 }
 
-socket_address socket_address::from_string(std::string_view ip)
+ur::net::socket_address ur::net::socket_address::from_string(std::string_view ip)
 {
 	if (struct in6_addr ipv6; inet_pton(AF_INET6, ip.data(), &ipv6) == 1)
 	{
@@ -75,13 +75,13 @@ socket_address socket_address::from_string(std::string_view ip)
 	return socket_address();
 }
 
-bool socket_address::isNull() const noexcept
+bool ur::net::socket_address::isNull() const noexcept
 {
 	socket_address zeroAddr{};
 	return std::memcmp(this, &zeroAddr, sizeof(socket_address)) == 0;
 }
 
-void socket_address::copyToNative(native_socket_address& saddr) const noexcept
+void ur::net::socket_address::copyToNative(native_socket_address& saddr) const noexcept
 {
 	if (m_family == AF_INET6)
 	{
@@ -101,7 +101,7 @@ void socket_address::copyToNative(native_socket_address& saddr) const noexcept
 	}
 }
 
-void socket_address::copyFromNative(const native_socket_address& saddr) noexcept
+void ur::net::socket_address::copyFromNative(const native_socket_address& saddr) noexcept
 {
 	if (saddr.ss_family == AF_INET6)
 	{
@@ -121,7 +121,7 @@ void socket_address::copyFromNative(const native_socket_address& saddr) noexcept
 	}
 }
 
-std::string socket_address::toString(bool withPort) const
+std::string ur::net::socket_address::toString(bool withPort) const
 {
 	std::array<char, INET6_ADDRSTRLEN> ipStr{};
 	switch (m_family)
@@ -141,37 +141,37 @@ std::string socket_address::toString(bool withPort) const
 	return "invaddr";
 }
 
-bool socket_address::operator==(const socket_address& other) const noexcept
+bool ur::net::socket_address::operator==(const socket_address& other) const noexcept
 {
 	return std::memcmp(this, &other, sizeof(socket_address)) == 0;
 }
 
-bool socket_address::operator!=(const socket_address& other) const noexcept
+bool ur::net::socket_address::operator!=(const socket_address& other) const noexcept
 {
 	return std::memcmp(this, &other, sizeof(socket_address)) != 0;
 }
 
-const std::array<std::byte, 16>& socket_address::getRawIp() const noexcept
+const std::array<std::byte, 16>& ur::net::socket_address::getRawIp() const noexcept
 {
 	return m_ip;
 }
 
-void socket_address::setPort(uint16_t port) noexcept
+void ur::net::socket_address::setPort(uint16_t port) noexcept
 {
 	m_port = port;
 }
 
-uint16_t socket_address::getPort() const noexcept
+uint16_t ur::net::socket_address::getPort() const noexcept
 {
 	return m_port;
 }
 
-bool socket_address::isIpv4() const noexcept
+bool ur::net::socket_address::isIpv4() const noexcept
 {
 	return m_family == AF_INET;
 }
 
-bool socket_address::isIpv6() const noexcept
+bool ur::net::socket_address::isIpv6() const noexcept
 {
 	return m_family == AF_INET6;
 }

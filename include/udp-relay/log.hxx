@@ -2,31 +2,33 @@
 
 #pragma once
 
+#include <atomic>
 #include <chrono>
 #include <cstdarg>
 #include <format>
 #include <iostream>
 #include <print>
 
-enum class log_level : uint8_t
-{
-	NoLogs = 0,
-	Error = 1,
-	Warning = 2,
-	Info = 3,
-	Verbose = 4
-};
-
-extern log_level g_runtimeLogLevel;
-
-#if UR_BUILD_RELEASE
-static constexpr log_level g_compileLogLevel{log_level::Info};
-#else
-static constexpr log_level g_compileLogLevel{log_level::Verbose};
-#endif
-
 namespace ur
 {
+	enum class log_level : uint8_t
+	{
+		NoLogs = 0,
+		Error = 1,
+		Warning = 2,
+		Info = 3,
+		Verbose = 4,
+		Debug = 5
+	};
+
+	extern std::atomic<log_level> runtime_log_verbosity;
+
+#if UR_BUILD_RELEASE
+	static constexpr log_level compile_log_verbosity{log_level::Info};
+#else
+	static constexpr log_level compile_log_verbosity{log_level::Debug};
+#endif
+
 	static inline const char* log_level_to_string(const log_level level)
 	{
 		switch (level)
@@ -39,6 +41,8 @@ namespace ur
 			return "Info";
 		case log_level::Verbose:
 			return "Verbose";
+		case log_level::Debug:
+			return "Debug";
 		case log_level::NoLogs:
 			return "";
 		default:
@@ -49,7 +53,7 @@ namespace ur
 	template <typename... Args>
 	static void log(const log_level level, const std::string_view category, const std::string_view format, const Args... args)
 	{
-		if (level > g_runtimeLogLevel)
+		if (level > runtime_log_verbosity)
 			return;
 
 		const auto now = std::chrono::utc_clock::now();
@@ -63,6 +67,6 @@ namespace ur
 	}
 } // namespace ur
 
-#define LOG(level, category, format, ...)                \
-	if constexpr (log_level::level <= g_compileLogLevel) \
-		ur::log(log_level::level, #category, format, ##__VA_ARGS__);
+#define LOG(level, category, format, ...)                            \
+	if constexpr (ur::log_level::level <= ur::compile_log_verbosity) \
+		ur::log(ur::log_level::level, #category, format, ##__VA_ARGS__);

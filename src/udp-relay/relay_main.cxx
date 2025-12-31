@@ -1,6 +1,7 @@
 // Copyright(c) 2025 Siarhei Dziki aka "GloryOfNight"
 
 #include "udp-relay/log.hxx"
+#include "udp-relay/main_helpers.hxx"
 #include "udp-relay/relay.hxx"
 #include "udp-relay/utils.hxx"
 
@@ -11,69 +12,73 @@
 #include <print>
 #include <stacktrace>
 
-namespace args
+namespace cl
 {
-	bool printHelp{};										 // when true - prints help and exits
-	int32_t logLevel{static_cast<int32_t>(log_level::Info)}; // 0 - no logs, 1 - errors only, 2 - warnings only, 3 - log (default), 4 - verbose
-	relay_params relayParams{};
-} // namespace args
+	static bool printHelp{}; // when true - prints help and exits
+	static ur::relay_params relayParams{};
+} // namespace cl
+
+namespace env
+{
+	static std::string_view secretKey{};
+} // namespace env
 
 // clang-format off
 static constexpr auto argList = std::array
 {
-	cl_arg_ref{"--help", args::printHelp,																"--help										= print help" },
-	cl_arg_ref{"--log-level", args::logLevel,															"--log-level 0-4							= set log level no logs - verbose" },
-	cl_arg_ref{"--port", args::relayParams.m_primaryPort,												"--port 0-65535								= main port for accepting requests" },
-	cl_arg_ref{"--socketRecvBufferSize", args::relayParams.m_socketRecvBufferSize,						"--socketRecvBufferSize <value>             = receive buffer size for internal socket" },
-	cl_arg_ref{"--socketSendBufferSize", args::relayParams.m_socketSendBufferSize,						"--socketSendBufferSize <value>             = send buffer size for internal socket" },
-	cl_arg_ref{"--cleanupTime", args::relayParams.m_cleanupTime,										"--cleanupTime <value>						= time in ms, how often relay should perform clean check" },
-	cl_arg_ref{"--cleanupInactiveAfterTime", args::relayParams.m_cleanupInactiveChannelAfterTime,		"--cleanupInactiveAfterTime <value>			= time in ms, inactivity timeout for channel" },
-	cl_arg_ref{"--ipv6", args::relayParams.ipv6,														"--ipv6 0|1									= should create and bind to ipv6 socket (dual-stack ipv4/6 mode)" },
+	ur::cl_var_ref{"--help", cl::printHelp,																"--help										= print help" },
+	ur::cl_var_ref{"--log-level", ur::runtime_log_verbosity,												"--log-level 0-4							= set log level no logs - verbose" },
+	ur::cl_var_ref{"--port", cl::relayParams.m_primaryPort,												"--port 0-65535								= main port for accepting requests" },
+	ur::cl_var_ref{"--socketRecvBufferSize", cl::relayParams.m_socketRecvBufferSize,						"--socketRecvBufferSize <value>             = receive buffer size for internal socket" },
+	ur::cl_var_ref{"--socketSendBufferSize", cl::relayParams.m_socketSendBufferSize,						"--socketSendBufferSize <value>             = send buffer size for internal socket" },
+	ur::cl_var_ref{"--cleanupTime", cl::relayParams.m_cleanupTime,										"--cleanupTime <value>						= time in ms, how often relay should perform clean check" },
+	ur::cl_var_ref{"--cleanupInactiveAfterTime", cl::relayParams.m_cleanupInactiveChannelAfterTime,		"--cleanupInactiveAfterTime <value>			= time in ms, inactivity timeout for channel" },
+	ur::cl_var_ref{"--ipv6", cl::relayParams.ipv6,														"--ipv6 0|1									= should create and bind to ipv6 socket (dual-stack ipv4/6 mode)" },
 };
-// clang-format on
 
-// clang-format off
-static std::string secretKey{};
 static constexpr auto envList = std::array
 {
-	env_var_ref{"UDP_RELAY_SECRET_KEY", secretKey, "Key for auth relay packets"},
+	ur::env_var_ref{"UDP_RELAY_SECRET_KEY", env::secretKey, "Key for auth relay packets"},
 };
 // clang-format on
 
-static relay g_relay{};
-static int g_exitCode{};
+static void relay_signal_handler(int sig);
 
-static void signal_handler(int sig);
+static ur::relay g_relay{};
+static int exit_code{};
 
-int relay_main(int argc, char* argv[], char* envp[])
+int main(int argc, char* argv[], char* envp[])
 {
-	std::signal(SIGINT, signal_handler);
-	std::signal(SIGTERM, signal_handler);
-	std::signal(SIGABRT, signal_handler);
-	std::signal(SIGSEGV, signal_handler);
-	std::signal(SIGILL, signal_handler);
-	std::signal(SIGFPE, signal_handler);
+	if (ur_init())
+		return 1;
+
+	std::signal(SIGINT, relay_signal_handler);
+	std::signal(SIGTERM, relay_signal_handler);
+	std::signal(SIGABRT, relay_signal_handler);
+	std::signal(SIGSEGV, relay_signal_handler);
+	std::signal(SIGILL, relay_signal_handler);
+	std::signal(SIGFPE, relay_signal_handler);
 
 	ur::parseArgs(argList, argc, argv);
 	ur::parseEnvp(envList, envp);
 
-	if (args::printHelp)
+	if (cl::printHelp)
 	{
 		ur::printArgsHelp(argList);
 		return 0;
 	}
 
-	g_runtimeLogLevel = static_cast<log_level>(args::logLevel);
-
-	if (g_relay.init(args::relayParams, relay_helpers::makeSecret(secretKey)))
+	if (g_relay.init(cl::relayParams, ur::relay_helpers::makeSecret(env::secretKey)))
 	{
 		g_relay.run();
 	}
 
-	return g_exitCode;
+	ur_shutdown();
+
+	return exit_code;
 }
 
-void signal_handler(int sig)
+void relay_signal_handler(int sig)
 {
 	std::println("- - - Caught signal {} - - -", sig);
 
@@ -95,5 +100,5 @@ void signal_handler(int sig)
 		break;
 	}
 
-	g_exitCode = 128 + sig;
+	exit_code = 128 + sig;
 }
