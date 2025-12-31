@@ -208,7 +208,7 @@ int32_t udpsocket::getRecvBufferSize() const noexcept
 	return size;
 }
 
-bool udpsocket::setRecvTimeoutUs(std::chrono::microseconds timeout) const noexcept
+bool udpsocket::setRecvTimeout(std::chrono::microseconds timeout) const noexcept
 {
 #if UR_PLATFORM_WINDOWS
 	DWORD time = (timeout.count() + 999) / 1000;
@@ -221,7 +221,7 @@ bool udpsocket::setRecvTimeoutUs(std::chrono::microseconds timeout) const noexce
 	return bOk;
 }
 
-bool udpsocket::setSendTimeoutUs(std::chrono::microseconds timeout) const noexcept
+bool udpsocket::setSendTimeout(std::chrono::microseconds timeout) const noexcept
 {
 #if UR_PLATFORM_WINDOWS
 	DWORD time = (timeout.count() + 999) / 1000;

@@ -78,10 +78,10 @@ public:
 	int32_t getRecvBufferSize() const noexcept;
 
 	// set send operation timeout, used in blocking sockets. Return true on success.
-	bool setSendTimeoutUs(std::chrono::microseconds timeout) const noexcept;
+	bool setSendTimeout(std::chrono::microseconds timeout) const noexcept;
 
 	// set receive operation timeout, used in blocking sockets. Return true on success.
-	bool setRecvTimeoutUs(std::chrono::microseconds timeout) const noexcept;
+	bool setRecvTimeout(std::chrono::microseconds timeout) const noexcept;
 
 	// wait for incoming data. Return true if data available.
 	bool waitForRead(std::chrono::microseconds timeout) const noexcept;

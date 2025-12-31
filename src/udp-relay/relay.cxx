@@ -133,18 +133,16 @@ void ur::relay::run()
 
 	while (m_running)
 	{
-		m_lastTickTime = std::chrono::steady_clock::now();
-
 		m_socket.waitForWrite(1000us);
-		if (m_socket.waitForRead(15000us))
-			processIncoming();
+		m_socket.waitForRead(15000us);
+
+		m_lastTickTime = std::chrono::steady_clock::now();
+		processIncoming();
 
 		conditionalCleanup();
 
 		if (m_gracefulStopRequested && m_channels.size() == 0)
-		{
 			stop();
-		}
 	}
 
 	LOG(Info, Relay, "Exited run loop");
@@ -173,7 +171,7 @@ void ur::relay::processIncoming()
 		const int32_t bytesRead = m_socket.recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), m_recvAddr);
 		if (bytesRead < 0)
 			return;
-		
+
 		if (size_t(bytesRead) > m_recvBuffer.size()) [[unlikely]]
 			continue;
 

@@ -132,10 +132,8 @@ void ur::parseArgs(const T& argList, int argc, char* argv[])
 				std::println("Failed parse argument: {0}. Type not supported: {1}", prev_arg->m_name, prev_arg->m_type.name());
 			}
 		}
-		else
+		else if (arg.starts_with("-"))
 		{
-			if (arg.ends_with("udp-relay") || arg.ends_with("udp-relay.exe"))
-				continue;
 			std::println("Unknown argument: {0}", arg.data());
 		}
 	}
