@@ -13,8 +13,49 @@
 
 using namespace std::chrono_literals;
 
-bool relay::init(relay_params params, secret_key key)
+std::atomic<ur::log_level> ur::runtime_log_verbosity{ur::log_level::Info};
+std::atomic<bool> ur_is_initialized{false};
+
+#if UR_PLATFORM_WINDOWS
+#include <WinSock2.h>
+#endif
+
+int ur_init()
 {
+	if (ur_is_init())
+		return 1;
+
+#if UR_PLATFORM_WINDOWS
+	WSADATA wsaData;
+	const int wsaRes = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (wsaRes != 0)
+		return 1;
+#endif
+	ur_is_initialized = true;
+	return 0;
+}
+
+bool ur_is_init()
+{
+	return ur_is_initialized;
+}
+
+void ur_shutdown()
+{
+#if UR_PLATFORM_WINDOWS
+	WSACleanup();
+#endif
+	ur_is_initialized = false;
+}
+
+bool ur::relay::init(relay_params params, secret_key key)
+{
+	if (!ur_is_init())
+	{
+		LOG(Warning, Relay, "udp-relay library not initialized. Call ur_init() first.");
+		return false;
+	}
+
 	if (m_running)
 	{
 		LOG(Warning, Relay, "Cannon initialize while running");
@@ -23,7 +64,7 @@ bool relay::init(relay_params params, secret_key key)
 
 	LOG(Verbose, Relay, "Begin initialization");
 
-	udpsocket newSocket = udpsocket::make(params.ipv6);
+	auto newSocket = ur::net::udpsocket::make(params.ipv6);
 	if (!newSocket.isValid())
 	{
 		LOG(Error, Relay, "Failed to create socket!");
@@ -36,7 +77,7 @@ bool relay::init(relay_params params, secret_key key)
 		return false;
 	}
 
-	const auto bindAddr = params.ipv6 ? socket_address::make_ipv6(ur::net::anyIpv6(), params.m_primaryPort) : socket_address::make_ipv4(ur::net::anyIpv4(), params.m_primaryPort);
+	const auto bindAddr = params.ipv6 ? net::socket_address::make_ipv6(ur::net::anyIpv6(), params.m_primaryPort) : net::socket_address::make_ipv4(net::anyIpv4(), params.m_primaryPort);
 	if (!newSocket.bind(bindAddr))
 	{
 		LOG(Error, Relay, "Failed bind socket to {}", bindAddr);
@@ -74,12 +115,15 @@ bool relay::init(relay_params params, secret_key key)
 	m_secretKey = std::move(key);
 	m_socket = std::move(newSocket);
 
+	m_channels.reserve(256);
+	m_addressChannels.reserve(512);
+
 	return true;
 }
 
-void relay::run()
+void ur::relay::run()
 {
-	if (!m_socket.isValid())
+	if (!ur_is_init() || !m_socket.isValid())
 	{
 		LOG(Error, Relay, "Cannot run while not initialized");
 		return;
@@ -89,52 +133,60 @@ void relay::run()
 
 	while (m_running)
 	{
-		m_lastTickTime = std::chrono::steady_clock::now();
-
 		m_socket.waitForWrite(1000us);
-		if (m_socket.waitForRead(15000us))
-			processIncoming();
+		m_socket.waitForRead(15000us);
+
+		m_lastTickTime = std::chrono::steady_clock::now();
+		processIncoming();
 
 		conditionalCleanup();
 
 		if (m_gracefulStopRequested && m_channels.size() == 0)
-		{
 			stop();
-		}
 	}
 
 	LOG(Info, Relay, "Exited run loop");
 }
 
-void relay::stop()
+void ur::relay::stop()
 {
 	LOG(Info, Relay, "Stop");
 	m_running = false;
 }
 
-void relay::stopGracefully()
+void ur::relay::stopGracefully()
 {
 	LOG(Info, Relay, "Graceful stop requested");
 	m_gracefulStopRequested = true;
 }
 
-void relay::processIncoming()
+void ur::relay::processIncoming()
 {
+	net::socket_address m_recvAddr{};
+	recv_buffer m_recvBuffer{};
+
 	const int32_t maxRecvCycles = 32;
 	for (int32_t currentCycle = 0; currentCycle < maxRecvCycles; ++currentCycle)
 	{
-		int32_t bytesRead{};
-		bytesRead = m_socket.recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), m_recvAddr);
+		const int32_t bytesRead = m_socket.recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), m_recvAddr);
 		if (bytesRead < 0)
-			return;
+		{
+			const auto err = net::udpsocket::getLastErrno();
+			if (err == EAGAIN || err == EWOULDBLOCK)
+				return;
+			else
+				continue;
+		}
 
-		// check if packet is relay handshake header, and extract guid if possible
-		// always check for handshake first, allow creating new connections from same socket without waiting prev. session to close
+		if (size_t(bytesRead) > m_recvBuffer.size()) [[unlikely]]
+			continue;
+
+		// always check for handshake to allow creating new channels from same socket without waiting prev. session to close
 		const auto [isValidHeader, header] = relay_helpers::tryDeserializeHeader(m_secretKey, m_recvBuffer, bytesRead);
 		const bool isValidNonce = header.m_nonce ? m_recentNonces.find(header.m_nonce) == m_recentNonces.end() : false;
 		if (isValidHeader && isValidNonce && !m_gracefulStopRequested)
 		{
-			m_recentNonces.assign_next(header.m_nonce);
+			m_recentNonces.assign(header.m_nonce);
 
 			auto [it, inserted] = m_channels.try_emplace(header.m_guid, header.m_guid, m_recvAddr, m_lastTickTime);
 			if (inserted)
@@ -153,7 +205,6 @@ void relay::processIncoming()
 			}
 		}
 
-		// if recvAddr has a channel mapped to it, as well as two valid peers, relay packet to the other peer
 		const auto findAddressChannel = m_addressChannels.find(m_recvAddr);
 		if (findAddressChannel != m_addressChannels.end())
 		{
@@ -170,18 +221,18 @@ void relay::processIncoming()
 
 			const auto& sendAddr = currentChannel.m_peerA != m_recvAddr ? currentChannel.m_peerA : currentChannel.m_peerB;
 
-			// try relay packet immediately
+			// relay packet immediately or drop
 			const auto bytesSend = m_socket.sendTo(m_recvBuffer.data(), bytesRead, sendAddr);
-			if (bytesSend >= 0)
-			{
-				currentChannel.m_stats.m_packetsSent++;
-				currentChannel.m_stats.m_bytesSent += bytesSend;
-			}
+			if (bytesSend < 0) [[unlikely]]
+				return;
+
+			currentChannel.m_stats.m_packetsSent++;
+			currentChannel.m_stats.m_bytesSent += bytesSend;
 		}
 	}
 }
 
-void relay::conditionalCleanup()
+void ur::relay::conditionalCleanup()
 {
 	if (m_lastTickTime < m_nextCleanupTime)
 		return;
@@ -202,7 +253,7 @@ void relay::conditionalCleanup()
 		std::erase_if(m_channels, eraseChannelLam);
 	}
 
-	{ // erase address mappings that uses erased channels
+	{ // erase address mappings that used erased channels
 		const auto eraseAddressChannelLam = [&](const auto& pair) -> bool
 		{
 			return m_channels.find(pair.second) == m_channels.end();
@@ -215,37 +266,47 @@ void relay::conditionalCleanup()
 	ur::log_flush();
 }
 
-std::pair<bool, handshake_header> relay_helpers::tryDeserializeHeader(const secret_key& key, const relay::recv_buffer_t& recvBuffer, size_t recvBytes)
+std::pair<bool, ur::handshake_header> ur::relay_helpers::tryDeserializeHeader(const secret_key& key, const recv_buffer& recvBuffer, size_t recvBytes)
 {
+	// not a handshake packet
 	if (recvBytes < sizeof(handshake_header))
+		return std::pair<bool, handshake_header>();
+	else if (std::memcmp(recvBuffer.data(), &handshake_magic_number_be, sizeof(handshake_header::m_magicNumber)) != 0)
 		return std::pair<bool, handshake_header>();
 
 	handshake_header recvHeader{};
 	std::memcpy(&recvHeader, recvBuffer.data(), sizeof(recvHeader));
 
-	if (recvHeader.m_magicNumber != handshake_magic_number_hton)
-		return std::pair<bool, handshake_header>();
+	recvHeader.m_length = ur::net::ntoh(recvHeader.m_length);
+	recvHeader.m_flags = ur::net::ntoh(recvHeader.m_flags);
+	recvHeader.m_guid = ur::net::ntoh(recvHeader.m_guid);
 
-	if (key.size() && recvHeader.m_nonce) // ignore HMAC validation if key not provided
+	if (const uint16_t len = recvHeader.m_length + sizeof(handshake_header); len != recvBytes)
 	{
-		const auto hmac = makeHMAC(key, recvHeader.m_nonce);
-		if (std::memcmp(&hmac, &recvHeader.m_mac, sizeof(hmac)) != 0)
-			return std::pair<bool, handshake_header>();
+		LOG(Debug, RelayHelpers, "Packet length invalid. Expected: {}, received: {}", len, recvBytes);
 	}
 
 	constexpr guid zeroGuid{};
 	if (recvHeader.m_guid == zeroGuid)
+	{
+		LOG(Debug, RelayHelpers, "Packet guid must not be zero'd");
 		return std::pair<bool, handshake_header>();
+	}
 
-	recvHeader.m_guid.m_a = ur::net::ntoh32(recvHeader.m_guid.m_a);
-	recvHeader.m_guid.m_b = ur::net::ntoh32(recvHeader.m_guid.m_b);
-	recvHeader.m_guid.m_c = ur::net::ntoh32(recvHeader.m_guid.m_c);
-	recvHeader.m_guid.m_d = ur::net::ntoh32(recvHeader.m_guid.m_d);
+	if (key.size() && recvHeader.m_nonce) // ignore HMAC validation if key not provided
+	{
+		const auto mac = makeHMAC(key, recvHeader.m_nonce);
+		if (std::memcmp(&mac, &recvHeader.m_mac, sizeof(mac)) != 0)
+		{
+			LOG(Debug, RelayHelpers, "Packet HMAC_sha256 invalid. Nonce: {}; Expected: {}, received: {}", recvHeader.m_nonce, mac, recvHeader.m_nonce);
+			return std::pair<bool, handshake_header>();
+		}
+	}
 
 	return std::pair<bool, handshake_header>{true, recvHeader};
 }
 
-secret_key relay_helpers::makeSecret(std::string b64)
+ur::secret_key ur::relay_helpers::makeSecret(std::string_view b64)
 {
 	if (b64.size() == 0)
 		b64 = handshake_secret_key_base64;
@@ -256,7 +317,7 @@ secret_key relay_helpers::makeSecret(std::string b64)
 	return secret_key(bytes);
 }
 
-hmac_sha256 relay_helpers::makeHMAC(const secret_key& key, uint64_t nonce)
+ur::hmac_sha256 ur::relay_helpers::makeHMAC(const secret_key& key, uint64_t nonce)
 {
 	static_assert(sizeof(hmac_sha256) == 32);
 
@@ -268,7 +329,7 @@ hmac_sha256 relay_helpers::makeHMAC(const secret_key& key, uint64_t nonce)
 	return result;
 }
 
-std::vector<std::byte> relay_helpers::decodeBase64(const std::string& b64)
+std::vector<std::byte> ur::relay_helpers::decodeBase64(std::string_view b64)
 {
 	BIO* bio = BIO_new_mem_buf(b64.data(), (int)b64.size());
 	BIO* b64f = BIO_new(BIO_f_base64());
