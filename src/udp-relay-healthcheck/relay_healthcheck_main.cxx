@@ -97,17 +97,8 @@ int main(int argc, char* argv[], char* envp[])
 		headerPacket.m_guid.m_c = 0x2301FFFF;
 		headerPacket.m_guid.m_d = 0xAB986745;
 
-<<<<<<< HEAD
 		headerPacket.m_mac = ur::relay_helpers::makeHMAC(key, &headerPacket, sizeof(headerPacket));
 		socketA.sendTo(&headerPacket, sizeof(headerPacket), relayAddr);
-=======
-		headerPacket.m_nonce = ur::net::hton(ur::randRange<uint64_t>(0, UINT64_MAX));
-		headerPacket.m_mac = ur::relay_helpers::makeHMAC(key, headerPacket.m_nonce);
-		socketA.sendTo(&headerPacket, sizeof(headerPacket), relayAddr);
-
-		headerPacket.m_nonce = ur::net::hton(ur::randRange<uint64_t>(0, UINT64_MAX));
-		headerPacket.m_mac = ur::relay_helpers::makeHMAC(key, headerPacket.m_nonce);
->>>>>>> main
 		socketB.sendTo(&headerPacket, sizeof(headerPacket), relayAddr);
 
 		ur::net::socket_address recvAddr{};
