@@ -79,18 +79,17 @@ namespace ur
 		uint16_t m_length{};							   // support handhsake extensions
 		uint16_t m_flags{};								   // support handhsake extensions
 		guid m_guid{};									   // channel identifier
-		uint64_t m_nonce{};								   // security nonce. keep always big-endian
-		hmac_sha256 m_mac{};							   // hmac_sha256 of (big-endian) nonce
+		hmac_sha256 m_mac{};							   // hmac_sha256 generated from whole packet (assuming mac at the moment of generation is null)
 	};
-	static_assert(sizeof(handshake_header) == 64);
+	static_assert(sizeof(handshake_header) == 56);
 
-	struct alignas(4) handshake_extension_header
+	struct alignas(8) handshake_extension_header
 	{
 		uint16_t m_length{};
-		uint8_t m_type{};
-		uint8_t m_flags{};
+		uint16_t m_type{};
+		uint32_t m_flags{};
 	};
-	static_assert(sizeof(handshake_extension_header) == 4);
+	static_assert(sizeof(handshake_extension_header) == 8);
 
 	using recv_buffer = std::array<std::byte, 1472>;
 
@@ -129,8 +128,6 @@ namespace ur
 
 		std::unordered_map<net::socket_address, guid> m_addressChannels{};
 
-		circular_buffer<uint64_t, 64> m_recentNonces{};
-
 		std::chrono::steady_clock::time_point m_lastTickTime{};
 
 		std::chrono::steady_clock::time_point m_nextCleanupTime{};
@@ -148,7 +145,7 @@ namespace ur
 		static secret_key makeSecret(std::string_view b64);
 
 		// make HMAC_sha256 from key and nonce
-		static hmac_sha256 makeHMAC(const secret_key& key, uint64_t nonce);
+		static hmac_sha256 makeHMAC(const secret_key& key, const void* data, size_t dataSize);
 
 		// decode base64 into byte array
 		static std::vector<std::byte> decodeBase64(std::string_view b64);

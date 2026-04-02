@@ -60,18 +60,13 @@ constexpr uint32_t handshake_magic_number_hton = ur::net::hton32(handshake_magic
 
 struct alignas(8) handshake_header
 {
-	uint32_t m_magicNumber{handshake_magic_number_host}; // relay packet identifier
-	uint16_t m_length{};								 // support handhsake extensions
-	uint16_t m_flags{};									 // support handhsake extensions
-	guid m_guid{};										 // channel identifier (128-bit, 4 x uint32_t)
-	uint64_t m_nonce{};									 // security nonce
-	hmac_sha256 m_mac{};					             // hmac (32 bytes array)
+	uint32_t m_magicNumber{handshake_magic_number_be}; // relay packet identifier
+	uint16_t m_length{};							   // support handhsake extensions
+	uint16_t m_flags{};								   // support handhsake extensions
+	guid m_guid{};									   // channel identifier
+	hmac_sha256 m_mac{};							   // hmac_sha256 generated from whole packet (assuming mac at the moment of generation is null)
 };
-constexpr uint16_t handshake_min_size = 64;
-static_assert(sizeof(handshake_header) == handshake_min_size);
-
-// relay uses HMAC_sha256 for message authentication
-HMAC(EVP_sha256(), secret_key, 32, &nonce, sizeof(nonce), mac, &mac_len);
+static_assert(sizeof(handshake_header) == 56);
 ```
 
 # Build
