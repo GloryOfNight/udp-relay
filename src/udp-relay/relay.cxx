@@ -170,6 +170,7 @@ void ur::relay::processIncoming()
 	{
 		const int32_t bytesRead = m_socket.recvFrom(m_recvBuffer.data(), m_recvBuffer.size(), m_recvAddr);
 		if (bytesRead < 0)
+<<<<<<< HEAD
 		{
 			const auto err = net::udpsocket::getLastErrno();
 			if (err == EAGAIN || err == EWOULDBLOCK)
@@ -177,6 +178,25 @@ void ur::relay::processIncoming()
 			else
 				continue;
 		}
+=======
+		{
+			const auto err = net::udpsocket::getLastErrno();
+			if (err == EAGAIN || err == EWOULDBLOCK)
+				return;
+			else
+				continue;
+		}
+
+		if (size_t(bytesRead) > m_recvBuffer.size()) [[unlikely]]
+			continue;
+
+		// always check for handshake to allow creating new channels from same socket without waiting prev. session to close
+		const auto [isValidHeader, header] = relay_helpers::tryDeserializeHeader(m_secretKey, m_recvBuffer, bytesRead);
+		const bool isValidNonce = header.m_nonce ? m_recentNonces.find(header.m_nonce) == m_recentNonces.end() : false;
+		if (isValidHeader && isValidNonce && !m_gracefulStopRequested)
+		{
+			m_recentNonces.assign(header.m_nonce);
+>>>>>>> main
 
 		if (size_t(bytesRead) > m_recvBuffer.size()) [[unlikely]]
 			continue;
@@ -290,6 +310,7 @@ std::pair<bool, ur::handshake_header> ur::relay_helpers::tryDeserializeHeader(co
 		return std::pair<bool, handshake_header>();
 	}
 
+<<<<<<< HEAD
 	if (key.size()) // ignore HMAC validation if key not provided
 	{
 		recv_buffer recvBufferZeroMac = recvBuffer;
@@ -299,6 +320,14 @@ std::pair<bool, ur::handshake_header> ur::relay_helpers::tryDeserializeHeader(co
 		if (std::memcmp(&mac, &recvHeader.m_mac, sizeof(mac)) != 0)
 		{
 			LOG(Debug, RelayHelpers, "Packet HMAC_sha256 invalid");
+=======
+	if (key.size() && recvHeader.m_nonce) // ignore HMAC validation if key not provided
+	{
+		const auto mac = makeHMAC(key, recvHeader.m_nonce);
+		if (std::memcmp(&mac, &recvHeader.m_mac, sizeof(mac)) != 0)
+		{
+			LOG(Debug, RelayHelpers, "Packet HMAC_sha256 invalid. Nonce: {}; Expected: {}, received: {}", recvHeader.m_nonce, mac, recvHeader.m_nonce);
+>>>>>>> main
 			return std::pair<bool, handshake_header>();
 		}
 	}
@@ -317,7 +346,11 @@ ur::secret_key ur::relay_helpers::makeSecret(std::string_view b64)
 	return secret_key(bytes);
 }
 
+<<<<<<< HEAD
 ur::hmac_sha256 ur::relay_helpers::makeHMAC(const secret_key& key, const void* data, size_t dataSize)
+=======
+ur::hmac_sha256 ur::relay_helpers::makeHMAC(const secret_key& key, uint64_t nonce)
+>>>>>>> main
 {
 	static_assert(sizeof(hmac_sha256) == 32);
 
