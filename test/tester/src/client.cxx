@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cstddef>
 #include <thread>
 
 using namespace std::chrono_literals;
@@ -124,6 +125,10 @@ void relay_client::processIncoming()
 			constexpr uint16_t responseType = ur::net::hton16(HandshakeResponse);
 			std::memcpy(m_recvBuffer.data() + offsetof(relay_client_handshake, m_type), &responseType, sizeof(responseType));
 
+			std::memset(m_recvBuffer.data() + offsetof(ur::handshake_header, m_mac), 0, sizeof(ur::handshake_header::m_mac));
+			const auto mac = ur::relay_helpers::makeHMAC(m_secretKey, m_recvBuffer.data(), bytesRead);
+			std::memcpy(m_recvBuffer.data() + offsetof(ur::handshake_header, m_mac), &mac, sizeof(mac));
+
 			m_socket.waitForWrite(500us);
 			const auto bytesSent = m_socket.sendTo(m_recvBuffer.data(), bytesRead, recvAddr);
 			if (bytesSent >= 0)
@@ -162,17 +167,14 @@ void relay_client::trySend()
 		packet.m_type = ur::net::hton16(HandshakeRequest);
 		packet.m_time = ur::net::hton64(std::chrono::steady_clock::now().time_since_epoch().count());
 
-		if (m_nonce)
-		{
-			packet.m_header.m_nonce = ur::net::hton64(m_nonce);
-			packet.m_header.m_mac = ur::relay_helpers::makeHMAC(m_secretKey, packet.m_header.m_nonce);
-		}
-
 		std::vector<uint8_t> requestBytes;
 		requestBytes.resize(sizeof(relay_client_handshake) + extraPayload.size());
 
 		std::memcpy(requestBytes.data(), &packet, sizeof(relay_client_handshake));
 		std::memcpy(requestBytes.data() + sizeof(relay_client_handshake), extraPayload.data(), extraPayload.size());
+
+		const ur::hmac_sha256 mac = ur::relay_helpers::makeHMAC(m_secretKey, requestBytes.data(), requestBytes.size());
+		std::memcpy(requestBytes.data() + offsetof(ur::handshake_header, m_mac), &mac, sizeof(mac));
 
 		const auto bytesSent = m_socket.sendTo(requestBytes.data(), requestBytes.size(), m_params.m_relayAddr);
 		if (bytesSent >= 0)

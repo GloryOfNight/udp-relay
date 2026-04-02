@@ -3,12 +3,9 @@
 #include "udp-relay/log.hxx"
 #include "udp-relay/main_helpers.hxx"
 #include "udp-relay/relay.hxx"
-#include "udp-relay/utils.hxx"
 
-#include <algorithm>
 #include <array>
 #include <csignal>
-#include <memory>
 #include <print>
 #include <stacktrace>
 
