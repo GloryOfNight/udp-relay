@@ -39,10 +39,6 @@ target_sources(${UDP_RELAY_LIB_NAME}
                     include/udp-relay/relay.hxx
                     include/udp-relay/utils.hxx
                     include/udp-relay/version.hxx
-                PUBLIC
-                    FILE_SET CXX_MODULES
-                    FILES
-                    # modules; later
                 )
 
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
