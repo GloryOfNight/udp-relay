@@ -9,7 +9,6 @@
 #include <format>
 #include <map>
 #include <print>
-#include <sched.h>
 #include <stacktrace>
 
 namespace cl
