@@ -61,7 +61,8 @@ namespace ur
 		uint32_t m_socketSendBufferSize{0};
 		std::chrono::milliseconds m_cleanupTime{1800};
 		std::chrono::milliseconds m_cleanupInactiveChannelAfterTime{30000};
-		bool ipv6{};
+		bool m_ipv6{};
+		uint8_t m_numForks{};
 	};
 
 	using hmac_sha256 = std::array<std::byte, 32>;

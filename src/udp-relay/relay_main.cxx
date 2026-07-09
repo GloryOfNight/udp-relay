@@ -6,6 +6,8 @@
 
 #include <array>
 #include <csignal>
+#include <format>
+#include <map>
 #include <print>
 #include <stacktrace>
 
@@ -30,7 +32,8 @@ static constexpr auto argList = std::array
 	ur::cl_var_ref{"--socketSendBufferSize", cl::relayParams.m_socketSendBufferSize,						"--socketSendBufferSize <value>             = send buffer size for internal socket" },
 	ur::cl_var_ref{"--cleanupTime", cl::relayParams.m_cleanupTime,										"--cleanupTime <value>						= time in ms, how often relay should perform clean check" },
 	ur::cl_var_ref{"--cleanupInactiveAfterTime", cl::relayParams.m_cleanupInactiveChannelAfterTime,		"--cleanupInactiveAfterTime <value>			= time in ms, inactivity timeout for channel" },
-	ur::cl_var_ref{"--ipv6", cl::relayParams.ipv6,														"--ipv6 0|1									= should create and bind to ipv6 socket (dual-stack ipv4/6 mode)" },
+	ur::cl_var_ref{"--ipv6", cl::relayParams.m_ipv6,														"--ipv6 0|1									= should create and bind to ipv6 socket (dual-stack ipv4/6 mode)" },
+	ur::cl_var_ref{"--numForks", cl::relayParams.m_numForks,														"--numForks <1-255>									= (linux-only) amount of forks that server should start" },
 };
 
 static constexpr auto envList = std::array
@@ -40,6 +43,8 @@ static constexpr auto envList = std::array
 // clang-format on
 
 static void relay_signal_handler(int sig);
+static void relay_run();
+static void relay_run_forked();
 
 static ur::relay g_relay{};
 static int exit_code{};
@@ -65,9 +70,13 @@ int main(int argc, char* argv[], char* envp[])
 		return 0;
 	}
 
-	if (g_relay.init(cl::relayParams, ur::relay_helpers::makeSecret(env::secretKey)))
+	if (UR_PLATFORM_LINUX && cl::relayParams.m_numForks)
 	{
-		g_relay.run();
+		relay_run_forked();
+	}
+	else
+	{
+		relay_run();
 	}
 
 	ur_shutdown();
@@ -77,7 +86,7 @@ int main(int argc, char* argv[], char* envp[])
 
 void relay_signal_handler(int sig)
 {
-	std::println("- - - Caught signal {} - - -", sig);
+	LOG(Warning, Main, "Caught signal - {}", sig);
 
 	switch (sig)
 	{
@@ -98,4 +107,78 @@ void relay_signal_handler(int sig)
 	}
 
 	exit_code = 128 + sig;
+}
+
+void relay_run()
+{
+	if (g_relay.init(cl::relayParams, ur::relay_helpers::makeSecret(env::secretKey)))
+	{
+		g_relay.run();
+	}
+}
+
+#if UR_PLATFORM_LINUX
+#include <linux/prctl.h>
+#include <sys/prctl.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#endif
+
+void relay_run_forked()
+{
+#if UR_PLATFORM_LINUX
+	ur::uses_fork = true;
+
+	LOG(Info, Main, "Starting relay fork instanctes");
+
+	std::map<pid_t, uint8_t> activeForks{};
+
+	for (uint8_t i = 0; i < cl::relayParams.m_numForks; i++)
+	{
+		const pid_t forkRes = fork();
+		if (forkRes == 0) // child process
+		{
+			ur::fork_id = i + 1;
+			cl::relayParams.m_primaryPort += i; // increment port to avoid relay instances try bind same port
+
+			// making sure fork process will terminate if main dies
+			prctl(PR_SET_PDEATHSIG, SIGTERM);
+
+			char name[16];
+			prctl(PR_GET_NAME, name);
+
+			const std::string newName = std::format("{0}-{1}", name, ur::fork_id.load());
+			prctl(PR_SET_NAME, newName.c_str());
+
+			relay_run();
+			return;
+		}
+		else if (forkRes > 0)
+		{
+			activeForks.emplace(forkRes, i + 1);
+			sleep(1);
+		}
+		else
+		{
+			LOG(Info, Main, "Failed to start fork instance, errno {} ({})", errno, strerror(errno));
+		}
+	}
+
+	LOG(Info, Main, "Will wait for forked instanced to exit");
+
+	while (activeForks.size())
+	{
+		int wstatus{};
+		const pid_t waitRes = wait(&wstatus);
+		if (waitRes > 0)
+		{
+			const auto foundFork = activeForks.find(waitRes);
+			if (foundFork != activeForks.end())
+			{
+				LOG(Info, Main, "Fork #{} (PID:{}) exited", foundFork->second, waitRes);
+			}
+			activeForks.erase(foundFork);
+		}
+	}
+#endif
 }

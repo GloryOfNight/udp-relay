@@ -1,0 +1,14 @@
+Completion:
+  AllScopes: Yes
+  ArgumentLists: FullPlaceholders
+  HeaderInsertion: Never
+  CodePatterns: All
+  MacroFilter: ExactPrefix
+InlayHints:
+  Enabled: true
+  BlockEnd: false
+  Designators: false
+  ParameterNames: false
+  DeducedTypes: true
+  DefaultArguments: true
+  TypeNameLimit: 24

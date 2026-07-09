@@ -106,6 +106,11 @@ void ur::parseArgs(const T& argList, int argc, char* argv[])
 				*val = std::stoll(arg.data());
 				prev_arg = nullptr;
 			}
+			else if (auto val = prev_arg->to<uint8_t>())
+			{
+				*val = std::stoul(arg.data());
+				prev_arg = nullptr;
+			}
 			else if (auto val = prev_arg->to<uint16_t>())
 			{
 				*val = std::stoul(arg.data());
