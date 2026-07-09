@@ -7,14 +7,20 @@
 #include "udp-relay/net/udpsocket.hxx"
 #include "udp-relay/version.hxx"
 
+#include <atomic>
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 
 using namespace std::chrono_literals;
 
-std::atomic<ur::log_level> ur::runtime_log_verbosity{ur::log_level::Info};
-std::atomic<bool> ur_is_initialized{false};
+namespace ur
+{
+	std::atomic<ur::log_level> runtime_log_verbosity{ur::log_level::Info};
+	std::atomic_bool uses_fork{false};
+	std::atomic_uint8_t fork_id{0};
+	std::atomic_bool is_initialized{false};
+} // namespace ur
 
 #if UR_PLATFORM_WINDOWS
 #include <WinSock2.h>
@@ -31,13 +37,13 @@ int ur_init()
 	if (wsaRes != 0)
 		return 1;
 #endif
-	ur_is_initialized = true;
+	ur::is_initialized = true;
 	return 0;
 }
 
 bool ur_is_init()
 {
-	return ur_is_initialized;
+	return ur::is_initialized;
 }
 
 void ur_shutdown()
@@ -45,7 +51,7 @@ void ur_shutdown()
 #if UR_PLATFORM_WINDOWS
 	WSACleanup();
 #endif
-	ur_is_initialized = false;
+	ur::is_initialized = false;
 }
 
 bool ur::relay::init(relay_params params, secret_key key)
@@ -64,20 +70,20 @@ bool ur::relay::init(relay_params params, secret_key key)
 
 	LOG(Verbose, Relay, "Begin initialization");
 
-	auto newSocket = ur::net::udpsocket::make(params.ipv6);
+	auto newSocket = ur::net::udpsocket::make(params.m_ipv6);
 	if (!newSocket.isValid())
 	{
 		LOG(Error, Relay, "Failed to create socket!");
 		return false;
 	}
 
-	if (params.ipv6 && !newSocket.setOnlyIpv6(false))
+	if (params.m_ipv6 && !newSocket.setOnlyIpv6(false))
 	{
 		LOG(Error, Relay, "Failed set socket ipv6 to dual-stack mode");
 		return false;
 	}
 
-	const auto bindAddr = params.ipv6 ? net::socket_address::make_ipv6(ur::net::anyIpv6(), params.m_primaryPort) : net::socket_address::make_ipv4(net::anyIpv4(), params.m_primaryPort);
+	const auto bindAddr = params.m_ipv6 ? net::socket_address::make_ipv6(ur::net::anyIpv6(), params.m_primaryPort) : net::socket_address::make_ipv4(net::anyIpv4(), params.m_primaryPort);
 	if (!newSocket.bind(bindAddr))
 	{
 		LOG(Error, Relay, "Failed bind socket to {}", bindAddr);

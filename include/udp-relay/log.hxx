@@ -5,6 +5,7 @@
 #include <atomic>
 #include <chrono>
 #include <cstdarg>
+#include <cstdint>
 #include <format>
 #include <iostream>
 #include <print>
@@ -22,6 +23,8 @@ namespace ur
 	};
 
 	extern std::atomic<log_level> runtime_log_verbosity;
+	extern std::atomic_bool uses_fork;
+	extern std::atomic_uint8_t fork_id;
 
 #if UR_BUILD_RELEASE
 	static constexpr log_level compile_log_verbosity{log_level::Info};
@@ -56,9 +59,19 @@ namespace ur
 		if (level > runtime_log_verbosity)
 			return;
 
-		const auto now = std::chrono::utc_clock::now();
-		const char* logLevelStr = log_level_to_string(level);
-		std::println(std::cout, "{0} {1}", std::vformat("[{0:%F}T{0:%T}] {1}: {2}:", std::make_format_args(now, category, logLevelStr)), std::vformat(format, std::make_format_args(args...)));
+		if (uses_fork)
+		{
+			const uint8_t fid = fork_id;
+			const auto now = std::chrono::utc_clock::now();
+			const char* logLevelStr = log_level_to_string(level);
+			std::println(std::cout, "[ID:{0}]{1} {2}", fid, std::vformat("[{0:%F}T{0:%T}] {1}: {2}:", std::make_format_args(now, category, logLevelStr)), std::vformat(format, std::make_format_args(args...)));
+		}
+		else
+		{
+			const auto now = std::chrono::utc_clock::now();
+			const char* logLevelStr = log_level_to_string(level);
+			std::println(std::cout, "{0} {1}", std::vformat("[{0:%F}T{0:%T}] {1}: {2}:", std::make_format_args(now, category, logLevelStr)), std::vformat(format, std::make_format_args(args...)));
+		}
 	}
 
 	static inline void log_flush()
